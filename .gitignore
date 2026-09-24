@@ -1,6 +1,7 @@
-.claude*
+*.claude
 bin/
 obj/
 appsettings.*.local.json
 *.md
 !README.md
+.
