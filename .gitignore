@@ -1,5 +1,4 @@
-.claude/settings.local.json
-.claude/hooks/.intentos-compilacion
+.claude*
 bin/
 obj/
 appsettings.*.local.json
