@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PlataformaReservas.Aplicacion/PlataformaReservas.Aplicacion.csproj" />
+    <Project Path="src/PlataformaReservas.Dominio/PlataformaReservas.Dominio.csproj" />
+    <Project Path="src/PlataformaReservas.Infraestructura/PlataformaReservas.Infraestructura.csproj" />
+    <Project Path="src/PlataformaReservas.Web/PlataformaReservas.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PlataformaReservas.PruebasIntegracion/PlataformaReservas.PruebasIntegracion.csproj" />
+    <Project Path="tests/PlataformaReservas.PruebasUnitarias/PlataformaReservas.PruebasUnitarias.csproj" />
+  </Folder>
+</Solution>

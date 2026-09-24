@@ -1,0 +1,7 @@
+.claude/settings.local.json
+.claude/hooks/.intentos-compilacion
+bin/
+obj/
+appsettings.*.local.json
+*.md
+!README.md

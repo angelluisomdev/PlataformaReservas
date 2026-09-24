@@ -1,0 +1,265 @@
+root = true
+
+# CA1707: los identificadores no deben contener guiones bajos.
+# En pruebas, el nombre con guiones bajos es la convencion de xUnit y documenta
+# el comportamiento verificado (modelo-dominio.md §9.1). Solo en tests/.
+[tests/**.cs]
+dotnet_diagnostic.CA1707.severity = none
+
+#-------------------------------------
+# Archivos generales
+#-------------------------------------
+[*]
+indent_style = space
+dotnet_style_allow_multiple_blank_lines_experimental = true:silent
+dotnet_style_allow_statement_immediately_after_block_experimental = true:silent
+dotnet_style_readonly_field = true:suggestion
+end_of_line = crlf
+dotnet_style_operator_placement_when_wrapping = beginning_of_line
+tab_width = 4
+indent_size = 4
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:silent
+dotnet_style_null_propagation = true:suggestion
+dotnet_style_prefer_auto_properties = true:suggestion
+dotnet_style_object_initializer = true:suggestion
+dotnet_style_collection_initializer = true:suggestion
+dotnet_style_explicit_tuple_names = true:suggestion
+dotnet_style_coalesce_expression = true:suggestion
+dotnet_style_prefer_is_null_check_over_reference_equality_method = true:suggestion
+dotnet_style_prefer_simplified_boolean_expressions = true:suggestion
+dotnet_style_prefer_conditional_expression_over_assignment = true:silent
+dotnet_style_prefer_conditional_expression_over_return = true:silent
+dotnet_style_prefer_inferred_tuple_names = true:suggestion
+dotnet_style_prefer_inferred_anonymous_type_member_names = true:suggestion
+dotnet_style_prefer_compound_assignment = true:suggestion
+dotnet_style_prefer_simplified_interpolation = true:suggestion
+dotnet_style_prefer_collection_expression = when_types_loosely_match:suggestion
+dotnet_style_namespace_match_folder = true:suggestion
+dotnet_style_predefined_type_for_locals_parameters_members = true:silent
+dotnet_style_predefined_type_for_member_access = true:silent
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+dotnet_style_qualification_for_event = false:suggestion
+
+#-------------------------------------
+# Archivos C#
+#-------------------------------------
+[*.cs]
+
+# === Formato general ===
+charset = utf-8
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+max_line_length = 150
+guidelines_style = 1px solid skyblue
+csharp_new_line_before_open_brace = all
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true
+csharp_indent_labels = one_less_than_current
+csharp_indent_block_contents = true
+
+# === Uso de var ===
+csharp_style_var_for_built_in_types = false:warning
+csharp_style_var_when_type_is_apparent = false:warning
+csharp_style_var_elsewhere = false:suggestion
+
+# === Espaciado ===
+csharp_space_after_cast=false
+csharp_space_after_colon_in_inheritance_clause=true
+csharp_space_after_comma=true
+csharp_space_after_dot=false
+csharp_space_after_keywords_in_control_flow_statements=true
+csharp_space_after_semicolon_in_for_statement=true
+csharp_space_around_binary_operators= before_and_after
+csharp_space_around_declaration_statements=false
+csharp_space_before_colon_in_inheritance_clause=true
+csharp_space_before_comma=false
+csharp_space_before_dot=false
+csharp_space_before_open_square_brackets=false
+csharp_space_before_semicolon_in_for_statement=false
+csharp_space_between_empty_square_brackets=false
+csharp_space_between_method_call_empty_parameter_list_parentheses=false
+csharp_space_between_method_call_name_and_opening_parenthesis=false
+csharp_space_between_method_call_parameter_list_parentheses=false
+csharp_space_between_method_declaration_empty_parameter_list_parentheses=false
+csharp_space_between_method_declaration_name_and_open_parenthesis=false
+csharp_space_between_method_declaration_parameter_list_parentheses=false
+csharp_space_between_parentheses=false
+csharp_space_between_square_brackets=false
+
+# === Estilo de llaves ===
+csharp_new_line_before_open_brace_types = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+
+# === Estilo de miembros ===
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+dotnet_style_qualification_for_event = false:suggestion
+
+# === Inicializadores y simplificaciones ===
+dotnet_style_object_initializer = true:suggestion
+dotnet_style_collection_initializer = true:suggestion
+dotnet_style_prefer_auto_properties = true:suggestion
+dotnet_style_explicit_tuple_names = true:suggestion
+dotnet_style_null_propagation = true:suggestion
+
+# === Usings ===
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+csharp_using_directive_placement= inside_namespace:silent
+dotnet_remove_unnecessary_usings = true
+
+# === Nomenclatura de interfaces ===
+dotnet_naming_rule.interface_should_start_with_i.symbols = interface
+dotnet_naming_rule.interface_should_start_with_i.style = prefix_i
+dotnet_naming_rule.interface_should_start_with_i.severity = suggestion
+
+dotnet_naming_symbols.interface.applicable_kinds = interface
+dotnet_naming_style.prefix_i.required_prefix = I
+
+# === Expresiones y lambdas ===
+csharp_style_expression_bodied_methods = false:suggestion
+csharp_style_expression_bodied_properties = true:suggestion
+csharp_style_expression_bodied_accessors = true:silent
+
+# === Otros ===
+csharp_prefer_braces = true:error
+
+# === Los campos estáticos no privados se escriben en PascalCase ===
+dotnet_naming_rule.non_private_static_fields_should_be_pascal_case.severity = suggestion
+dotnet_naming_rule.non_private_static_fields_should_be_pascal_case.symbols=non_private_static_fields
+dotnet_naming_rule.non_private_static_fields_should_be_pascal_case.style = non_private_static_field_style
+
+dotnet_naming_symbols.non_private_static_fields.applicable_kinds=field
+dotnet_naming_symbols.non_private_static_fields.applicable_accessibilities=public
+dotnet_naming_symbols.non_private_static_fields.required_modifiers=static
+
+dotnet_naming_style.non_private_static_field_style.capitalization=pascal_case
+
+# === Los campos no privados de solo lectura se escriben en PascalCase ===
+dotnet_naming_rule.non_private_readonly_fields_should_be_pascal_case.severity = suggestion
+dotnet_naming_rule.non_private_readonly_fields_should_be_pascal_case.symbols=non_private_readonly_fields
+dotnet_naming_rule.non_private_readonly_fields_should_be_pascal_case.style = non_private_static_field_style
+
+dotnet_naming_symbols.non_private_readonly_fields.applicable_kinds=field
+dotnet_naming_symbols.non_private_readonly_fields.applicable_accessibilities=public
+dotnet_naming_symbols.non_private_readonly_fields.required_modifiers=readonly
+
+dotnet_naming_style.non_private_readonly_field_style.capitalization=pascal_case
+
+# === Las constantes son todas mayúsculas. ===
+dotnet_naming_rule.constants_should_be_pascal_case.severity = suggestion
+dotnet_naming_rule.constants_should_be_pascal_case.symbols=constants
+dotnet_naming_rule.constants_should_be_pascal_case.style = constant_style
+
+dotnet_naming_symbols.constants.applicable_kinds=field, local
+dotnet_naming_symbols.constants.required_modifiers=const
+
+dotnet_naming_style.constant_style.capitalization=all_upper
+
+# === Los campos privados se escriben en camelCase y comienzan con _ ===
+dotnet_naming_rule.private_fields_should_start_with_.severity = warning
+dotnet_naming_rule.private_fields_should_start_with_.symbols=private_fields
+dotnet_naming_rule.private_fields_should_start_with_.style = instance_field_style
+
+dotnet_naming_symbols.private_fields.applicable_kinds=field
+dotnet_naming_symbols.private_fields.applicable_accessibilities=protected, internal, protected_internal, private_protected
+
+dotnet_naming_style.private_fields_should_start_with_.capitalization=camel_case
+dotnet_naming_style.private_fields_should_start_with_.required_prefix=_
+
+# === Los campos estáticos se escriben en camelCase y comienzan con _ ===
+dotnet_naming_rule.static_fields_should_be_camel_case.severity = suggestion
+dotnet_naming_rule.static_fields_should_be_camel_case.symbols=static_fields
+dotnet_naming_rule.static_fields_should_be_camel_case.style = instance_field_style
+
+dotnet_naming_symbols.static_fields.applicable_kinds=field
+dotnet_naming_symbols.static_fields.required_modifiers=static
+
+dotnet_naming_style.static_field_style.capitalization=camel_case
+dotnet_naming_style.static_field_style.required_prefix=_
+
+# === Los campos instanciados se escriben en camelCase y comienzan con _ ===
+dotnet_naming_rule.instance_fields_should_be_camel_case.severity = suggestion
+dotnet_naming_rule.instance_fields_should_be_camel_case.symbols=instance_fields
+dotnet_naming_rule.instance_fields_should_be_camel_case.style = instance_field_style
+
+dotnet_naming_symbols.instance_fields.applicable_kinds=field
+
+dotnet_naming_style.instance_field_style.capitalization=camel_case
+dotnet_naming_style.instance_field_style.required_prefix=_
+
+# === Loacles y parámetros se escriben en camelCase ===
+dotnet_naming_rule.locals_should_be_camel_case.severity = suggestion
+dotnet_naming_rule.locals_should_be_camel_case.symbols=locals_and_parameters
+dotnet_naming_rule.locals_should_be_camel_case.style = camel_case_style
+
+dotnet_naming_symbols.locals_and_parameters.applicable_kinds=parameter, local
+
+dotnet_naming_style.camel_case_style.capitalization=camel_case
+
+# === Funciones locales se escriben en PascalCase ===
+dotnet_naming_rule.local_functions_should_be_pascal_case.severity = suggestion
+dotnet_naming_rule.local_functions_should_be_pascal_case.symbols=local_functions
+dotnet_naming_rule.local_functions_should_be_pascal_case.style = non_private_static_field_style
+
+dotnet_naming_symbols.local_functions.applicable_kinds=local_function
+
+dotnet_naming_style.local_function_style.capitalization=pascal_case
+
+# === Por defecto, los nombres de los elementos se escriben en PascalCase ===
+dotnet_naming_rule.members_should_be_pascal_case.severity = suggestion
+dotnet_naming_rule.members_should_be_pascal_case.symbols=all_members
+dotnet_naming_rule.members_should_be_pascal_case.style = non_private_static_field_style
+
+dotnet_naming_symbols.all_members.applicable_kinds=*
+
+dotnet_naming_style.pascal_case_style.capitalization=pascal_case
+csharp_style_expression_bodied_constructors = false:silent
+csharp_style_expression_bodied_operators = false:silent
+csharp_style_expression_bodied_indexers = true:silent
+csharp_style_expression_bodied_lambdas = true:silent
+csharp_style_expression_bodied_local_functions = false:silent
+csharp_style_allow_embedded_statements_on_same_line_experimental = true:silent
+csharp_style_allow_blank_lines_between_consecutive_braces_experimental = true:silent
+csharp_style_allow_blank_line_after_colon_in_constructor_initializer_experimental = true:silent
+csharp_style_allow_blank_line_after_token_in_conditional_expression_experimental = true:silent
+csharp_style_allow_blank_line_after_token_in_arrow_expression_clause_experimental = true:silent
+csharp_prefer_simple_using_statement = true:suggestion
+csharp_style_namespace_declarations = block_scoped:silent
+csharp_style_prefer_method_group_conversion = true:silent
+csharp_style_prefer_top_level_statements = true:silent
+csharp_style_prefer_primary_constructors = true:suggestion
+csharp_prefer_system_threading_lock = true:suggestion
+csharp_style_prefer_switch_expression = true:suggestion
+csharp_style_prefer_pattern_matching = true:silent
+csharp_style_pattern_matching_over_is_with_cast_check = true:suggestion
+csharp_style_pattern_matching_over_as_with_null_check = true:suggestion
+csharp_style_prefer_not_pattern = true:suggestion
+csharp_style_prefer_extended_property_pattern = true:suggestion
+csharp_style_conditional_delegate_call = true:suggestion
+csharp_prefer_static_local_function = true:suggestion
+csharp_prefer_static_anonymous_function = true:suggestion
+csharp_style_prefer_readonly_struct = true:suggestion
+csharp_style_prefer_readonly_struct_member = true:suggestion
+csharp_style_throw_expression = true:suggestion
+csharp_style_prefer_null_check_over_type_check = true:suggestion
+csharp_prefer_simple_default_expression = true:suggestion
+csharp_style_prefer_local_over_anonymous_function = true:suggestion
+csharp_style_prefer_index_operator = true:suggestion
+csharp_style_prefer_range_operator = true:suggestion
+csharp_style_implicit_object_creation_when_type_is_apparent = true:suggestion
+csharp_style_prefer_implicitly_typed_lambda_expression = true:suggestion
+csharp_style_prefer_tuple_swap = true:suggestion
+csharp_style_prefer_unbound_generic_type_in_nameof = true:suggestion
+csharp_style_prefer_utf8_string_literals = true:suggestion
+csharp_style_inlined_variable_declaration = true:suggestion
+csharp_style_deconstructed_variable_declaration = true:suggestion
+csharp_style_unused_value_assignment_preference = discard_variable:suggestion
+csharp_style_unused_value_expression_statement_preference = discard_variable:silent
+
