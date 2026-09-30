@@ -6,6 +6,12 @@ root = true
 [tests/**.cs]
 dotnet_diagnostic.CA1707.severity = none
 
+# Migraciones de EF Core: codigo generado por "dotnet ef migrations add", que se regenera en cada
+# migracion. Se marca como generado para que los analizadores no lo revisen (CA1861 y otros).
+# Aprobado por el desarrollador en la Fase 5 (A-18; anotar en arquitectura.md §3.3).
+[src/PlataformaReservas.Infraestructura/Persistencia/Migraciones/**.cs]
+generated_code = true
+
 #-------------------------------------
 # Archivos generales
 #-------------------------------------

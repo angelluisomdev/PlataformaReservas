@@ -5,3 +5,4 @@ appsettings.*.local.json
 *.md
 !README.md
 .
+.env

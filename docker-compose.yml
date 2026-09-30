@@ -1,0 +1,27 @@
+#
+#   docker compose up -d postgres     levantar
+#   docker compose ps                 comprobar que esta "healthy"
+#   docker compose down               parar, conservando los datos
+#   docker compose down -v            parar y BORRAR los datos
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: plataformareservas-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: plataforma_reservas
+      POSTGRES_USER: ${POSTGRES_USER:?Falta POSTGRES_USER en .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Falta POSTGRES_PASSWORD en .env}
+    ports:
+      - "5432:5432"
+    volumes:
+      - datos-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d plataforma_reservas"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  datos-postgres:
