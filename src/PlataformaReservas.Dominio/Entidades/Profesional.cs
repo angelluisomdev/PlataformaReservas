@@ -2,8 +2,6 @@ using PlataformaReservas.Dominio.Compartido;
 
 namespace PlataformaReservas.Dominio.Entidades;
 
-// Raiz del agregado que contiene sus horarios, sus excepciones y los servicios que presta:
-// RN-42 y RN-45 solo se pueden garantizar viendolos todos juntos (modelo-dominio.md §2.1).
 public sealed class Profesional : EntidadBase
 {
     private readonly List<Horario> _horarios = [];
@@ -14,7 +12,6 @@ public sealed class Profesional : EntidadBase
     {
     }
 
-    // Se fija al crear y ningun metodo lo cambia (RN-01).
     public Guid EmpresaId { get; private set; }
 
     public string NombreCompleto { get; private set; } = null!;

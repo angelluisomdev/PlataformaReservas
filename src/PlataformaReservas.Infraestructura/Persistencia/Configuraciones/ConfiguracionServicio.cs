@@ -10,8 +10,8 @@ public sealed class ConfiguracionServicio : IEntityTypeConfiguration<Servicio>
     {
         builder.ToTable("servicios", tabla =>
         {
-            tabla.HasCheckConstraint("ck_servicios_duracion", "duracion_minutos > 0");   // RN-20
-            tabla.HasCheckConstraint("ck_servicios_precio", "precio >= 0");              // RN-21
+            tabla.HasCheckConstraint("ck_servicios_duracion", "duracion_minutos > 0");
+            tabla.HasCheckConstraint("ck_servicios_precio", "precio >= 0");
         });
         builder.HasKey(s => s.Id);
 

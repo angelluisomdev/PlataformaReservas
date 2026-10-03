@@ -20,7 +20,6 @@ public sealed class ConfiguracionProfesional : IEntityTypeConfiguration<Profesio
             .HasForeignKey(p => p.EmpresaId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Hijos del agregado: se cargan, validan y guardan con el profesional (modelo-dominio.md §2.1).
         builder.HasMany(p => p.Horarios)
             .WithOne()
             .HasForeignKey(h => h.ProfesionalId)
@@ -33,8 +32,6 @@ public sealed class ConfiguracionProfesional : IEntityTypeConfiguration<Profesio
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(p => p.Excepciones).UsePropertyAccessMode(PropertyAccessMode.Field);
 
-        // En el dominio es un conjunto de Guid; en base de datos, la tabla de union profesional_servicio
-        // con clave compuesta, que garantiza la unicidad del par (RN-32).
         builder.Ignore(p => p.ServiciosQuePresta);
         builder.OwnsMany<ProfesionalServicio>("_servicios", servicio =>
         {

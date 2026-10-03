@@ -3,16 +3,12 @@ using PlataformaReservas.Dominio.ValueObjects;
 
 namespace PlataformaReservas.Dominio.Entidades;
 
-// Inquilino del SaaS. En la interfaz publica se llama "establecimiento" (SPEC §3.2).
-// Sus datos NO se cifran: se publican en la ficha y Ciudad debe poder buscarse (RN-164).
 public sealed class Empresa : EntidadBase
 {
-    // Valores por defecto de las politicas en el alta (RN-14).
     private const int IntervaloHuecosPorDefecto = 15;
     private const int AntelacionMinimaPorDefecto = 60;
     private const int AntelacionMaximaPorDefecto = 60;
 
-    // Fijo en el MVP. Punto de extension documentado: no se lee (RN-103).
     private const string ZonaHorariaPorDefecto = "Europe/Madrid";
 
     private Empresa()
@@ -62,7 +58,13 @@ public sealed class Empresa : EntidadBase
     {
         Validacion.IdentificadorObligatorio(id, "La empresa");
         Validacion.TextoObligatorio(nombre, 120, "El nombre de la empresa");
+        Validacion.TextoOpcional(descripcion, 1000, "La descripcion de la empresa");
         Validacion.IdentificadorObligatorio(categoriaId, "La categoria de la empresa");
+        Validacion.TextoObligatorio(email, 160, "El email de la empresa");
+        Validacion.TextoObligatorio(telefono, 20, "El telefono de la empresa");
+        Validacion.TextoObligatorio(direccion, 200, "La direccion de la empresa");
+        Validacion.TextoObligatorio(codigoPostal, 10, "El codigo postal de la empresa");
+        Validacion.TextoObligatorio(ciudad, 80, "La ciudad de la empresa");
         Validacion.InstanteUtc(ahoraUtc, "La fecha de alta de la empresa");
 
         return new Empresa
@@ -70,13 +72,13 @@ public sealed class Empresa : EntidadBase
             Id = id,
             Nombre = nombre.Trim(),
             Slug = slug,
-            Descripcion = descripcion,
+            Descripcion = descripcion?.Trim(),
             CategoriaId = categoriaId,
-            Email = email,
-            Telefono = telefono,
-            Direccion = direccion,
-            CodigoPostal = codigoPostal,
-            Ciudad = ciudad,
+            Email = email.Trim(),
+            Telefono = telefono.Trim(),
+            Direccion = direccion.Trim(),
+            CodigoPostal = codigoPostal.Trim(),
+            Ciudad = ciudad.Trim(),
             ZonaHoraria = ZonaHorariaPorDefecto,
             Politicas = new PoliticasReserva(
                 IntervaloHuecosPorDefecto,

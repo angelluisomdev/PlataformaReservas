@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Identity;
 
 namespace PlataformaReservas.PruebasIntegracion.Infraestructura;
 
-// Doble de pruebas del protector de datos personales. Reversible y reconocible en la columna:
-// NO cifra nada. La implementacion real (AES-256-GCM) llega en la Fase 6.
 public sealed class ProtectorFalso : IPersonalDataProtector
 {
     public const string Prefijo = "falso:";

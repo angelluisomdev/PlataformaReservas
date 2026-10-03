@@ -22,7 +22,6 @@ public sealed class ConfiguracionMiembroEmpresa : IEntityTypeConfiguration<Miemb
             .HasForeignKey(m => m.UsuarioId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Una pertenencia por usuario y empresa (RN-06).
         builder.HasIndex(m => new { m.EmpresaId, m.UsuarioId }).IsUnique();
     }
 }

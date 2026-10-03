@@ -4,10 +4,6 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace PlataformaReservas.Infraestructura.Persistencia.Configuraciones;
 
-// IdentityDbContext fija los nombres "AspNet*" de sus tablas y la convencion snake_case no los reescribe.
-// Estas configuraciones solo cambian el nombre de tabla, para que coincida con la convencion (D-13):
-// asp_net_roles, asp_net_user_roles, etc. Nada mas de Identity se toca.
-
 public sealed class ConfiguracionRol : IEntityTypeConfiguration<IdentityRole<Guid>>
 {
     public void Configure(EntityTypeBuilder<IdentityRole<Guid>> builder)

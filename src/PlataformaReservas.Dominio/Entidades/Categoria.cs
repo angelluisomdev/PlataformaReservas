@@ -3,7 +3,6 @@ using PlataformaReservas.Dominio.ValueObjects;
 
 namespace PlataformaReservas.Dominio.Entidades;
 
-// Datos maestros: se cargan por datos iniciales y no se mantienen desde la aplicacion (RN-122).
 public sealed class Categoria : EntidadBase
 {
     private Categoria()
@@ -20,6 +19,11 @@ public sealed class Categoria : EntidadBase
     {
         Validacion.IdentificadorObligatorio(id, "La categoria");
         Validacion.TextoObligatorio(nombre, 80, "El nombre de la categoria");
+
+        if (slug.Valor.Length > 80)
+        {
+            throw new DominioException("El slug de la categoria no puede superar 80 caracteres.");
+        }
 
         return new Categoria
         {

@@ -13,7 +13,6 @@ public sealed class ConfiguracionExcepcionHorario : IEntityTypeConfiguration<Exc
 
         builder.Property(x => x.Motivo).HasMaxLength(200);
 
-        // Una excepcion por profesional y fecha (RN-45).
         builder.HasIndex(x => new { x.ProfesionalId, x.Fecha }).IsUnique();
     }
 }

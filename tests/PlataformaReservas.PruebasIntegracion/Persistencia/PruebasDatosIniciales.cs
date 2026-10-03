@@ -16,8 +16,6 @@ public sealed class PruebasDatosIniciales(BaseDatosFixture baseDatos)
         "psicologia", "taller", "academia", "entrenamiento-personal",
     ];
 
-    // RN-122, RN-123: el sembrado es idempotente. Se cuentan solo las categorias sembradas porque la
-    // base es compartida con otras pruebas de la coleccion.
     [Fact]
     public async Task Sembrar_dos_veces_deja_las_ocho_categorias_una_sola_vez()
     {

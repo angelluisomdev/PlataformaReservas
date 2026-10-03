@@ -1,6 +1,5 @@
 namespace PlataformaReservas.Dominio.Compartido;
 
-// Comprobaciones de invariantes comunes a las fabricas de las entidades. Todas lanzan DominioException.
 internal static class Validacion
 {
     public static void IdentificadorObligatorio(Guid id, string que)
@@ -24,7 +23,14 @@ internal static class Validacion
         }
     }
 
-    // Npgsql rechaza cualquier DateTime no UTC destinado a timestamptz (RN-100, R-2).
+    public static void TextoOpcional(string? valor, int longitudMaxima, string que)
+    {
+        if (valor is not null && valor.Trim().Length > longitudMaxima)
+        {
+            throw new DominioException($"{que} no puede superar {longitudMaxima} caracteres.");
+        }
+    }
+
     public static void InstanteUtc(DateTime instante, string que)
     {
         if (instante.Kind != DateTimeKind.Utc)

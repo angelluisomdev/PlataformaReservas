@@ -13,7 +13,6 @@ public sealed class PruebasEsquema(BaseDatosFixture baseDatos)
 {
     private static readonly DateTime Ahora = new(2026, 10, 1, 8, 0, 0, DateTimeKind.Utc);
 
-    // Control 3, tercera linea: se comprueba en el catalogo, no fiandose de que la migracion se aplico (R-3).
     [Fact]
     public async Task La_restriccion_de_no_solapamiento_existe_en_la_base_de_datos()
     {
@@ -25,7 +24,6 @@ public sealed class PruebasEsquema(BaseDatosFixture baseDatos)
         total.Should().Be(1);
     }
 
-    // PROJECT_PLAN.md §6 y R-5: el orden de Guid v7 tal como lo guarda Npgsql en un uuid de PostgreSQL.
     [Fact]
     public async Task Los_guid_v7_se_ordenan_en_postgresql_en_el_orden_en_que_se_generaron()
     {
@@ -37,7 +35,7 @@ public sealed class PruebasEsquema(BaseDatosFixture baseDatos)
                 Guid id = Guid.CreateVersion7();
                 generados.Add(id);
                 db.Categorias.Add(Categoria.Crear(id, $"Orden {i}", Slug.Desde($"orden-guid-{i}")));
-                await Task.Delay(2);   // marcas de tiempo distintas: v7 solo ordena entre milisegundos
+                await Task.Delay(2);
             }
 
             await db.SaveChangesAsync();
@@ -53,8 +51,6 @@ public sealed class PruebasEsquema(BaseDatosFixture baseDatos)
         ordenadosPorPostgres.Should().Equal(generados);
     }
 
-    // RN-163 con el doble de pruebas: la columna guarda lo que devuelve el protector y la lectura
-    // recupera el original. La prueba con el cifrado real y SQL crudo es de la Fase 17.
     [Fact]
     public async Task Nombre_y_telefono_de_la_reserva_pasan_por_el_protector()
     {
@@ -87,8 +83,9 @@ public sealed class PruebasEsquema(BaseDatosFixture baseDatos)
         }
 
         await using ContextoDatos lectura = baseDatos.CrearContexto();
-        string? nombreEnColumna = await EscalarTextoAsync(lectura,
-            $"SELECT nombre_cliente FROM reservas WHERE id = '{reservaId}'");
+        string nombreEnColumna = await lectura.Database
+            .SqlQuery<string>($"SELECT nombre_cliente AS \"Value\" FROM reservas WHERE id = {reservaId}")
+            .SingleAsync();
         Reserva leida = await lectura.Reservas.SingleAsync(r => r.Id == reservaId);
 
         nombreEnColumna.Should().StartWith(ProtectorFalso.Prefijo).And.NotContain("Lucia");
@@ -101,11 +98,6 @@ public sealed class PruebasEsquema(BaseDatosFixture baseDatos)
     {
         object? valor = await EjecutarEscalarAsync(db, sql);
         return Convert.ToInt64(valor, System.Globalization.CultureInfo.InvariantCulture);
-    }
-
-    private static async Task<string?> EscalarTextoAsync(ContextoDatos db, string sql)
-    {
-        return await EjecutarEscalarAsync(db, sql) as string;
     }
 
     private static async Task<object?> EjecutarEscalarAsync(ContextoDatos db, string sql)

@@ -4,8 +4,6 @@ using PlataformaReservas.Dominio.ValueObjects;
 
 namespace PlataformaReservas.Dominio.Entidades;
 
-// Raiz aparte. Su invariante mas importante, que dos reservas no canceladas del mismo profesional
-// no se solapen (RN-77), no cabe en el agregado: la garantiza la restriccion EXCLUDE (modelo-dominio.md §2.4).
 public sealed class Reserva : EntidadBase
 {
     private Reserva()
@@ -22,7 +20,6 @@ public sealed class Reserva : EntidadBase
 
     public FranjaHoraria Franja { get; private set; } = null!;
 
-    // Copias del momento de reservar: un cambio posterior no reescribe el historico (RN-78).
     public decimal PrecioAplicado { get; private set; }
 
     public int DuracionAplicadaMinutos { get; private set; }
@@ -41,8 +38,6 @@ public sealed class Reserva : EntidadBase
 
     public DateTime? FechaCancelacion { get; private set; }
 
-    // Recibe el Servicio completo, no su identificador: FinUtc se calcula aqui y nunca
-    // puede venir del cliente (RN-74, modelo-dominio.md §4.10).
     public static Reserva Crear(
         Guid id,
         Guid empresaId,
@@ -61,16 +56,12 @@ public sealed class Reserva : EntidadBase
         Validacion.IdentificadorObligatorio(profesionalId, "El profesional de la reserva");
         Validacion.TextoObligatorio(nombreCliente, 120, "El nombre del cliente");
         Validacion.TextoObligatorio(telefonoCliente, 20, "El telefono del cliente");
+        Validacion.TextoOpcional(observaciones, 500, "Las observaciones");
         Validacion.InstanteUtc(ahoraUtc, "La fecha de alta de la reserva");
 
         if (servicio.EmpresaId != empresaId)
         {
             throw new DominioException("El servicio no pertenece a la empresa de la reserva.");
-        }
-
-        if (observaciones is not null && observaciones.Length > 500)
-        {
-            throw new DominioException("Las observaciones no pueden superar 500 caracteres.");
         }
 
         FranjaHoraria franja = new(inicioUtc, inicioUtc.AddMinutes(servicio.DuracionMinutos));

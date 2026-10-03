@@ -11,7 +11,6 @@ public sealed class ConfiguracionHorario : IEntityTypeConfiguration<Horario>
         builder.ToTable("horarios");
         builder.HasKey(h => h.Id);
 
-        // Hora local de la empresa, sin conversion (RN-101). El objeto de valor se aplana en dos columnas.
         builder.ComplexProperty(h => h.Intervalo, intervalo =>
         {
             intervalo.Property(i => i.HoraInicio).HasColumnName("hora_inicio");

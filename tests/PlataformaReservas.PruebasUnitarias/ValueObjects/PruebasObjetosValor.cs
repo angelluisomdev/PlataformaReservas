@@ -44,12 +44,12 @@ public sealed class PruebasObjetosValor
     }
 
     [Theory]
-    [InlineData(60, 120, false)]   // consecutiva por detras: [9:00,10:00) y [10:00,11:00)
-    [InlineData(-60, 0, false)]    // consecutiva por delante
-    [InlineData(30, 90, true)]     // solape parcial
-    [InlineData(15, 45, true)]     // contenida
-    [InlineData(-30, 90, true)]    // la contiene
-    [InlineData(0, 60, true)]      // identica
+    [InlineData(60, 120, false)]
+    [InlineData(-60, 0, false)]
+    [InlineData(30, 90, true)]
+    [InlineData(15, 45, true)]
+    [InlineData(-30, 90, true)]
+    [InlineData(0, 60, true)]
     public void FranjaHoraria_se_solapa_solo_si_comparte_tiempo(int inicio, int fin, bool esperado)
     {
         FranjaHoraria referencia = Franja(0, 60);

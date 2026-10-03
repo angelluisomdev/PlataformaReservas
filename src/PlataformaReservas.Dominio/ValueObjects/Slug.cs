@@ -4,7 +4,6 @@ using PlataformaReservas.Dominio.Compartido;
 
 namespace PlataformaReservas.Dominio.ValueObjects;
 
-// Aparece en la URL publica /businesses/{slug}: un slug mal formado rompe el enrutado (modelo-dominio.md §5.4).
 public sealed record Slug
 {
     public const int LongitudMinima = 3;
@@ -24,7 +23,6 @@ public sealed record Slug
 
     public string Valor { get; }
 
-    // Normaliza: quita tildes, pasa a minusculas y sustituye cualquier otro caracter por un guion.
     public static Slug Desde(string texto)
     {
         string descompuesto = texto.Normalize(NormalizationForm.FormD);
@@ -65,7 +63,6 @@ public sealed record Slug
         return new Slug(valor);
     }
 
-    // Resuelve colisiones anadiendo un sufijo numerico (RN-11).
     public Slug ConSufijo(int n)
     {
         string sufijo = "-" + n.ToString(CultureInfo.InvariantCulture);

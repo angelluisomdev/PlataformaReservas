@@ -533,17 +533,10 @@ namespace PlataformaReservas.Infraestructura.Persistencia.Migraciones
                 table: "servicios",
                 column: "empresa_id");
 
-            // ----------------------------------------------------------------------------------
-            // Escrito a mano. EF Core no modela nada de lo que sigue.
-            // ----------------------------------------------------------------------------------
-
-            // Indices de SPEC §14 sobre inicio_utc: EF Core no indexa columnas de un tipo complejo (Franja).
+            // Escrito a mano: EF Core no modela estos indices ni la restriccion EXCLUDE.
             migrationBuilder.Sql("CREATE INDEX ix_reservas_empresa_id_inicio_utc ON reservas (empresa_id, inicio_utc);");
             migrationBuilder.Sql("CREATE INDEX ix_reservas_usuario_id_inicio_utc ON reservas (usuario_id, inicio_utc);");
 
-            // Garantia de no solapamiento (RN-77, SPEC §13). Literal de SPEC §13: no se modifica.
-            // '[)' reproduce la semantica de FranjaHoraria.SeSolapaCon; la clausula WHERE libera el hueco
-            // de una reserva cancelada (1 = Cancelada, RN-97). Su indice GiST sirve tambien al motor.
             migrationBuilder.Sql("CREATE EXTENSION IF NOT EXISTS btree_gist;");
             migrationBuilder.Sql(@"
     ALTER TABLE reservas

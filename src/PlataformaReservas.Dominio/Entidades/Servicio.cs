@@ -8,7 +8,6 @@ public sealed class Servicio : EntidadBase
     {
     }
 
-    // Se fija al crear y ningun metodo lo cambia (RN-01).
     public Guid EmpresaId { get; private set; }
 
     public string Nombre { get; private set; } = null!;
@@ -19,7 +18,6 @@ public sealed class Servicio : EntidadBase
 
     public decimal Precio { get; private set; }
 
-    // null significa "heredar de la empresa", no "sin limite" (RN-22).
     public int? IntervaloHuecosMinutos { get; private set; }
 
     public int? AntelacionMinimaMinutos { get; private set; }

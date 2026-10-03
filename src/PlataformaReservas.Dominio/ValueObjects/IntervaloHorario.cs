@@ -2,7 +2,6 @@ using PlataformaReservas.Dominio.Compartido;
 
 namespace PlataformaReservas.Dominio.ValueObjects;
 
-// Hora local de la empresa, sin conversion (RN-101).
 public sealed record IntervaloHorario
 {
     public IntervaloHorario(TimeOnly horaInicio, TimeOnly horaFin)

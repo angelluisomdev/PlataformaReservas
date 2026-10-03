@@ -5,7 +5,6 @@ using PlataformaReservas.Dominio.ValueObjects;
 
 namespace PlataformaReservas.Infraestructura.Persistencia.Configuraciones;
 
-// Los datos de la empresa NO se cifran: son publicos y Ciudad es el filtro del buscador (RN-164).
 public sealed class ConfiguracionEmpresa : IEntityTypeConfiguration<Empresa>
 {
     public void Configure(EntityTypeBuilder<Empresa> builder)
@@ -26,7 +25,6 @@ public sealed class ConfiguracionEmpresa : IEntityTypeConfiguration<Empresa>
         builder.Property(e => e.Ciudad).HasMaxLength(80).IsRequired();
         builder.Property(e => e.ZonaHoraria).HasMaxLength(60).IsRequired();
 
-        // El objeto de valor se aplana en tres columnas de la propia tabla (modelo-dominio.md §8).
         builder.ComplexProperty(e => e.Politicas, politicas =>
         {
             politicas.Property(p => p.IntervaloHuecosMinutos).HasColumnName("intervalo_huecos_minutos");
@@ -40,7 +38,7 @@ public sealed class ConfiguracionEmpresa : IEntityTypeConfiguration<Empresa>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(e => e.Slug).IsUnique();
-        builder.HasIndex(e => new { e.Ciudad, e.CategoriaId });   // consulta del buscador
+        builder.HasIndex(e => new { e.Ciudad, e.CategoriaId });
         builder.HasIndex(e => e.Activa);
     }
 }

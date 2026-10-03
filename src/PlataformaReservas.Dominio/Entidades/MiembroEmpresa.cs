@@ -3,7 +3,6 @@ using PlataformaReservas.Dominio.Enumeraciones;
 
 namespace PlataformaReservas.Dominio.Entidades;
 
-// Vincula un usuario con una empresa. Unico por (EmpresaId, UsuarioId), garantizado por indice (RN-06).
 public sealed class MiembroEmpresa : EntidadBase
 {
     private MiembroEmpresa()

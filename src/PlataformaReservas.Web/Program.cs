@@ -8,11 +8,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AgregarInfraestructura(builder.Configuration);   // BD (arquitectura.md §10.1)
+builder.Services.AgregarInfraestructura(builder.Configuration);
 
 var app = builder.Build();
 
-// Migraciones y datos iniciales solo en desarrollo (RN-123).
 if (app.Environment.IsDevelopment())
 {
     await app.Services.MigrarYSembrarAsync(CancellationToken.None);
