@@ -9,6 +9,22 @@ public sealed class ConfiguracionRol : IEntityTypeConfiguration<IdentityRole<Gui
     public void Configure(EntityTypeBuilder<IdentityRole<Guid>> builder)
     {
         builder.ToTable("asp_net_roles");
+
+        builder.HasData(
+            new IdentityRole<Guid>
+            {
+                Id = new Guid("0199a3c0-0000-7000-8000-000000000001"),
+                Name = "Cliente",
+                NormalizedName = "CLIENTE",
+                ConcurrencyStamp = "0199a3c0-0000-7000-8000-000000000001",
+            },
+            new IdentityRole<Guid>
+            {
+                Id = new Guid("0199a3c0-0000-7000-8000-000000000002"),
+                Name = "Propietario",
+                NormalizedName = "PROPIETARIO",
+                ConcurrencyStamp = "0199a3c0-0000-7000-8000-000000000002",
+            });
     }
 }
 

@@ -12,6 +12,11 @@ dotnet_diagnostic.CA1707.severity = none
 [src/PlataformaReservas.Infraestructura/Persistencia/Migraciones/**.cs]
 generated_code = true
 
+# Paginas de cuenta copiadas de la plantilla "dotnet new blazor --auth Individual" (R-4).
+# Se marcan como generadas para no reescribirlas. Aprobado por el desarrollador en la Fase 6 (duda 5, A-18).
+[src/PlataformaReservas.Web/Cuenta/**]
+generated_code = true
+
 #-------------------------------------
 # Archivos generales
 #-------------------------------------

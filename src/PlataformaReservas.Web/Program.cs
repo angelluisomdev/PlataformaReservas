@@ -1,12 +1,21 @@
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Identity;
 using PlataformaReservas.Infraestructura;
+using PlataformaReservas.Infraestructura.Identidad;
 using PlataformaReservas.Infraestructura.Persistencia.DatosIniciales;
 using PlataformaReservas.Web.Components;
+using PlataformaReservas.Web.Cuenta;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddScoped<IdentityRedirectManager>();
+builder.Services.AddSingleton<IEmailSender<Usuario>, IdentityNoOpEmailSender>();
+builder.Services.AddScoped<AuthenticationStateProvider, RevalidadorIdentidad>();
 
 builder.Services.AgregarInfraestructura(builder.Configuration);
 
@@ -27,10 +36,13 @@ if (!app.Environment.IsDevelopment())
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+app.MapAdditionalIdentityEndpoints();
 
 app.Run();

@@ -16,7 +16,7 @@ services:
     ports:
       - "${POSTGRES_PUERTO:-5432}:5432"
     volumes:
-      - datos-postgres:/var/lib/postgresql/data
+      - datos-postgres:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d plataforma_reservas"]
       interval: 5s

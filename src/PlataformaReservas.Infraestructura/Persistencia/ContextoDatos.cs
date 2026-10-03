@@ -31,13 +31,20 @@ public sealed class ContextoDatos(DbContextOptions<ContextoDatos> opciones)
         builder.ApplyConfiguration(new ConfiguracionReserva(ObtenerProtector()));
     }
 
-    // Sin IPersonalDataProtector registrado (dotnet ef, o hasta la Fase 6) el modelo se construye sin conversor.
+    // Falla en cerrado: sin protector, las copias de Reserva se guardarian en claro. Solo dotnet ef puede prescindir de el.
     private IPersonalDataProtector? ObtenerProtector()
     {
         IServiceProvider? aplicacion = this.GetService<IDbContextOptions>()
             .FindExtension<CoreOptionsExtension>()?
             .ApplicationServiceProvider;
 
-        return aplicacion?.GetService(typeof(IPersonalDataProtector)) as IPersonalDataProtector;
+        IPersonalDataProtector? protector = aplicacion?.GetService(typeof(IPersonalDataProtector)) as IPersonalDataProtector;
+        if (protector is null && !EF.IsDesignTime)
+        {
+            throw new InvalidOperationException(
+                "No hay ningun IPersonalDataProtector registrado: los datos personales de las reservas se guardarian en claro.");
+        }
+
+        return protector;
     }
 }

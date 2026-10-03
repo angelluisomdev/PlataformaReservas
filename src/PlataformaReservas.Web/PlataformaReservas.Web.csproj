@@ -1,7 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+    <UserSecretsId>1b4c5a92-650c-4e3c-98ff-ff3308c8a8ad</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

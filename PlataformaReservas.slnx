@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/PlataformaReservas.Aplicacion/PlataformaReservas.Aplicacion.csproj" />
     <Project Path="src/PlataformaReservas.Dominio/PlataformaReservas.Dominio.csproj" />
