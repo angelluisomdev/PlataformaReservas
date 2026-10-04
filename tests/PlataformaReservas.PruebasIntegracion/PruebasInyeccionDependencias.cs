@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Infraestructura;
 using PlataformaReservas.Infraestructura.Identidad;
 using PlataformaReservas.PruebasIntegracion.Infraestructura;
@@ -58,6 +59,22 @@ public sealed class PruebasInyeccionDependencias(BaseDatosFixture baseDatos)
         Action comprobar = proveedor.ComprobarClavesCifrado;
 
         comprobar.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void El_contexto_de_empresa_y_los_repositorios_son_scoped()
+    {
+        Type[] tipos =
+        [
+            typeof(IContextoEmpresa), typeof(IRepositorioEmpresas), typeof(IRepositorioServicios),
+            typeof(IRepositorioProfesionales), typeof(IRepositorioReservas), typeof(IRepositorioMiembros),
+        ];
+        ServiceCollection servicios = new();
+        servicios.AgregarInfraestructura(new ConfigurationBuilder().Build());
+
+        servicios.Where(d => tipos.Contains(d.ServiceType))
+            .Should().HaveCount(tipos.Length)
+            .And.OnlyContain(d => d.Lifetime == ServiceLifetime.Scoped);
     }
 
     private static ClaimsPrincipal Principal(params Claim[] claims)

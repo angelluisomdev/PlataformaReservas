@@ -1,9 +1,9 @@
 using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using PlataformaReservas.Infraestructura.Persistencia;
+using PlataformaReservas.Aplicacion.Abstracciones;
+using PlataformaReservas.Dominio.Entidades;
 
 namespace PlataformaReservas.Infraestructura.Identidad;
 
@@ -11,7 +11,7 @@ public sealed class FabricaClaimsUsuario(
     UserManager<Usuario> userManager,
     RoleManager<IdentityRole<Guid>> roleManager,
     IOptions<IdentityOptions> opciones,
-    ContextoDatos contexto)
+    IRepositorioMiembros miembros)
     : UserClaimsPrincipalFactory<Usuario, IdentityRole<Guid>>(userManager, roleManager, opciones)
 {
     public const string ClaimEmpresa = "empresa_id";
@@ -20,14 +20,11 @@ public sealed class FabricaClaimsUsuario(
     {
         ClaimsIdentity identidad = await base.GenerateClaimsAsync(user);
 
-        Guid? empresaId = await contexto.MiembrosEmpresa
-            .Where(m => m.UsuarioId == user.Id)
-            .Select(m => (Guid?)m.EmpresaId)
-            .FirstOrDefaultAsync();
+        MiembroEmpresa? miembro = await miembros.ObtenerPorUsuarioAsync(user.Id, CancellationToken.None);
 
-        if (empresaId is not null)
+        if (miembro is not null)
         {
-            identidad.AddClaim(new Claim(ClaimEmpresa, empresaId.Value.ToString("D", CultureInfo.InvariantCulture)));
+            identidad.AddClaim(new Claim(ClaimEmpresa, miembro.EmpresaId.ToString("D", CultureInfo.InvariantCulture)));
         }
 
         return identidad;

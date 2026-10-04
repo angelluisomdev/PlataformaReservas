@@ -1,4 +1,4 @@
-# PlataformaReservas
+# Plataforma Reservas
 
 Plataforma web **multiempresa (SaaS multi-tenant)** para reservar servicios con cita previa: peluquerías, centros de estética, fisioterapia y cualquier negocio que trabaje con una agenda de profesionales.
 

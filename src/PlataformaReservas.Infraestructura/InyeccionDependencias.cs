@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Infraestructura.Identidad;
 using PlataformaReservas.Infraestructura.Persistencia;
+using PlataformaReservas.Infraestructura.Repositorios;
 
 namespace PlataformaReservas.Infraestructura;
 
@@ -22,6 +24,7 @@ public static class InyeccionDependencias
             sp.GetRequiredService<IDbContextFactory<ContextoDatos>>().CreateDbContext());
 
         servicios.AgregarIdentidad(configuracion);
+        servicios.AgregarRepositorios();
 
         return servicios;
     }
@@ -29,6 +32,16 @@ public static class InyeccionDependencias
     public static void ComprobarClavesCifrado(this IServiceProvider servicios)
     {
         servicios.GetRequiredService<AnilloClaves>();
+    }
+
+    private static void AgregarRepositorios(this IServiceCollection servicios)
+    {
+        servicios.AddScoped<IContextoEmpresa, ContextoEmpresa>();
+        servicios.AddScoped<IRepositorioEmpresas, RepositorioEmpresas>();
+        servicios.AddScoped<IRepositorioServicios, RepositorioServicios>();
+        servicios.AddScoped<IRepositorioProfesionales, RepositorioProfesionales>();
+        servicios.AddScoped<IRepositorioReservas, RepositorioReservas>();
+        servicios.AddScoped<IRepositorioMiembros, RepositorioMiembros>();
     }
 
     private static void AgregarIdentidad(this IServiceCollection servicios, IConfiguration configuracion)
