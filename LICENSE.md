@@ -1,4 +1,4 @@
-Copyright © 2026 Ángel Luis. Todos los derechos reservados.
+Copyright © 2026 Ángel Luis Ortiz. Todos los derechos reservados.
 
 LICENCIA DE USO RESTRINGIDO
 
