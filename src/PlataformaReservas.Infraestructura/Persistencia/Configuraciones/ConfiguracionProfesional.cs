@@ -11,9 +11,9 @@ public sealed class ConfiguracionProfesional : IEntityTypeConfiguration<Profesio
         builder.ToTable("profesionales");
         builder.HasKey(p => p.Id);
 
-        builder.Property(p => p.NombreCompleto).HasMaxLength(120).IsRequired();
-        builder.Property(p => p.Email).HasMaxLength(160);
-        builder.Property(p => p.Telefono).HasMaxLength(20);
+        builder.Property(p => p.NombreCompleto).HasConversion<ConversorNombrePersona>().HasMaxLength(120).IsRequired();
+        builder.Property(p => p.Email).HasConversion<ConversorEmail>().HasMaxLength(160);
+        builder.Property(p => p.Telefono).HasConversion<ConversorTelefono>().HasMaxLength(20);
 
         builder.HasOne<Empresa>()
             .WithMany()

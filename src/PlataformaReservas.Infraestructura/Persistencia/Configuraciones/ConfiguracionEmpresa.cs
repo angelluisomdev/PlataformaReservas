@@ -12,17 +12,17 @@ public sealed class ConfiguracionEmpresa : IEntityTypeConfiguration<Empresa>
         builder.ToTable("empresas");
         builder.HasKey(e => e.Id);
 
-        builder.Property(e => e.Nombre).HasMaxLength(120).IsRequired();
+        builder.Property(e => e.Nombre).HasConversion<ConversorNombreEmpresa>().HasMaxLength(120).IsRequired();
         builder.Property(e => e.Slug)
             .HasConversion(s => s.Valor, v => Slug.Desde(v))
             .HasMaxLength(120)
             .IsRequired();
-        builder.Property(e => e.Descripcion).HasMaxLength(1000);
-        builder.Property(e => e.Email).HasMaxLength(160).IsRequired();
-        builder.Property(e => e.Telefono).HasMaxLength(20).IsRequired();
-        builder.Property(e => e.Direccion).HasMaxLength(200).IsRequired();
-        builder.Property(e => e.CodigoPostal).HasMaxLength(10).IsRequired();
-        builder.Property(e => e.Ciudad).HasMaxLength(80).IsRequired();
+        builder.Property(e => e.Descripcion).HasConversion<ConversorDescripcionEmpresa>().HasMaxLength(1000);
+        builder.Property(e => e.Email).HasConversion<ConversorEmail>().HasMaxLength(160).IsRequired();
+        builder.Property(e => e.Telefono).HasConversion<ConversorTelefono>().HasMaxLength(20).IsRequired();
+        builder.Property(e => e.Direccion).HasConversion<ConversorDireccion>().HasMaxLength(200).IsRequired();
+        builder.Property(e => e.CodigoPostal).HasConversion<ConversorCodigoPostal>().HasMaxLength(10).IsRequired();
+        builder.Property(e => e.Ciudad).HasConversion<ConversorCiudad>().HasMaxLength(80).IsRequired();
         builder.Property(e => e.ZonaHoraria).HasMaxLength(60).IsRequired();
 
         builder.ComplexProperty(e => e.Politicas, politicas =>

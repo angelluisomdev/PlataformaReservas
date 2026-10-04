@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PlataformaReservas.Dominio.Entidades;
+using PlataformaReservas.Dominio.ValueObjects;
 using PlataformaReservas.Infraestructura.Identidad;
 
 namespace PlataformaReservas.Infraestructura.Persistencia.Configuraciones;
@@ -22,16 +24,24 @@ public sealed class ConfiguracionReserva(IPersonalDataProtector? protector) : IE
             franja.Property(f => f.FinUtc).HasColumnName("fin_utc");
         });
 
-        builder.Property(r => r.PrecioAplicado).HasPrecision(10, 2);
-        builder.Property(r => r.Observaciones).HasMaxLength(500);
+        builder.Property(r => r.PrecioAplicado).HasConversion<ConversorPrecio>().HasPrecision(10, 2);
+        builder.Property(r => r.DuracionAplicada)
+            .HasConversion<ConversorDuracion>()
+            .HasColumnName("duracion_aplicada_minutos");
+        builder.Property(r => r.Observaciones).HasConversion<ConversorObservaciones>().HasMaxLength(500);
 
-        PropertyBuilder<string> nombre = builder.Property(r => r.NombreCliente).IsRequired();
-        PropertyBuilder<string> telefono = builder.Property(r => r.TelefonoCliente).IsRequired();
+        PropertyBuilder<NombrePersona> nombre = builder.Property(r => r.NombreCliente).IsRequired();
+        PropertyBuilder<Telefono> telefono = builder.Property(r => r.TelefonoCliente).IsRequired();
+        ValueConverter conversorNombre = new ConversorNombrePersona();
+        ValueConverter conversorTelefono = new ConversorTelefono();
         if (protector is not null)
         {
-            nombre.HasConversion(new ConversorCifrado(protector));
-            telefono.HasConversion(new ConversorCifrado(protector));
+            conversorNombre = conversorNombre.ComposeWith(new ConversorCifrado(protector));
+            conversorTelefono = conversorTelefono.ComposeWith(new ConversorCifrado(protector));
         }
+
+        nombre.HasConversion(conversorNombre);
+        telefono.HasConversion(conversorTelefono);
 
         builder.Property(r => r.Estado).HasConversion<int>();
 

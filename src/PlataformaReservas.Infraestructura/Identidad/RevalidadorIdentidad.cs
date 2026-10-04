@@ -26,7 +26,7 @@ public sealed class RevalidadorIdentidad(
         return await SelloVigenteAsync(usuarios, authenticationState.User);
     }
 
-    private async Task<bool> SelloVigenteAsync(UserManager<Usuario> usuarios, ClaimsPrincipal principal)
+    internal async Task<bool> SelloVigenteAsync(UserManager<Usuario> usuarios, ClaimsPrincipal principal)
     {
         Usuario? usuario = await usuarios.GetUserAsync(principal);
         if (usuario is null)

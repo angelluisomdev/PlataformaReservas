@@ -24,6 +24,11 @@ public sealed class MiembroEmpresa : EntidadBase
         Validacion.IdentificadorObligatorio(usuarioId, "El usuario de la pertenencia");
         Validacion.InstanteUtc(ahoraUtc, "La fecha de alta de la pertenencia");
 
+        if (!Enum.IsDefined(rol))
+        {
+            throw new DominioException("El rol del miembro no es valido.");
+        }
+
         return new MiembroEmpresa
         {
             Id = id,

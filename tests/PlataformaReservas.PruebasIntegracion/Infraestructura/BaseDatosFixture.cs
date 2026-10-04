@@ -6,7 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using PlataformaReservas.Infraestructura;
 using PlataformaReservas.Infraestructura.Identidad;
 using PlataformaReservas.Infraestructura.Persistencia;
-using PlataformaReservas.PruebasIntegracion.Identidad;
 using Testcontainers.PostgreSql;
 
 namespace PlataformaReservas.PruebasIntegracion.Infraestructura;

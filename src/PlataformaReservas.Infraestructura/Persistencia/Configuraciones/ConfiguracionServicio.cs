@@ -15,9 +15,10 @@ public sealed class ConfiguracionServicio : IEntityTypeConfiguration<Servicio>
         });
         builder.HasKey(s => s.Id);
 
-        builder.Property(s => s.Nombre).HasMaxLength(120).IsRequired();
+        builder.Property(s => s.Nombre).HasConversion<ConversorNombreServicio>().HasMaxLength(120).IsRequired();
         builder.Property(s => s.Descripcion).HasMaxLength(500);
-        builder.Property(s => s.Precio).HasPrecision(10, 2);
+        builder.Property(s => s.Duracion).HasConversion<ConversorDuracion>().HasColumnName("duracion_minutos");
+        builder.Property(s => s.Precio).HasConversion<ConversorPrecio>().HasPrecision(10, 2);
 
         builder.HasOne<Empresa>()
             .WithMany()

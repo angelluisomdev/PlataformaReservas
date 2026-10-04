@@ -20,17 +20,17 @@ public sealed class Reserva : EntidadBase
 
     public FranjaHoraria Franja { get; private set; } = null!;
 
-    public decimal PrecioAplicado { get; private set; }
+    public Precio PrecioAplicado { get; private set; } = null!;
 
-    public int DuracionAplicadaMinutos { get; private set; }
+    public Duracion DuracionAplicada { get; private set; } = null!;
 
-    public string NombreCliente { get; private set; } = null!;
+    public NombrePersona NombreCliente { get; private set; } = null!;
 
-    public string TelefonoCliente { get; private set; } = null!;
+    public Telefono TelefonoCliente { get; private set; } = null!;
 
     public EstadoReserva Estado { get; private set; }
 
-    public string? Observaciones { get; private set; }
+    public Observaciones? Observaciones { get; private set; }
 
     public DateTime FechaAlta { get; private set; }
 
@@ -45,18 +45,15 @@ public sealed class Reserva : EntidadBase
         Guid profesionalId,
         Servicio servicio,
         DateTime inicioUtc,
-        string nombreCliente,
-        string telefonoCliente,
-        string? observaciones,
+        NombrePersona nombreCliente,
+        Telefono telefonoCliente,
+        Observaciones? observaciones,
         DateTime ahoraUtc)
     {
         Validacion.IdentificadorObligatorio(id, "La reserva");
         Validacion.IdentificadorObligatorio(empresaId, "La empresa de la reserva");
         Validacion.IdentificadorObligatorio(usuarioId, "El usuario de la reserva");
         Validacion.IdentificadorObligatorio(profesionalId, "El profesional de la reserva");
-        Validacion.TextoObligatorio(nombreCliente, 120, "El nombre del cliente");
-        Validacion.TextoObligatorio(telefonoCliente, 20, "El telefono del cliente");
-        Validacion.TextoOpcional(observaciones, 500, "Las observaciones");
         Validacion.InstanteUtc(ahoraUtc, "La fecha de alta de la reserva");
 
         if (servicio.EmpresaId != empresaId)
@@ -64,7 +61,7 @@ public sealed class Reserva : EntidadBase
             throw new DominioException("El servicio no pertenece a la empresa de la reserva.");
         }
 
-        FranjaHoraria franja = new(inicioUtc, inicioUtc.AddMinutes(servicio.DuracionMinutos));
+        FranjaHoraria franja = new(inicioUtc, inicioUtc.AddMinutes(servicio.Duracion.Minutos));
 
         return new Reserva
         {
@@ -75,9 +72,9 @@ public sealed class Reserva : EntidadBase
             ServicioId = servicio.Id,
             Franja = franja,
             PrecioAplicado = servicio.Precio,
-            DuracionAplicadaMinutos = servicio.DuracionMinutos,
-            NombreCliente = nombreCliente.Trim(),
-            TelefonoCliente = telefonoCliente.Trim(),
+            DuracionAplicada = servicio.Duracion,
+            NombreCliente = nombreCliente,
+            TelefonoCliente = telefonoCliente,
             Estado = EstadoReserva.Confirmada,
             Observaciones = observaciones,
             FechaAlta = ahoraUtc,

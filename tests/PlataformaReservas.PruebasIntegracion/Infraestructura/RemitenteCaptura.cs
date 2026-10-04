@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Identity;
 using PlataformaReservas.Infraestructura.Identidad;
 
-namespace PlataformaReservas.PruebasIntegracion.Identidad;
+namespace PlataformaReservas.PruebasIntegracion.Infraestructura;
 
 public sealed class RemitenteCaptura : IEmailSender<Usuario>
 {

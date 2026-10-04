@@ -8,7 +8,7 @@ public sealed record IntervaloHorario
     {
         if (horaInicio >= horaFin)
         {
-            throw new DominioException("La hora de inicio debe ser anterior a la hora de fin (RN-41).");
+            throw new DominioException("La hora de inicio debe ser anterior a la hora de fin.");
         }
 
         HoraInicio = horaInicio;

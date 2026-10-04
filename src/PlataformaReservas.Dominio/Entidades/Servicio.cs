@@ -1,4 +1,5 @@
 using PlataformaReservas.Dominio.Compartido;
+using PlataformaReservas.Dominio.ValueObjects;
 
 namespace PlataformaReservas.Dominio.Entidades;
 
@@ -10,13 +11,13 @@ public sealed class Servicio : EntidadBase
 
     public Guid EmpresaId { get; private set; }
 
-    public string Nombre { get; private set; } = null!;
+    public NombreServicio Nombre { get; private set; } = null!;
 
     public string? Descripcion { get; private set; }
 
-    public int DuracionMinutos { get; private set; }
+    public Duracion Duracion { get; private set; } = null!;
 
-    public decimal Precio { get; private set; }
+    public Precio Precio { get; private set; } = null!;
 
     public int? IntervaloHuecosMinutos { get; private set; }
 
@@ -33,32 +34,21 @@ public sealed class Servicio : EntidadBase
     public static Servicio Crear(
         Guid id,
         Guid empresaId,
-        string nombre,
-        int duracionMinutos,
-        decimal precio,
+        NombreServicio nombre,
+        Duracion duracion,
+        Precio precio,
         DateTime ahoraUtc)
     {
         Validacion.IdentificadorObligatorio(id, "El servicio");
         Validacion.IdentificadorObligatorio(empresaId, "La empresa del servicio");
-        Validacion.TextoObligatorio(nombre, 120, "El nombre del servicio");
         Validacion.InstanteUtc(ahoraUtc, "La fecha de alta del servicio");
-
-        if (duracionMinutos <= 0)
-        {
-            throw new DominioException("La duracion del servicio debe ser mayor que cero (RN-20).");
-        }
-
-        if (precio < 0)
-        {
-            throw new DominioException("El precio del servicio no puede ser negativo (RN-21).");
-        }
 
         return new Servicio
         {
             Id = id,
             EmpresaId = empresaId,
-            Nombre = nombre.Trim(),
-            DuracionMinutos = duracionMinutos,
+            Nombre = nombre,
+            Duracion = duracion,
             Precio = precio,
             Activo = true,
             FechaAlta = ahoraUtc,

@@ -9,16 +9,15 @@ public sealed class Categoria : EntidadBase
     {
     }
 
-    public string Nombre { get; private set; } = null!;
+    public NombreCategoria Nombre { get; private set; } = null!;
 
     public Slug Slug { get; private set; } = null!;
 
     public bool Activa { get; private set; }
 
-    public static Categoria Crear(Guid id, string nombre, Slug slug)
+    public static Categoria Crear(Guid id, NombreCategoria nombre, Slug slug)
     {
         Validacion.IdentificadorObligatorio(id, "La categoria");
-        Validacion.TextoObligatorio(nombre, 80, "El nombre de la categoria");
 
         if (slug.Valor.Length > 80)
         {
@@ -28,7 +27,7 @@ public sealed class Categoria : EntidadBase
         return new Categoria
         {
             Id = id,
-            Nombre = nombre.Trim(),
+            Nombre = nombre,
             Slug = slug,
             Activa = true,
         };

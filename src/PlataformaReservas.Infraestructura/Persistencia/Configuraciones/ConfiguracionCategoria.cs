@@ -12,7 +12,7 @@ public sealed class ConfiguracionCategoria : IEntityTypeConfiguration<Categoria>
         builder.ToTable("categorias");
         builder.HasKey(c => c.Id);
 
-        builder.Property(c => c.Nombre).HasMaxLength(80).IsRequired();
+        builder.Property(c => c.Nombre).HasConversion<ConversorNombreCategoria>().HasMaxLength(80).IsRequired();
         builder.Property(c => c.Slug)
             .HasConversion(s => s.Valor, v => Slug.Desde(v))
             .HasMaxLength(80)

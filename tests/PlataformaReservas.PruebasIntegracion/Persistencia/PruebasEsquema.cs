@@ -34,7 +34,7 @@ public sealed class PruebasEsquema(BaseDatosFixture baseDatos)
             {
                 Guid id = Guid.CreateVersion7();
                 generados.Add(id);
-                db.Categorias.Add(Categoria.Crear(id, $"Orden {i}", Slug.Desde($"orden-guid-{i}")));
+                db.Categorias.Add(Categoria.Crear(id, new NombreCategoria($"Orden {i}"), Slug.Desde($"orden-guid-{i}")));
                 await Task.Delay(2);
             }
 
@@ -60,12 +60,12 @@ public sealed class PruebasEsquema(BaseDatosFixture baseDatos)
 
         await using (ContextoDatos db = baseDatos.CrearContexto())
         {
-            Categoria categoria = Categoria.Crear(Guid.CreateVersion7(), "Cifrado", Slug.Desde("prueba-cifrado"));
+            Categoria categoria = Categoria.Crear(Guid.CreateVersion7(), new NombreCategoria("Cifrado"), Slug.Desde("prueba-cifrado"));
             Empresa empresa = Empresa.Crear(
-                Guid.CreateVersion7(), "Peluqueria Prueba", Slug.Desde("peluqueria-prueba"), categoria.Id,
-                null, "contacto@prueba.es", "600000000", "Calle Mayor 1", "28001", "Madrid", Ahora);
-            Servicio servicio = Servicio.Crear(Guid.CreateVersion7(), empresa.Id, "Corte", 30, 15m, Ahora);
-            Profesional profesional = Profesional.Crear(Guid.CreateVersion7(), empresa.Id, "Ana", Ahora);
+                Guid.CreateVersion7(), new NombreEmpresa("Peluqueria Prueba"), Slug.Desde("peluqueria-prueba"), categoria.Id,
+                null, new Email("contacto@prueba.es"), new Telefono("600000000"), new Direccion("Calle Mayor 1"), new CodigoPostal("28001"), new Ciudad("Madrid"), Ahora);
+            Servicio servicio = Servicio.Crear(Guid.CreateVersion7(), empresa.Id, new NombreServicio("Corte"), new Duracion(30), new Precio(15m), Ahora);
+            Profesional profesional = Profesional.Crear(Guid.CreateVersion7(), empresa.Id, new NombrePersona("Ana"), Ahora);
 
             db.AddRange(categoria, empresa, servicio, profesional);
             await db.SaveChangesAsync();
@@ -77,7 +77,7 @@ public sealed class PruebasEsquema(BaseDatosFixture baseDatos)
 
             Reserva reserva = Reserva.Crear(
                 reservaId, empresa.Id, usuarioId, profesional.Id, servicio,
-                Ahora.AddDays(1), "Lucia Perez", "611222333", null, Ahora);
+                Ahora.AddDays(1), new NombrePersona("Lucia Perez"), new Telefono("611222333"), null, Ahora);
             db.Reservas.Add(reserva);
             await db.SaveChangesAsync();
         }
@@ -89,8 +89,8 @@ public sealed class PruebasEsquema(BaseDatosFixture baseDatos)
         Reserva leida = await lectura.Reservas.SingleAsync(r => r.Id == reservaId);
 
         nombreEnColumna.Should().StartWith(ProtectorFalso.Prefijo).And.NotContain("Lucia");
-        leida.NombreCliente.Should().Be("Lucia Perez");
-        leida.TelefonoCliente.Should().Be("611222333");
+        leida.NombreCliente.Valor.Should().Be("Lucia Perez");
+        leida.TelefonoCliente.Valor.Should().Be("611222333");
         baseDatos.Protector.Llamadas.Should().BeGreaterThan(llamadasAntes);
     }
 

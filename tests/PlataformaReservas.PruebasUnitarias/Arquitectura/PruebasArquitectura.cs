@@ -58,4 +58,18 @@ public sealed class PruebasArquitectura
                                    || n.StartsWith("Npgsql")
                                    || n.StartsWith("Microsoft.AspNetCore"));
     }
+
+    [Fact]
+    public void Ningun_metodo_publico_de_una_entidad_recibe_primitivos_validables()
+    {
+        var primitivos = new[] { typeof(string), typeof(int), typeof(decimal), typeof(int?), typeof(decimal?) };
+
+        Entidades()
+            .SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+            .Where(m => !m.IsSpecialName)
+            .SelectMany(m => m.GetParameters()
+                .Where(p => primitivos.Contains(p.ParameterType))
+                .Select(p => $"{m.DeclaringType!.Name}.{m.Name}({p.Name})"))
+            .Should().BeEmpty();
+    }
 }

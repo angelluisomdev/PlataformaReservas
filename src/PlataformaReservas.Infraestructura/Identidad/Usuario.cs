@@ -1,13 +1,12 @@
 using Microsoft.AspNetCore.Identity;
 using PlataformaReservas.Dominio.Compartido;
+using PlataformaReservas.Dominio.ValueObjects;
+using TelefonoValidado = PlataformaReservas.Dominio.ValueObjects.Telefono;
 
 namespace PlataformaReservas.Infraestructura.Identidad;
 
 public sealed class Usuario : IdentityUser<Guid>
 {
-    private const int LongitudMaximaNombre = 120;
-    private const int LongitudMaximaTelefono = 20;
-
     private Usuario()
     {
     }
@@ -22,26 +21,11 @@ public sealed class Usuario : IdentityUser<Guid>
 
     public bool Activo { get; private set; }
 
-    public static Usuario Crear(string email, string nombreCompleto, string? telefono, DateTime ahoraUtc)
+    public static Usuario Crear(string email, NombrePersona nombreCompleto, TelefonoValidado? telefono, DateTime ahoraUtc)
     {
         if (string.IsNullOrWhiteSpace(email))
         {
             throw new DominioException("El correo electronico es obligatorio.");
-        }
-
-        if (string.IsNullOrWhiteSpace(nombreCompleto))
-        {
-            throw new DominioException("El nombre completo es obligatorio.");
-        }
-
-        if (nombreCompleto.Trim().Length > LongitudMaximaNombre)
-        {
-            throw new DominioException($"El nombre completo no puede superar {LongitudMaximaNombre} caracteres.");
-        }
-
-        if (telefono is not null && (string.IsNullOrWhiteSpace(telefono) || telefono.Trim().Length > LongitudMaximaTelefono))
-        {
-            throw new DominioException($"El telefono no puede estar vacio ni superar {LongitudMaximaTelefono} caracteres.");
         }
 
         if (ahoraUtc.Kind != DateTimeKind.Utc)
@@ -56,8 +40,8 @@ public sealed class Usuario : IdentityUser<Guid>
             Id = Guid.CreateVersion7(),
             UserName = correo,
             Email = correo,
-            NombreCompleto = nombreCompleto.Trim(),
-            Telefono = telefono?.Trim(),
+            NombreCompleto = nombreCompleto.Valor,
+            Telefono = telefono?.Valor,
             FechaAlta = ahoraUtc,
             Activo = true,
         };

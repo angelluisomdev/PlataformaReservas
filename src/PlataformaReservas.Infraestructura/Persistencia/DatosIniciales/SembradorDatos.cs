@@ -39,7 +39,7 @@ public static class SembradorDatos
             Slug slug = Slug.Desde(nombre);
             if (!existentes.Contains(slug))
             {
-                db.Categorias.Add(Categoria.Crear(Guid.CreateVersion7(), nombre, slug));
+                db.Categorias.Add(Categoria.Crear(Guid.CreateVersion7(), new NombreCategoria(nombre), slug));
             }
         }
 

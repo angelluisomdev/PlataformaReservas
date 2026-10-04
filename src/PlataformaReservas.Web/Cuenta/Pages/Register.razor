@@ -79,7 +79,7 @@
 
         Logger.LogInformation("Cuenta creada con contrasena.");
 
-        await SignInManager.SignInAsync(user, isPersistent: false);
+        await SignInManager.SignInAsync(user!, isPersistent: false);
         RedirectManager.RedirectTo(ReturnUrl);
     }
 
