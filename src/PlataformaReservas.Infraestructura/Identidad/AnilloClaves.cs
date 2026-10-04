@@ -9,6 +9,8 @@ public sealed class AnilloClaves : ILookupProtectorKeyRing
 
     private const int BytesPorClave = 32;
 
+    private readonly byte[] _claveDatos;
+
     private readonly string _claveBusqueda;
 
     public AnilloClaves(IConfiguration configuracion)
@@ -21,13 +23,13 @@ public sealed class AnilloClaves : ILookupProtectorKeyRing
             throw new InvalidOperationException("Cifrado:ClaveDatos y Cifrado:ClaveBusqueda deben ser claves distintas.");
         }
 
-        ClaveDatos = claveDatos;
+        _claveDatos = claveDatos;
         _claveBusqueda = Convert.ToBase64String(claveBusqueda);
     }
 
     public string CurrentKeyId => IdentificadorClaveActual;
 
-    internal byte[] ClaveDatos { get; }
+    internal ReadOnlySpan<byte> ClaveDatos => _claveDatos;
 
     public string this[string keyId] => keyId == IdentificadorClaveActual
         ? _claveBusqueda

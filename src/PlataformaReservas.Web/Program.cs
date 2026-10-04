@@ -21,6 +21,8 @@ builder.Services.AgregarInfraestructura(builder.Configuration);
 
 var app = builder.Build();
 
+app.Services.ComprobarClavesCifrado();
+
 if (app.Environment.IsDevelopment())
 {
     await app.Services.MigrarYSembrarAsync(CancellationToken.None);

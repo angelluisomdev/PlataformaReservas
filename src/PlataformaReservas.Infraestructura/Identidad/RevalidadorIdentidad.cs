@@ -14,7 +14,9 @@ public sealed class RevalidadorIdentidad(
     IOptions<IdentityOptions> opciones)
     : RevalidatingServerAuthenticationStateProvider(loggerFactory)
 {
-    protected override TimeSpan RevalidationInterval => TimeSpan.FromMinutes(5);
+    internal static readonly TimeSpan IntervaloRevalidacion = TimeSpan.FromMinutes(5);
+
+    protected override TimeSpan RevalidationInterval => IntervaloRevalidacion;
 
     protected override async Task<bool> ValidateAuthenticationStateAsync(
         AuthenticationState authenticationState, CancellationToken cancellationToken)

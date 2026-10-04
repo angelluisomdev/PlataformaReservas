@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using PlataformaReservas.Infraestructura.Identidad;
 
 namespace PlataformaReservas.Infraestructura.Persistencia.Configuraciones;
 
@@ -14,15 +15,15 @@ public sealed class ConfiguracionRol : IEntityTypeConfiguration<IdentityRole<Gui
             new IdentityRole<Guid>
             {
                 Id = new Guid("0199a3c0-0000-7000-8000-000000000001"),
-                Name = "Cliente",
-                NormalizedName = "CLIENTE",
+                Name = RolesIdentidad.Cliente,
+                NormalizedName = RolesIdentidad.Cliente.ToUpperInvariant(),
                 ConcurrencyStamp = "0199a3c0-0000-7000-8000-000000000001",
             },
             new IdentityRole<Guid>
             {
                 Id = new Guid("0199a3c0-0000-7000-8000-000000000002"),
-                Name = "Propietario",
-                NormalizedName = "PROPIETARIO",
+                Name = RolesIdentidad.Propietario,
+                NormalizedName = RolesIdentidad.Propietario.ToUpperInvariant(),
                 ConcurrencyStamp = "0199a3c0-0000-7000-8000-000000000002",
             });
     }

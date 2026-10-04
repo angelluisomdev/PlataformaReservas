@@ -4,7 +4,7 @@
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Identity
 
-@inject UserManager<Usuario> UserManager
+@inject RegistroCliente Registro
 @inject SignInManager<Usuario> SignInManager
 @inject ILogger<Register> Logger
 @inject IdentityRedirectManager RedirectManager
@@ -68,13 +68,8 @@
     public async Task RegisterUser(EditContext editContext)
     {
         var telefono = string.IsNullOrWhiteSpace(Input.Telefono) ? null : Input.Telefono;
-        var user = Usuario.Crear(Input.Email, Input.NombreCompleto, telefono, DateTime.UtcNow);
-        var result = await UserManager.CreateAsync(user, Input.Password);
-
-        if (result.Succeeded)
-        {
-            result = await UserManager.AddToRoleAsync(user, "Cliente");
-        }
+        var (result, user) = await Registro.RegistrarAsync(
+            Input.Email, Input.NombreCompleto, telefono, Input.Password, DateTime.UtcNow);
 
         if (!result.Succeeded)
         {

@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using PlataformaReservas.Infraestructura;
 using PlataformaReservas.Infraestructura.Identidad;
 using PlataformaReservas.PruebasIntegracion.Infraestructura;
 
@@ -44,6 +46,25 @@ public sealed class PruebasProtectores
         Action crear = () => Anillo(clave, clave);
 
         crear.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Sin_claves_configuradas_la_comprobacion_de_arranque_falla()
+    {
+        IConfiguration configuracion = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ConnectionStrings:PlataformaReservas"] = "Host=localhost",
+            })
+            .Build();
+        ServiceCollection servicios = new();
+        servicios.AddLogging();
+        servicios.AgregarInfraestructura(configuracion);
+        using ServiceProvider proveedor = servicios.BuildServiceProvider();
+
+        Action comprobar = proveedor.ComprobarClavesCifrado;
+
+        comprobar.Should().Throw<InvalidOperationException>();
     }
 
     [Theory]

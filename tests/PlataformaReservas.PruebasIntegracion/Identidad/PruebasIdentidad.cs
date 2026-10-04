@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.Dominio.Enumeraciones;
 using PlataformaReservas.Dominio.ValueObjects;
@@ -88,8 +89,8 @@ public sealed class PruebasIdentidad(BaseDatosFixture baseDatos)
         await using AsyncServiceScope ambito = servicios.CreateAsyncScope();
         RoleManager<IdentityRole<Guid>> roles = ambito.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
 
-        (await roles.RoleExistsAsync("Cliente")).Should().BeTrue();
-        (await roles.RoleExistsAsync("Propietario")).Should().BeTrue();
+        (await roles.RoleExistsAsync(RolesIdentidad.Cliente)).Should().BeTrue();
+        (await roles.RoleExistsAsync(RolesIdentidad.Propietario)).Should().BeTrue();
     }
 
     [Fact]
@@ -98,16 +99,16 @@ public sealed class PruebasIdentidad(BaseDatosFixture baseDatos)
         ServiceProvider servicios = baseDatos.ServiciosIdentidad;
         IAuthorizationService autorizacion = servicios.GetRequiredService<IAuthorizationService>();
 
-        ClaimsPrincipal sinEmpresa = Principal(new Claim(ClaimTypes.Role, "Propietario"));
+        ClaimsPrincipal sinEmpresa = Principal(new Claim(ClaimTypes.Role, RolesIdentidad.Propietario));
         ClaimsPrincipal conEmpresa = Principal(
-            new Claim(ClaimTypes.Role, "Propietario"),
+            new Claim(ClaimTypes.Role, RolesIdentidad.Propietario),
             new Claim(FabricaClaimsUsuario.ClaimEmpresa, Guid.CreateVersion7().ToString()));
-        ClaimsPrincipal cliente = Principal(new Claim(ClaimTypes.Role, "Cliente"));
+        ClaimsPrincipal cliente = Principal(new Claim(ClaimTypes.Role, RolesIdentidad.Cliente));
 
-        (await autorizacion.AuthorizeAsync(sinEmpresa, "EsPropietario")).Succeeded.Should().BeFalse();
-        (await autorizacion.AuthorizeAsync(conEmpresa, "EsPropietario")).Succeeded.Should().BeTrue();
-        (await autorizacion.AuthorizeAsync(cliente, "EsCliente")).Succeeded.Should().BeTrue();
-        (await autorizacion.AuthorizeAsync(cliente, "EsPropietario")).Succeeded.Should().BeFalse();
+        (await autorizacion.AuthorizeAsync(sinEmpresa, RolesIdentidad.PoliticaPropietario)).Succeeded.Should().BeFalse();
+        (await autorizacion.AuthorizeAsync(conEmpresa, RolesIdentidad.PoliticaPropietario)).Succeeded.Should().BeTrue();
+        (await autorizacion.AuthorizeAsync(cliente, RolesIdentidad.PoliticaCliente)).Succeeded.Should().BeTrue();
+        (await autorizacion.AuthorizeAsync(cliente, RolesIdentidad.PoliticaPropietario)).Succeeded.Should().BeFalse();
     }
 
     [Fact]
@@ -126,18 +127,38 @@ public sealed class PruebasIdentidad(BaseDatosFixture baseDatos)
     }
 
     [Fact]
+    public async Task El_registro_crea_un_cliente_con_su_rol()
+    {
+        string correo = CorreoUnico();
+
+        (IdentityResult resultado, Usuario usuario) = await RegistrarAsync(correo);
+
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        UserManager<Usuario> usuarios = ambito.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
+        Usuario guardado = (await usuarios.FindByIdAsync(usuario.Id.ToString()))!;
+        resultado.Succeeded.Should().BeTrue();
+        (await usuarios.IsInRoleAsync(guardado, RolesIdentidad.Cliente)).Should().BeTrue();
+    }
+
+    [Fact]
     public async Task Registrar_un_correo_duplicado_falla_con_el_cifrado_activo()
     {
         string correo = CorreoUnico();
-        await CrearUsuarioAsync(correo);
-        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
-        UserManager<Usuario> usuarios = ambito.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
+        await RegistrarAsync(correo);
 
-        IdentityResult duplicado = await usuarios.CreateAsync(
-            Usuario.Crear(correo.ToUpperInvariant(), "Otra Persona", null, Ahora), Clave);
+        (IdentityResult duplicado, _) = await RegistrarAsync(correo.ToUpperInvariant());
 
         duplicado.Succeeded.Should().BeFalse();
         duplicado.Errors.Should().Contain(e => e.Code == "DuplicateEmail");
+    }
+
+    [Fact]
+    public void La_cookie_revalida_el_sello_cada_cinco_minutos()
+    {
+        SecurityStampValidatorOptions opciones = baseDatos.ServiciosIdentidad
+            .GetRequiredService<IOptions<SecurityStampValidatorOptions>>().Value;
+
+        opciones.ValidationInterval.Should().Be(TimeSpan.FromMinutes(5));
     }
 
     [Fact]
@@ -205,6 +226,14 @@ public sealed class PruebasIdentidad(BaseDatosFixture baseDatos)
 
         (await usuarios.CreateAsync(usuario, Clave)).Succeeded.Should().BeTrue();
         return usuario;
+    }
+
+    private async Task<(IdentityResult Resultado, Usuario Usuario)> RegistrarAsync(string correo)
+    {
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        RegistroCliente registro = ambito.ServiceProvider.GetRequiredService<RegistroCliente>();
+
+        return await registro.RegistrarAsync(correo, "Ana Garcia", null, Clave, Ahora);
     }
 
     private async Task<SignInResult> ComprobarClaveAsync(Guid usuarioId, string clave)

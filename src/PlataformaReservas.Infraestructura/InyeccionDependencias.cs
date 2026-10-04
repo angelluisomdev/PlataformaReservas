@@ -26,6 +26,11 @@ public static class InyeccionDependencias
         return servicios;
     }
 
+    public static void ComprobarClavesCifrado(this IServiceProvider servicios)
+    {
+        servicios.GetRequiredService<AnilloClaves>();
+    }
+
     private static void AgregarIdentidad(this IServiceCollection servicios, IConfiguration configuracion)
     {
         servicios.AddSingleton(_ => new AnilloClaves(configuracion));
@@ -41,6 +46,8 @@ public static class InyeccionDependencias
             .AddIdentityCookies();
 
         servicios.ConfigureApplicationCookie(opciones => opciones.LoginPath = "/login");
+        servicios.Configure<SecurityStampValidatorOptions>(opciones =>
+            opciones.ValidationInterval = RevalidadorIdentidad.IntervaloRevalidacion);
 
         servicios.AddIdentityCore<Usuario>(opciones =>
             {
@@ -57,11 +64,12 @@ public static class InyeccionDependencias
             .AddDefaultTokenProviders();
 
         servicios.AddScoped<SolicitudRestablecimientoClave>();
+        servicios.AddScoped<RegistroCliente>();
 
         servicios.AddAuthorizationBuilder()
-            .AddPolicy("EsCliente", p => p.RequireRole("Cliente"))
-            .AddPolicy("EsPropietario", p => p
-                .RequireRole("Propietario")
+            .AddPolicy(RolesIdentidad.PoliticaCliente, p => p.RequireRole(RolesIdentidad.Cliente))
+            .AddPolicy(RolesIdentidad.PoliticaPropietario, p => p
+                .RequireRole(RolesIdentidad.Propietario)
                 .RequireClaim(FabricaClaimsUsuario.ClaimEmpresa));
     }
 }
