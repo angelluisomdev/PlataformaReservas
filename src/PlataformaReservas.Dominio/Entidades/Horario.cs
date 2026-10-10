@@ -16,4 +16,18 @@ public sealed class Horario : EntidadBase
     public DayOfWeek DiaSemana { get; private set; }
 
     public IntervaloHorario Intervalo { get; private set; } = null!;
+
+    internal static Horario Crear(Guid id, Guid empresaId, Guid profesionalId, DayOfWeek diaSemana, IntervaloHorario intervalo)
+    {
+        Validacion.IdentificadorObligatorio(id, "El horario");
+
+        return new Horario
+        {
+            Id = id,
+            EmpresaId = empresaId,
+            ProfesionalId = profesionalId,
+            DiaSemana = diaSemana,
+            Intervalo = intervalo,
+        };
+    }
 }

@@ -24,6 +24,15 @@ public sealed class RepositorioProfesionales(ContextoDatos db, IContextoEmpresa 
             .FirstOrDefaultAsync(p => p.Id == id && p.EmpresaId == empresaId, ct);
     }
 
+    public Task<Profesional?> ObtenerConHorarioAsync(Guid id, CancellationToken ct)
+    {
+        Guid empresaId = contexto.EmpresaActualId;
+        return db.Profesionales
+            .Include(p => p.Horarios)
+            .Include(p => p.Excepciones)
+            .FirstOrDefaultAsync(p => p.Id == id && p.EmpresaId == empresaId, ct);
+    }
+
     public async Task<IReadOnlyList<Profesional>> ListarAsync(CancellationToken ct)
     {
         Guid empresaId = contexto.EmpresaActualId;

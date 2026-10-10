@@ -1,4 +1,5 @@
 using PlataformaReservas.Dominio.Compartido;
+using PlataformaReservas.Dominio.ValueObjects;
 
 namespace PlataformaReservas.Dominio.Entidades;
 
@@ -14,5 +15,19 @@ public sealed class ExcepcionHorario : EntidadBase
 
     public DateOnly Fecha { get; private set; }
 
-    public string? Motivo { get; private set; }
+    public MotivoExcepcion? Motivo { get; private set; }
+
+    internal static ExcepcionHorario Crear(Guid id, Guid empresaId, Guid profesionalId, DateOnly fecha, MotivoExcepcion? motivo)
+    {
+        Validacion.IdentificadorObligatorio(id, "La excepcion de horario");
+
+        return new ExcepcionHorario
+        {
+            Id = id,
+            EmpresaId = empresaId,
+            ProfesionalId = profesionalId,
+            Fecha = fecha,
+            Motivo = motivo,
+        };
+    }
 }

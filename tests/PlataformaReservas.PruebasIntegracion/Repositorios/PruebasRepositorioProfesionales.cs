@@ -55,4 +55,38 @@ public sealed class PruebasRepositorioProfesionales(BaseDatosFixture baseDatos)
 
         (await EscenarioEmpresa.LeerAsync(baseDatos, db => db.Profesionales.AnyAsync(x => x.Id == nuevo.Id))).Should().BeTrue();
     }
+
+    [Fact]
+    public async Task ObtenerConHorario_trae_los_hijos_y_no_encuentra_uno_de_otra_empresa()
+    {
+        Empresa propia = await EscenarioEmpresa.CrearEmpresaAsync(baseDatos);
+        Empresa ajena = await EscenarioEmpresa.CrearEmpresaAsync(baseDatos);
+        Profesional propio = DominioPrueba.Profesional(propia.Id);
+        propio.AgregarIntervalo(Guid.CreateVersion7(), DayOfWeek.Monday, new IntervaloHorario(new TimeOnly(9, 0), new TimeOnly(14, 0)));
+        propio.MarcarNoDisponible(Guid.CreateVersion7(), new DateOnly(2026, 12, 25), new MotivoExcepcion("Festivo"));
+        Profesional deLaAjena = DominioPrueba.Profesional(ajena.Id);
+        await EscenarioEmpresa.GuardarAsync(baseDatos, propio, deLaAjena);
+
+        await using AsyncServiceScope ambito = baseDatos.AmbitoDeEmpresa(propia.Id);
+        IRepositorioProfesionales repositorio = ambito.ServiceProvider.GetRequiredService<IRepositorioProfesionales>();
+        Profesional? leido = await repositorio.ObtenerConHorarioAsync(propio.Id, CancellationToken.None);
+        Profesional? ajeno = await repositorio.ObtenerConHorarioAsync(deLaAjena.Id, CancellationToken.None);
+
+        leido!.Horarios.Should().ContainSingle();
+        leido.Excepciones.Should().ContainSingle().Which.Motivo.Should().Be(new MotivoExcepcion("Festivo"));
+        ajeno.Should().BeNull();
+        ambito.ServiceProvider.GetRequiredService<ContextoDatos>().ChangeTracker.Entries().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ObtenerConHorario_de_un_id_inexistente_devuelve_null()
+    {
+        Empresa propia = await EscenarioEmpresa.CrearEmpresaAsync(baseDatos);
+
+        await using AsyncServiceScope ambito = baseDatos.AmbitoDeEmpresa(propia.Id);
+        Profesional? leido = await ambito.ServiceProvider.GetRequiredService<IRepositorioProfesionales>()
+            .ObtenerConHorarioAsync(Guid.CreateVersion7(), CancellationToken.None);
+
+        leido.Should().BeNull();
+    }
 }

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using PlataformaReservas.Aplicacion.CasosUso.Empresas;
+using PlataformaReservas.Aplicacion.CasosUso.Horarios;
 using PlataformaReservas.Aplicacion.CasosUso.Profesionales;
 using PlataformaReservas.Aplicacion.CasosUso.Servicios;
 
@@ -26,6 +27,12 @@ public static class InyeccionDependencias
         servicios.AddScoped<DesactivarProfesional>();
         servicios.AddScoped<AsociarServicio>();
         servicios.AddScoped<DesasociarServicio>();
+
+        servicios.AddScoped<ObtenerHorarioProfesional>();
+        servicios.AddScoped<AgregarIntervalo>();
+        servicios.AddScoped<EliminarIntervalo>();
+        servicios.AddScoped<MarcarNoDisponible>();
+        servicios.AddScoped<QuitarExcepcion>();
 
         return servicios;
     }

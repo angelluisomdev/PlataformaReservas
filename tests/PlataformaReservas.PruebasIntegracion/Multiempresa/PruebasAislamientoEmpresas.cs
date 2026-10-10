@@ -96,7 +96,7 @@ public sealed class PruebasAislamientoEmpresas(BaseDatosFixture baseDatos)
         (await desdeA.ObtenerParaModificarAsync(ajeno.Id, CancellationToken.None)).Should().BeNull();
         (await desdeA.ObtenerParaModificarAsync(propio.Id, CancellationToken.None))!.Excepciones.Should().BeEmpty();
         (await desdeB.ObtenerParaModificarAsync(ajeno.Id, CancellationToken.None))!.Excepciones
-            .Should().ContainSingle(x => x.Id == excepcionId && x.EmpresaId == b.Id && x.Fecha == fecha && x.Motivo == "Vacaciones");
+            .Should().ContainSingle(x => x.Id == excepcionId && x.EmpresaId == b.Id && x.Fecha == fecha && x.Motivo == new MotivoExcepcion("Vacaciones"));
     }
 
     [Fact]

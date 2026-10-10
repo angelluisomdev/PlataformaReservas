@@ -8,6 +8,8 @@ public interface IRepositorioProfesionales
 
     Task<Profesional?> ObtenerParaModificarAsync(Guid id, CancellationToken ct);
 
+    Task<Profesional?> ObtenerConHorarioAsync(Guid id, CancellationToken ct);
+
     Task<IReadOnlyList<Profesional>> ListarAsync(CancellationToken ct);
 
     void Agregar(Profesional profesional);

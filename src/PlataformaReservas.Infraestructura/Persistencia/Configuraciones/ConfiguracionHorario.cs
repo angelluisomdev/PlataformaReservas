@@ -10,6 +10,7 @@ public sealed class ConfiguracionHorario : IEntityTypeConfiguration<Horario>
     {
         builder.ToTable("horarios");
         builder.HasKey(h => h.Id);
+        builder.Property(h => h.Id).ValueGeneratedNever();
 
         builder.ComplexProperty(h => h.Intervalo, intervalo =>
         {

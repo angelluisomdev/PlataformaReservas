@@ -20,4 +20,7 @@ public sealed record IntervaloHorario
     public TimeOnly HoraFin { get; }
 
     public int DuracionMinutos => (int)(HoraFin - HoraInicio).TotalMinutes;
+
+    public bool SeSolapaCon(IntervaloHorario otro)
+        => HoraInicio < otro.HoraFin && HoraFin > otro.HoraInicio;
 }

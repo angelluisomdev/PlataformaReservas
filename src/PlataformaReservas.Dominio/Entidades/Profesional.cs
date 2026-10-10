@@ -88,4 +88,42 @@ public sealed class Profesional : EntidadBase
             throw new DominioException("El profesional no presta ese servicio.");
         }
     }
+
+    public void AgregarIntervalo(Guid horarioId, DayOfWeek dia, IntervaloHorario intervalo)
+    {
+        Horario? solapado = _horarios.Find(h => h.DiaSemana == dia && h.Intervalo.SeSolapaCon(intervalo));
+        if (solapado is not null)
+        {
+            throw new DominioException(
+                $"El intervalo se solapa con el de {solapado.Intervalo.HoraInicio:HH\\:mm} a {solapado.Intervalo.HoraFin:HH\\:mm} del mismo dia.");
+        }
+
+        _horarios.Add(Horario.Crear(horarioId, EmpresaId, Id, dia, intervalo));
+    }
+
+    public void EliminarIntervalo(Guid horarioId)
+    {
+        if (_horarios.RemoveAll(h => h.Id == horarioId) == 0)
+        {
+            throw new DominioException("El profesional no tiene ese intervalo de horario.");
+        }
+    }
+
+    public void MarcarNoDisponible(Guid excepcionId, DateOnly fecha, MotivoExcepcion? motivo)
+    {
+        if (_excepciones.Exists(x => x.Fecha == fecha))
+        {
+            throw new DominioException("Ya hay una excepcion para ese profesional en esa fecha.");
+        }
+
+        _excepciones.Add(ExcepcionHorario.Crear(excepcionId, EmpresaId, Id, fecha, motivo));
+    }
+
+    public void QuitarExcepcion(DateOnly fecha)
+    {
+        if (_excepciones.RemoveAll(x => x.Fecha == fecha) == 0)
+        {
+            throw new DominioException("El profesional no tiene una excepcion en esa fecha.");
+        }
+    }
 }

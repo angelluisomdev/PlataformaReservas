@@ -1,0 +1,236 @@
+@page "/app/schedules"
+@rendermode InteractiveServer
+
+@inject ListarProfesionales ListarProfesionales
+@inject ObtenerHorarioProfesional Obtener
+@inject AgregarIntervalo Agregar
+@inject EliminarIntervalo Eliminar
+@inject MarcarNoDisponible Marcar
+@inject QuitarExcepcion Quitar
+
+<PageTitle>Horarios</PageTitle>
+
+<h1>Horarios</h1>
+
+@if (mensaje is not null)
+{
+    <div class="alert alert-info" role="status">@mensaje</div>
+}
+
+@if (profesionales is null)
+{
+    <p>Cargando…</p>
+}
+else if (profesionales.Count == 0)
+{
+    <p>Para definir horarios, primero crea un profesional en <a href="app/staff">Profesionales</a>.</p>
+}
+else
+{
+    <div class="mb-3">
+        <label for="profesional" class="form-label">Profesional</label>
+        <select id="profesional" class="form-select" value="@profesionalId" @onchange="SeleccionarAsync">
+            <option value="">Elige un profesional</option>
+            @foreach (ProfesionalDto profesional in profesionales)
+            {
+                <option value="@profesional.Id">@profesional.NombreCompleto @(profesional.Activo ? "" : "(desactivado)")</option>
+            }
+        </select>
+    </div>
+
+    @if (horario is not null)
+    {
+        <h2>Horario semanal</h2>
+        <ul class="list-unstyled">
+            @foreach (DayOfWeek dia in Semana)
+            {
+                <li>
+                    <strong>@NombreDia(dia):</strong>
+                    @{ List<IntervaloHorarioDto> delDia = horario.Intervalos.Where(i => i.DiaSemana == dia).ToList(); }
+                    @if (delDia.Count == 0)
+                    {
+                        <span>sin horario</span>
+                    }
+                    @foreach (IntervaloHorarioDto intervalo in delDia)
+                    {
+                        <span class="me-2">
+                            @intervalo.HoraInicio.ToString("HH:mm") – @intervalo.HoraFin.ToString("HH:mm")
+                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => EliminarAsync(intervalo.Id)">Eliminar</button>
+                        </span>
+                    }
+                </li>
+            }
+        </ul>
+
+        <h3>Añadir intervalo</h3>
+        <EditForm Model="nuevoIntervalo" OnValidSubmit="AgregarAsync" FormName="intervalo">
+            <div class="mb-3">
+                <label for="dia" class="form-label">Día</label>
+                <InputSelect id="dia" @bind-Value="nuevoIntervalo.Dia" class="form-select">
+                    @foreach (DayOfWeek dia in Semana)
+                    {
+                        <option value="@dia">@NombreDia(dia)</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="mb-3">
+                <label for="inicio" class="form-label">Hora de inicio</label>
+                <InputDate id="inicio" Type="InputDateType.Time" @bind-Value="nuevoIntervalo.HoraInicio" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label for="fin" class="form-label">Hora de fin</label>
+                <InputDate id="fin" Type="InputDateType.Time" @bind-Value="nuevoIntervalo.HoraFin" class="form-control" />
+            </div>
+            <button type="submit" class="btn btn-primary">Añadir intervalo</button>
+        </EditForm>
+
+        <h2>Días no disponibles</h2>
+        <p>Marcar un día como no disponible no cancela las reservas que ya existan ese día; si procede, cancélalas a mano.</p>
+        @if (horario.Excepciones.Count == 0)
+        {
+            <p>No hay días marcados.</p>
+        }
+        <ul class="list-unstyled">
+            @foreach (ExcepcionHorarioDto excepcion in horario.Excepciones)
+            {
+                <li>
+                    @excepcion.Fecha.ToString("dd/MM/yyyy") @(excepcion.Motivo is null ? "" : $"— {excepcion.Motivo}")
+                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => QuitarAsync(excepcion.Fecha)">Quitar</button>
+                </li>
+            }
+        </ul>
+
+        <h3>Marcar un día como no disponible</h3>
+        <EditForm Model="nuevaExcepcion" OnValidSubmit="MarcarAsync" FormName="excepcion">
+            <div class="mb-3">
+                <label for="fecha" class="form-label">Fecha</label>
+                <InputDate id="fecha" @bind-Value="nuevaExcepcion.Fecha" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label for="motivo" class="form-label">Motivo (opcional)</label>
+                <InputText id="motivo" @bind-Value="nuevaExcepcion.Motivo" class="form-control" />
+            </div>
+            <button type="submit" class="btn btn-primary">Marcar como no disponible</button>
+        </EditForm>
+    }
+}
+
+@code {
+    private static readonly DayOfWeek[] Semana =
+    [
+        DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday,
+        DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday,
+    ];
+
+    private IReadOnlyList<ProfesionalDto>? profesionales;
+    private HorarioProfesionalDto? horario;
+    private Guid? profesionalId;
+    private FormularioIntervalo nuevoIntervalo = new();
+    private FormularioExcepcion nuevaExcepcion = new();
+    private string? mensaje;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Resultado<IReadOnlyList<ProfesionalDto>> resultado = await ListarProfesionales.EjecutarAsync(CancellationToken.None);
+        profesionales = resultado.Valor ?? [];
+        if (!resultado.EsExito)
+        {
+            mensaje = resultado.Mensaje;
+        }
+    }
+
+    private async Task SeleccionarAsync(ChangeEventArgs evento)
+    {
+        mensaje = null;
+        profesionalId = Guid.TryParse(evento.Value?.ToString(), out Guid id) ? id : null;
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        if (profesionalId is null)
+        {
+            horario = null;
+            return;
+        }
+
+        Resultado<HorarioProfesionalDto> resultado = await Obtener.EjecutarAsync(
+            new ObtenerHorarioProfesionalComando(profesionalId.Value), CancellationToken.None);
+        horario = resultado.Valor;
+        if (!resultado.EsExito)
+        {
+            mensaje = resultado.Mensaje;
+        }
+    }
+
+    private async Task AgregarAsync()
+    {
+        Resultado<Guid> resultado = await Agregar.EjecutarAsync(
+            new AgregarIntervaloComando(profesionalId!.Value, nuevoIntervalo.Dia, nuevoIntervalo.HoraInicio, nuevoIntervalo.HoraFin),
+            CancellationToken.None);
+        mensaje = resultado.EsExito ? "Intervalo añadido." : resultado.Mensaje;
+        await CargarAsync();
+    }
+
+    private async Task EliminarAsync(Guid horarioId)
+    {
+        Resultado resultado = await Eliminar.EjecutarAsync(
+            new EliminarIntervaloComando(profesionalId!.Value, horarioId), CancellationToken.None);
+        mensaje = resultado.EsExito ? "Intervalo eliminado." : resultado.Mensaje;
+        await CargarAsync();
+    }
+
+    private async Task MarcarAsync()
+    {
+        if (nuevaExcepcion.Fecha is null)
+        {
+            mensaje = "Indica la fecha que no estará disponible.";
+            return;
+        }
+
+        Resultado resultado = await Marcar.EjecutarAsync(
+            new MarcarNoDisponibleComando(profesionalId!.Value, nuevaExcepcion.Fecha.Value, nuevaExcepcion.Motivo), CancellationToken.None);
+        mensaje = resultado.EsExito ? "Día marcado como no disponible." : resultado.Mensaje;
+        if (resultado.EsExito)
+        {
+            nuevaExcepcion = new();
+        }
+
+        await CargarAsync();
+    }
+
+    private async Task QuitarAsync(DateOnly fecha)
+    {
+        Resultado resultado = await Quitar.EjecutarAsync(
+            new QuitarExcepcionComando(profesionalId!.Value, fecha), CancellationToken.None);
+        mensaje = resultado.EsExito ? "Día disponible de nuevo." : resultado.Mensaje;
+        await CargarAsync();
+    }
+
+    private static string NombreDia(DayOfWeek dia) => dia switch
+    {
+        DayOfWeek.Monday => "Lunes",
+        DayOfWeek.Tuesday => "Martes",
+        DayOfWeek.Wednesday => "Miércoles",
+        DayOfWeek.Thursday => "Jueves",
+        DayOfWeek.Friday => "Viernes",
+        DayOfWeek.Saturday => "Sábado",
+        _ => "Domingo",
+    };
+
+    private sealed class FormularioIntervalo
+    {
+        public DayOfWeek Dia { get; set; } = DayOfWeek.Monday;
+
+        public TimeOnly HoraInicio { get; set; } = new(9, 0);
+
+        public TimeOnly HoraFin { get; set; } = new(14, 0);
+    }
+
+    private sealed class FormularioExcepcion
+    {
+        public DateOnly? Fecha { get; set; }
+
+        public string? Motivo { get; set; }
+    }
+}
