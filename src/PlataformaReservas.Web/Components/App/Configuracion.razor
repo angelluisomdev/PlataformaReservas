@@ -1,0 +1,211 @@
+@page "/app/settings"
+@rendermode InteractiveServer
+
+@inject ObtenerConfiguracionEmpresa Obtener
+@inject ActualizarEmpresa Actualizar
+@inject DarDeBajaEmpresa DarDeBaja
+@inject ReactivarEmpresa Reactivar
+@inject IConsultasCatalogoPublico Catalogo
+
+<PageTitle>Configuración del establecimiento</PageTitle>
+
+<h1>Configuración del establecimiento</h1>
+
+@if (mensaje is not null)
+{
+    <div class="alert alert-info" role="status">@mensaje</div>
+}
+
+@if (configuracion is null)
+{
+    <p>Cargando…</p>
+}
+else
+{
+    <p>Dirección pública: <code>/businesses/@configuracion.Slug</code></p>
+
+    @if (!configuracion.Activa)
+    {
+        <div class="alert alert-warning">
+            <p>El establecimiento está dado de baja y no aparece en el catálogo público.</p>
+            <button type="button" class="btn btn-primary" @onclick="ReactivarAsync">Reactivar el establecimiento</button>
+        </div>
+    }
+
+    <EditForm Model="formulario" OnValidSubmit="GuardarAsync" FormName="configuracion-empresa">
+        <h2>Datos</h2>
+        <div class="mb-3">
+            <label for="nombre" class="form-label">Nombre</label>
+            <InputText id="nombre" @bind-Value="formulario.Nombre" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="categoria" class="form-label">Categoría</label>
+            <InputSelect id="categoria" @bind-Value="formulario.CategoriaId" class="form-select">
+                @foreach (CategoriaDto categoria in categorias)
+                {
+                    <option value="@categoria.Id">@categoria.Nombre</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="mb-3">
+            <label for="descripcion" class="form-label">Descripción (opcional)</label>
+            <InputTextArea id="descripcion" @bind-Value="formulario.Descripcion" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="email" class="form-label">Correo de contacto</label>
+            <InputText id="email" @bind-Value="formulario.Email" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="telefono" class="form-label">Teléfono de contacto</label>
+            <InputText id="telefono" @bind-Value="formulario.Telefono" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="direccion" class="form-label">Dirección</label>
+            <InputText id="direccion" @bind-Value="formulario.Direccion" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="ciudad" class="form-label">Ciudad</label>
+            <InputText id="ciudad" @bind-Value="formulario.Ciudad" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="codigo-postal" class="form-label">Código postal</label>
+            <InputText id="codigo-postal" @bind-Value="formulario.CodigoPostal" class="form-control" />
+        </div>
+
+        <h2>Políticas de reserva</h2>
+        <div class="mb-3">
+            <label for="intervalo" class="form-label">Intervalo entre huecos (minutos, de 1 a 480)</label>
+            <InputNumber id="intervalo" @bind-Value="formulario.IntervaloHuecosMinutos" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="antelacion-minima" class="form-label">Antelación mínima (minutos, de 0 a 43 200)</label>
+            <InputNumber id="antelacion-minima" @bind-Value="formulario.AntelacionMinimaMinutos" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="antelacion-maxima" class="form-label">Antelación máxima (días, de 1 a 365)</label>
+            <InputNumber id="antelacion-maxima" @bind-Value="formulario.AntelacionMaximaDias" class="form-control" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+    </EditForm>
+
+    @if (configuracion.Activa)
+    {
+        <hr />
+        <section class="border border-danger rounded p-3 mt-4">
+            <h2>Dar de baja el establecimiento</h2>
+            @if (!confirmandoBaja)
+            {
+                <p>El establecimiento dejará de aparecer en el catálogo. Podrás reactivarlo después.</p>
+                <button type="button" class="btn btn-outline-danger" @onclick="() => confirmandoBaja = true">Dar de baja</button>
+            }
+            else
+            {
+                <p>
+                    Se cancelarán <strong>@configuracion.ReservasFuturas</strong> reservas futuras confirmadas.
+                    Las reservas canceladas no se restauran al reactivar. ¿Confirmas la baja?
+                </p>
+                <button type="button" class="btn btn-danger" @onclick="DarDeBajaAsync">Confirmar la baja</button>
+                <button type="button" class="btn btn-secondary" @onclick="() => confirmandoBaja = false">Cancelar</button>
+            }
+        </section>
+    }
+}
+
+@code {
+    private ConfiguracionEmpresaDto? configuracion;
+    private IReadOnlyList<CategoriaDto> categorias = [];
+    private Formulario formulario = new();
+    private bool confirmandoBaja;
+    private string? mensaje;
+
+    protected override async Task OnInitializedAsync()
+    {
+        categorias = await Catalogo.ObtenerCategoriasAsync(CancellationToken.None);
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        Resultado<ConfiguracionEmpresaDto> resultado = await Obtener.EjecutarAsync(CancellationToken.None);
+        if (!resultado.EsExito)
+        {
+            mensaje = resultado.Mensaje;
+            return;
+        }
+
+        configuracion = resultado.Valor!;
+        formulario = Formulario.Desde(configuracion);
+        confirmandoBaja = false;
+    }
+
+    private async Task GuardarAsync()
+    {
+        Resultado resultado = await Actualizar.EjecutarAsync(formulario.AComando(), CancellationToken.None);
+        mensaje = resultado.EsExito ? "Cambios guardados." : resultado.Mensaje;
+        if (resultado.EsExito)
+        {
+            await CargarAsync();
+        }
+    }
+
+    private async Task DarDeBajaAsync()
+    {
+        Resultado<int> resultado = await DarDeBaja.EjecutarAsync(CancellationToken.None);
+        mensaje = resultado.EsExito
+            ? $"El establecimiento se ha dado de baja. Reservas canceladas: {resultado.Valor}."
+            : resultado.Mensaje;
+        await CargarAsync();
+    }
+
+    private async Task ReactivarAsync()
+    {
+        Resultado resultado = await Reactivar.EjecutarAsync(CancellationToken.None);
+        mensaje = resultado.EsExito ? "El establecimiento se ha reactivado." : resultado.Mensaje;
+        await CargarAsync();
+    }
+
+    private sealed class Formulario
+    {
+        public string Nombre { get; set; } = "";
+
+        public Guid CategoriaId { get; set; }
+
+        public string? Descripcion { get; set; }
+
+        public string Email { get; set; } = "";
+
+        public string Telefono { get; set; } = "";
+
+        public string Direccion { get; set; } = "";
+
+        public string Ciudad { get; set; } = "";
+
+        public string CodigoPostal { get; set; } = "";
+
+        public int IntervaloHuecosMinutos { get; set; }
+
+        public int AntelacionMinimaMinutos { get; set; }
+
+        public int AntelacionMaximaDias { get; set; }
+
+        public static Formulario Desde(ConfiguracionEmpresaDto dto) => new()
+        {
+            Nombre = dto.Nombre,
+            CategoriaId = dto.CategoriaId,
+            Descripcion = dto.Descripcion,
+            Email = dto.Email,
+            Telefono = dto.Telefono,
+            Direccion = dto.Direccion,
+            Ciudad = dto.Ciudad,
+            CodigoPostal = dto.CodigoPostal,
+            IntervaloHuecosMinutos = dto.IntervaloHuecosMinutos,
+            AntelacionMinimaMinutos = dto.AntelacionMinimaMinutos,
+            AntelacionMaximaDias = dto.AntelacionMaximaDias,
+        };
+
+        public ActualizarEmpresaComando AComando() => new(
+            Nombre, CategoriaId, Descripcion, Email, Telefono, Direccion, CodigoPostal, Ciudad,
+            IntervaloHuecosMinutos, AntelacionMinimaMinutos, AntelacionMaximaDias);
+    }
+}

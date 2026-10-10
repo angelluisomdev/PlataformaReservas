@@ -125,4 +125,40 @@ public sealed class PruebasReserva
 
         crear.Should().Throw<DominioException>();
     }
+
+    [Fact]
+    public void CancelarPorEmpresa_cancela_una_confirmada_aunque_ya_haya_empezado()
+    {
+        Reserva reserva = CrearReserva(ServicioDe(EmpresaId), inicioUtc: Ahora.AddHours(-1));
+        DateTime cancelacion = Ahora.AddMinutes(5);
+
+        reserva.CancelarPorEmpresa(cancelacion);
+
+        reserva.Estado.Should().Be(EstadoReserva.Cancelada);
+        reserva.FechaCancelacion.Should().Be(cancelacion);
+        reserva.FechaModificacion.Should().Be(cancelacion);
+    }
+
+    [Fact]
+    public void CancelarPorEmpresa_rechaza_una_reserva_ya_cancelada()
+    {
+        Reserva reserva = CrearReserva(ServicioDe(EmpresaId));
+        reserva.CancelarPorEmpresa(Ahora);
+
+        Action otraVez = () => reserva.CancelarPorEmpresa(Ahora.AddMinutes(1));
+
+        otraVez.Should().Throw<DominioException>();
+        reserva.FechaCancelacion.Should().Be(Ahora);
+    }
+
+    [Fact]
+    public void CancelarPorEmpresa_rechaza_una_fecha_que_no_es_utc()
+    {
+        Reserva reserva = CrearReserva(ServicioDe(EmpresaId));
+
+        Action cancelar = () => reserva.CancelarPorEmpresa(DateTime.SpecifyKind(Ahora, DateTimeKind.Local));
+
+        cancelar.Should().Throw<DominioException>();
+        reserva.Estado.Should().Be(EstadoReserva.Confirmada);
+    }
 }

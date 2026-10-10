@@ -52,4 +52,81 @@ public sealed class PruebasProfesional
 
         crear.Should().Throw<DominioException>();
     }
+
+    [Fact]
+    public void ActualizarDatos_cambia_nombre_correo_y_telefono()
+    {
+        Profesional profesional = CrearProfesional();
+
+        profesional.ActualizarDatos(new NombrePersona("Ana Lopez"), new Email("ana@prueba.es"), new Telefono("600111222"));
+
+        profesional.NombreCompleto.Should().Be(new NombrePersona("Ana Lopez"));
+        profesional.Email.Should().Be(new Email("ana@prueba.es"));
+        profesional.Telefono.Should().Be(new Telefono("600111222"));
+    }
+
+    [Fact]
+    public void ActualizarDatos_admite_quitar_correo_y_telefono()
+    {
+        Profesional profesional = CrearProfesional();
+        profesional.ActualizarDatos(new NombrePersona("Ana Lopez"), new Email("ana@prueba.es"), new Telefono("600111222"));
+
+        profesional.ActualizarDatos(new NombrePersona("Ana Lopez"), null, null);
+
+        profesional.Email.Should().BeNull();
+        profesional.Telefono.Should().BeNull();
+    }
+
+    [Fact]
+    public void Desactivar_lo_desactiva_y_no_admite_una_segunda_vez()
+    {
+        Profesional profesional = CrearProfesional();
+
+        profesional.Desactivar();
+        Action otraVez = profesional.Desactivar;
+
+        profesional.Activo.Should().BeFalse();
+        otraVez.Should().Throw<DominioException>();
+    }
+
+    [Fact]
+    public void AsociarServicio_lo_anade_a_los_que_presta()
+    {
+        Profesional profesional = CrearProfesional();
+        Guid servicioId = Guid.CreateVersion7();
+
+        profesional.AsociarServicio(servicioId);
+
+        profesional.Presta(servicioId).Should().BeTrue();
+        profesional.ServiciosQuePresta.Should().ContainSingle().Which.Should().Be(servicioId);
+    }
+
+    [Fact]
+    public void AsociarServicio_rechaza_el_mismo_servicio_dos_veces_y_un_identificador_vacio()
+    {
+        Profesional profesional = CrearProfesional();
+        Guid servicioId = Guid.CreateVersion7();
+        profesional.AsociarServicio(servicioId);
+
+        Action duplicado = () => profesional.AsociarServicio(servicioId);
+        Action vacio = () => profesional.AsociarServicio(Guid.Empty);
+
+        duplicado.Should().Throw<DominioException>();
+        vacio.Should().Throw<DominioException>();
+        profesional.ServiciosQuePresta.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void DesasociarServicio_lo_quita_y_rechaza_un_servicio_que_no_presta()
+    {
+        Profesional profesional = CrearProfesional();
+        Guid servicioId = Guid.CreateVersion7();
+        profesional.AsociarServicio(servicioId);
+
+        profesional.DesasociarServicio(servicioId);
+        Action otraVez = () => profesional.DesasociarServicio(servicioId);
+
+        profesional.Presta(servicioId).Should().BeFalse();
+        otraVez.Should().Throw<DominioException>();
+    }
 }

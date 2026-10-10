@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using PlataformaReservas.Aplicacion;
+using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Infraestructura;
 using PlataformaReservas.Infraestructura.Identidad;
 using PlataformaReservas.Infraestructura.Persistencia;
@@ -66,8 +68,19 @@ public sealed class BaseDatosFixture : IAsyncLifetime
         ServiceCollection servicios = new();
         servicios.AddLogging();
         servicios.AgregarInfraestructura(configuracion);
+        servicios.AgregarAplicacion();
         servicios.AddSingleton<IEmailSender<Usuario>>(Remitente);
+        servicios.AddSingleton<IRelojSistema, RelojFijo>();
+        servicios.AddScoped<ContextoEmpresaAjustable>();
+        servicios.AddScoped<IContextoEmpresa>(sp => sp.GetRequiredService<ContextoEmpresaAjustable>());
         return servicios.BuildServiceProvider();
+    }
+
+    public AsyncServiceScope AmbitoDeEmpresa(Guid empresaId)
+    {
+        AsyncServiceScope ambito = ServiciosIdentidad.CreateAsyncScope();
+        ambito.ServiceProvider.GetRequiredService<ContextoEmpresaAjustable>().EmpresaId = empresaId;
+        return ambito;
     }
 
     public static string ClaveAleatoria() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));

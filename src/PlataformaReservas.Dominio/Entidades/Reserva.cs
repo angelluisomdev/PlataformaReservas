@@ -81,4 +81,18 @@ public sealed class Reserva : EntidadBase
             FechaModificacion = ahoraUtc,
         };
     }
+
+    public void CancelarPorEmpresa(DateTime ahoraUtc)
+    {
+        Validacion.InstanteUtc(ahoraUtc, "La fecha de cancelacion de la reserva");
+
+        if (Estado != EstadoReserva.Confirmada)
+        {
+            throw new DominioException("Solo se cancelan reservas confirmadas.");
+        }
+
+        Estado = EstadoReserva.Cancelada;
+        FechaCancelacion = ahoraUtc;
+        FechaModificacion = ahoraUtc;
+    }
 }

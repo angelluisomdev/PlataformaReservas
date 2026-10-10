@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.Dominio.ValueObjects;
 using PlataformaReservas.Infraestructura.Identidad;
+using PlataformaReservas.Infraestructura.Persistencia.Conversores;
 
 namespace PlataformaReservas.Infraestructura.Persistencia.Configuraciones;
 

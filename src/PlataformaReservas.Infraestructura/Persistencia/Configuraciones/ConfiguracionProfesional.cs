@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using PlataformaReservas.Dominio.Entidades;
+using PlataformaReservas.Infraestructura.Persistencia.Conversores;
 
 namespace PlataformaReservas.Infraestructura.Persistencia.Configuraciones;
 

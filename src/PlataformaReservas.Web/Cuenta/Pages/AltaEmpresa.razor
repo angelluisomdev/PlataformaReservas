@@ -1,0 +1,175 @@
+@page "/for-business/register"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using PlataformaReservas.Aplicacion.Abstracciones
+@using PlataformaReservas.Aplicacion.CasosUso.Empresas
+@using PlataformaReservas.Aplicacion.Compartido
+@using PlataformaReservas.Aplicacion.Dtos
+
+@inject RegistrarEmpresa Registrar
+@inject IConsultasCatalogoPublico Catalogo
+@inject UserManager<Usuario> UserManager
+@inject SignInManager<Usuario> SignInManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Registrar mi negocio</PageTitle>
+
+<h1>Registrar mi negocio</h1>
+
+<div class="row">
+    <div class="col-lg-8">
+        <StatusMessage Message="@mensaje" />
+        <EditForm Model="Input" method="post" OnValidSubmit="RegistrarAsync" FormName="alta-empresa">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert" />
+
+            <h2>Tu cuenta</h2>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.NombreCompleto" id="Input.NombreCompleto" class="form-control" autocomplete="name" placeholder="Nombre y apellidos" />
+                <label for="Input.NombreCompleto">Nombre completo</label>
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username" placeholder="nombre@ejemplo.com" />
+                <label for="Input.Email">Correo electrónico</label>
+            </div>
+            <div class="form-floating mb-3">
+                <InputText type="tel" @bind-Value="Input.Telefono" id="Input.Telefono" class="form-control" autocomplete="tel" placeholder="Teléfono" />
+                <label for="Input.Telefono">Teléfono (opcional)</label>
+            </div>
+            <div class="form-floating mb-3">
+                <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="new-password" placeholder="contraseña" />
+                <label for="Input.Password">Contraseña</label>
+            </div>
+            <div class="form-floating mb-3">
+                <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control" autocomplete="new-password" placeholder="contraseña" />
+                <label for="Input.ConfirmPassword">Confirmar contraseña</label>
+            </div>
+
+            <h2>Tu establecimiento</h2>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.NombreEmpresa" id="Input.NombreEmpresa" class="form-control" placeholder="Nombre" />
+                <label for="Input.NombreEmpresa">Nombre del establecimiento</label>
+            </div>
+            <div class="form-floating mb-3">
+                <InputSelect @bind-Value="Input.CategoriaId" id="Input.CategoriaId" class="form-select">
+                    <option value="">Elige una categoría</option>
+                    @foreach (CategoriaDto categoria in categorias)
+                    {
+                        <option value="@categoria.Id">@categoria.Nombre</option>
+                    }
+                </InputSelect>
+                <label for="Input.CategoriaId">Categoría</label>
+            </div>
+            <div class="form-floating mb-3">
+                <InputTextArea @bind-Value="Input.Descripcion" id="Input.Descripcion" class="form-control" placeholder="Descripción" />
+                <label for="Input.Descripcion">Descripción (opcional)</label>
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Direccion" id="Input.Direccion" class="form-control" placeholder="Dirección" />
+                <label for="Input.Direccion">Dirección</label>
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Ciudad" id="Input.Ciudad" class="form-control" placeholder="Ciudad" />
+                <label for="Input.Ciudad">Ciudad</label>
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.CodigoPostal" id="Input.CodigoPostal" class="form-control" placeholder="Código postal" />
+                <label for="Input.CodigoPostal">Código postal</label>
+            </div>
+            <div class="form-floating mb-3">
+                <InputText type="tel" @bind-Value="Input.TelefonoEmpresa" id="Input.TelefonoEmpresa" class="form-control" placeholder="Teléfono" />
+                <label for="Input.TelefonoEmpresa">Teléfono de contacto</label>
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.EmailEmpresa" id="Input.EmailEmpresa" class="form-control" placeholder="contacto@ejemplo.com" />
+                <label for="Input.EmailEmpresa">Correo de contacto</label>
+            </div>
+
+            <button type="submit" class="w-100 btn btn-lg btn-primary">Registrar mi negocio</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private IReadOnlyList<CategoriaDto> categorias = [];
+    private string? mensaje;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+        categorias = await Catalogo.ObtenerCategoriasAsync(CancellationToken.None);
+    }
+
+    private async Task RegistrarAsync()
+    {
+        if (!Guid.TryParse(Input.CategoriaId, out Guid categoriaId))
+        {
+            mensaje = "Error: elige una categoría.";
+            return;
+        }
+
+        Resultado<EmpresaRegistradaDto> resultado = await Registrar.EjecutarAsync(
+            new RegistrarEmpresaComando(
+                Input.NombreCompleto, Input.Email, Input.Telefono, Input.Password, Input.NombreEmpresa, categoriaId,
+                Input.Descripcion, Input.Direccion, Input.Ciudad, Input.CodigoPostal, Input.TelefonoEmpresa, Input.EmailEmpresa),
+            CancellationToken.None);
+
+        if (!resultado.EsExito)
+        {
+            mensaje = $"Error: {resultado.Mensaje}";
+            return;
+        }
+
+        Usuario usuario = (await UserManager.FindByIdAsync(resultado.Valor!.UsuarioId.ToString()))!;
+        await SignInManager.SignInAsync(usuario, isPersistent: false);
+        RedirectManager.RedirectTo("app");
+    }
+
+    private sealed class InputModel
+    {
+        [Required(ErrorMessage = "El nombre completo es obligatorio.")]
+        public string NombreCompleto { get; set; } = "";
+
+        [Required(ErrorMessage = "El correo electrónico es obligatorio.")]
+        [EmailAddress(ErrorMessage = "El correo electrónico no es válido.")]
+        public string Email { get; set; } = "";
+
+        public string? Telefono { get; set; }
+
+        [Required(ErrorMessage = "La contraseña es obligatoria.")]
+        [StringLength(100, ErrorMessage = "La contraseña debe tener entre {2} y {1} caracteres.", MinimumLength = 8)]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+
+        [DataType(DataType.Password)]
+        [Compare("Password", ErrorMessage = "Las contraseñas no coinciden.")]
+        public string ConfirmPassword { get; set; } = "";
+
+        [Required(ErrorMessage = "El nombre del establecimiento es obligatorio.")]
+        public string NombreEmpresa { get; set; } = "";
+
+        [Required(ErrorMessage = "La categoría es obligatoria.")]
+        public string CategoriaId { get; set; } = "";
+
+        public string? Descripcion { get; set; }
+
+        [Required(ErrorMessage = "La dirección es obligatoria.")]
+        public string Direccion { get; set; } = "";
+
+        [Required(ErrorMessage = "La ciudad es obligatoria.")]
+        public string Ciudad { get; set; } = "";
+
+        [Required(ErrorMessage = "El código postal es obligatorio.")]
+        public string CodigoPostal { get; set; } = "";
+
+        [Required(ErrorMessage = "El teléfono de contacto es obligatorio.")]
+        public string TelefonoEmpresa { get; set; } = "";
+
+        [Required(ErrorMessage = "El correo de contacto es obligatorio.")]
+        public string EmailEmpresa { get; set; } = "";
+    }
+}

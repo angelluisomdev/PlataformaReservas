@@ -1,0 +1,200 @@
+@page "/app/services"
+@rendermode InteractiveServer
+
+@inject ListarServicios Listar
+@inject CrearServicio Crear
+@inject ActualizarServicio Actualizar
+@inject DesactivarServicio Desactivar
+
+<PageTitle>Servicios</PageTitle>
+
+<h1>Servicios</h1>
+
+@if (mensaje is not null)
+{
+    <div class="alert alert-info" role="status">@mensaje</div>
+}
+
+@if (servicios is null)
+{
+    <p>Cargando…</p>
+}
+else
+{
+    @if (servicios.Count == 0)
+    {
+        <p>Todavía no hay servicios.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Duración</th>
+                    <th>Precio</th>
+                    <th>Estado</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (ServicioDto servicio in servicios)
+                {
+                    <tr>
+                        <td>@servicio.Nombre</td>
+                        <td>@servicio.DuracionMinutos min</td>
+                        <td>@servicio.Precio.ToString("0.00") €</td>
+                        <td>@(servicio.Activo ? "Activo" : "Desactivado")</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Editar(servicio)">Editar</button>
+                            @if (servicio.Activo)
+                            {
+                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => DesactivarAsync(servicio.Id)">Desactivar</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <h2>@(editandoId is null ? "Nuevo servicio" : "Editar servicio")</h2>
+    <EditForm Model="formulario" OnValidSubmit="GuardarAsync" FormName="servicio">
+        <div class="mb-3">
+            <label for="nombre" class="form-label">Nombre</label>
+            <InputText id="nombre" @bind-Value="formulario.Nombre" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="descripcion" class="form-label">Descripción (opcional)</label>
+            <InputTextArea id="descripcion" @bind-Value="formulario.Descripcion" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="duracion" class="form-label">Duración (minutos)</label>
+            <InputNumber id="duracion" @bind-Value="formulario.DuracionMinutos" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="precio" class="form-label">Precio (€)</label>
+            <InputNumber id="precio" @bind-Value="formulario.Precio" class="form-control" />
+        </div>
+
+        <h3>Políticas de reserva</h3>
+        <p>Deja un campo vacío para <strong>heredar</strong> el valor de la empresa. Vacío no significa "sin límite".</p>
+        <div class="mb-3">
+            <label for="intervalo" class="form-label">Intervalo entre huecos (minutos, de 1 a 480)</label>
+            <InputNumber id="intervalo" @bind-Value="formulario.IntervaloHuecosMinutos" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="antelacion-minima" class="form-label">Antelación mínima (minutos, de 0 a 43 200)</label>
+            <InputNumber id="antelacion-minima" @bind-Value="formulario.AntelacionMinimaMinutos" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="antelacion-maxima" class="form-label">Antelación máxima (días, de 1 a 365)</label>
+            <InputNumber id="antelacion-maxima" @bind-Value="formulario.AntelacionMaximaDias" class="form-control" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">@(editandoId is null ? "Crear servicio" : "Guardar cambios")</button>
+        @if (editandoId is not null)
+        {
+            <button type="button" class="btn btn-secondary" @onclick="Nuevo">Cancelar</button>
+        }
+    </EditForm>
+}
+
+@code {
+    private IReadOnlyList<ServicioDto>? servicios;
+    private Formulario formulario = new();
+    private Guid? editandoId;
+    private string? mensaje;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        Resultado<IReadOnlyList<ServicioDto>> resultado = await Listar.EjecutarAsync(CancellationToken.None);
+        servicios = resultado.Valor ?? [];
+    }
+
+    private void Editar(ServicioDto servicio)
+    {
+        editandoId = servicio.Id;
+        formulario = Formulario.Desde(servicio);
+        mensaje = null;
+    }
+
+    private void Nuevo()
+    {
+        editandoId = null;
+        formulario = new();
+    }
+
+    private async Task GuardarAsync()
+    {
+        if (editandoId is null)
+        {
+            Resultado<Guid> creado = await Crear.EjecutarAsync(
+                new CrearServicioComando(
+                    formulario.Nombre, formulario.Descripcion, formulario.DuracionMinutos, formulario.Precio,
+                    formulario.IntervaloHuecosMinutos, formulario.AntelacionMinimaMinutos, formulario.AntelacionMaximaDias),
+                CancellationToken.None);
+            mensaje = creado.EsExito ? "Servicio creado." : creado.Mensaje;
+            if (!creado.EsExito)
+            {
+                return;
+            }
+        }
+        else
+        {
+            Resultado actualizado = await Actualizar.EjecutarAsync(
+                new ActualizarServicioComando(
+                    editandoId.Value, formulario.Nombre, formulario.Descripcion, formulario.DuracionMinutos, formulario.Precio,
+                    formulario.IntervaloHuecosMinutos, formulario.AntelacionMinimaMinutos, formulario.AntelacionMaximaDias),
+                CancellationToken.None);
+            mensaje = actualizado.EsExito ? "Servicio actualizado." : actualizado.Mensaje;
+            if (!actualizado.EsExito)
+            {
+                return;
+            }
+        }
+
+        Nuevo();
+        await CargarAsync();
+    }
+
+    private async Task DesactivarAsync(Guid id)
+    {
+        Resultado resultado = await Desactivar.EjecutarAsync(new DesactivarServicioComando(id), CancellationToken.None);
+        mensaje = resultado.EsExito ? "Servicio desactivado." : resultado.Mensaje;
+        await CargarAsync();
+    }
+
+    private sealed class Formulario
+    {
+        public string Nombre { get; set; } = "";
+
+        public string? Descripcion { get; set; }
+
+        public int DuracionMinutos { get; set; } = 30;
+
+        public decimal Precio { get; set; }
+
+        public int? IntervaloHuecosMinutos { get; set; }
+
+        public int? AntelacionMinimaMinutos { get; set; }
+
+        public int? AntelacionMaximaDias { get; set; }
+
+        public static Formulario Desde(ServicioDto dto) => new()
+        {
+            Nombre = dto.Nombre,
+            Descripcion = dto.Descripcion,
+            DuracionMinutos = dto.DuracionMinutos,
+            Precio = dto.Precio,
+            IntervaloHuecosMinutos = dto.IntervaloHuecosMinutos,
+            AntelacionMinimaMinutos = dto.AntelacionMinimaMinutos,
+            AntelacionMaximaDias = dto.AntelacionMaximaDias,
+        };
+    }
+}

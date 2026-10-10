@@ -82,4 +82,69 @@ public sealed class Empresa : EntidadBase
             FechaModificacion = ahoraUtc,
         };
     }
+
+    public void ActualizarDatos(
+        NombreEmpresa nombre,
+        DescripcionEmpresa? descripcion,
+        Email email,
+        Telefono telefono,
+        Direccion direccion,
+        CodigoPostal codigoPostal,
+        Ciudad ciudad,
+        DateTime ahoraUtc)
+    {
+        Validacion.InstanteUtc(ahoraUtc, "La fecha de modificacion de la empresa");
+
+        Nombre = nombre;
+        Descripcion = descripcion;
+        Email = email;
+        Telefono = telefono;
+        Direccion = direccion;
+        CodigoPostal = codigoPostal;
+        Ciudad = ciudad;
+        FechaModificacion = ahoraUtc;
+    }
+
+    public void CambiarCategoria(Guid categoriaId, DateTime ahoraUtc)
+    {
+        Validacion.IdentificadorObligatorio(categoriaId, "La categoria de la empresa");
+        Validacion.InstanteUtc(ahoraUtc, "La fecha de modificacion de la empresa");
+
+        CategoriaId = categoriaId;
+        FechaModificacion = ahoraUtc;
+    }
+
+    public void CambiarPoliticas(PoliticasReserva politicas, DateTime ahoraUtc)
+    {
+        Validacion.InstanteUtc(ahoraUtc, "La fecha de modificacion de la empresa");
+
+        Politicas = politicas;
+        FechaModificacion = ahoraUtc;
+    }
+
+    public void DarDeBaja(DateTime ahoraUtc)
+    {
+        Validacion.InstanteUtc(ahoraUtc, "La fecha de baja de la empresa");
+
+        if (!Activa)
+        {
+            throw new DominioException("La empresa ya esta dada de baja.");
+        }
+
+        Activa = false;
+        FechaModificacion = ahoraUtc;
+    }
+
+    public void Reactivar(DateTime ahoraUtc)
+    {
+        Validacion.InstanteUtc(ahoraUtc, "La fecha de reactivacion de la empresa");
+
+        if (Activa)
+        {
+            throw new DominioException("La empresa ya esta activa.");
+        }
+
+        Activa = true;
+        FechaModificacion = ahoraUtc;
+    }
 }

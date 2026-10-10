@@ -2,8 +2,8 @@ using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
-using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Dominio.Entidades;
+using PlataformaReservas.Dominio.Repositorios;
 
 namespace PlataformaReservas.Infraestructura.Identidad;
 

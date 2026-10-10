@@ -3,6 +3,9 @@
 <nav>
     <AuthorizeView>
         <Authorized>
+            <AuthorizeView Policy="EsPropietario" Context="propietario">
+                <a href="app">Mi establecimiento</a>
+            </AuthorizeView>
             <form action="Account/Logout" method="post">
                 <AntiforgeryToken />
                 <input type="hidden" name="ReturnUrl" value="" />
@@ -12,6 +15,7 @@
         <NotAuthorized>
             <a href="login">Iniciar sesión</a>
             <a href="register">Registrarse</a>
+            <a href="for-business/register">Registrar mi negocio</a>
         </NotAuthorized>
     </AuthorizeView>
 </nav>

@@ -1,37 +1,18 @@
-using PlataformaReservas.Dominio.Compartido;
 using PlataformaReservas.Dominio.Entidades;
 
 namespace PlataformaReservas.Dominio.ValueObjects;
 
 public sealed record PoliticasReserva
 {
-    public const int IntervaloMinimo = 1, IntervaloMaximo = 480;
-    public const int AntelacionMinima = 0, AntelacionMaxima = 43_200;
-    public const int VentanaMinima = 1, VentanaMaxima = 365;
+    public const int IntervaloMinimo = IntervaloHuecos.Minimo, IntervaloMaximo = IntervaloHuecos.Maximo;
+    public const int AntelacionMinima = AntelacionMinimaReserva.Minimo, AntelacionMaxima = AntelacionMinimaReserva.Maximo;
+    public const int VentanaMinima = AntelacionMaximaReserva.Minimo, VentanaMaxima = AntelacionMaximaReserva.Maximo;
 
     public PoliticasReserva(int intervaloHuecosMinutos, int antelacionMinimaMinutos, int antelacionMaximaDias)
     {
-        if (intervaloHuecosMinutos < IntervaloMinimo || intervaloHuecosMinutos > IntervaloMaximo)
-        {
-            throw new DominioException(
-                $"El intervalo entre huecos debe estar entre {IntervaloMinimo} y {IntervaloMaximo} minutos.");
-        }
-
-        if (antelacionMinimaMinutos < AntelacionMinima || antelacionMinimaMinutos > AntelacionMaxima)
-        {
-            throw new DominioException(
-                $"La antelacion minima debe estar entre {AntelacionMinima} y {AntelacionMaxima} minutos.");
-        }
-
-        if (antelacionMaximaDias < VentanaMinima || antelacionMaximaDias > VentanaMaxima)
-        {
-            throw new DominioException(
-                $"La antelacion maxima debe estar entre {VentanaMinima} y {VentanaMaxima} dias.");
-        }
-
-        IntervaloHuecosMinutos = intervaloHuecosMinutos;
-        AntelacionMinimaMinutos = antelacionMinimaMinutos;
-        AntelacionMaximaDias = antelacionMaximaDias;
+        IntervaloHuecosMinutos = new IntervaloHuecos(intervaloHuecosMinutos).Minutos;
+        AntelacionMinimaMinutos = new AntelacionMinimaReserva(antelacionMinimaMinutos).Minutos;
+        AntelacionMaximaDias = new AntelacionMaximaReserva(antelacionMaximaDias).Dias;
     }
 
     public int IntervaloHuecosMinutos { get; }

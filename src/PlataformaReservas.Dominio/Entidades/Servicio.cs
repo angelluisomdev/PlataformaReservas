@@ -13,7 +13,7 @@ public sealed class Servicio : EntidadBase
 
     public NombreServicio Nombre { get; private set; } = null!;
 
-    public string? Descripcion { get; private set; }
+    public DescripcionServicio? Descripcion { get; private set; }
 
     public Duracion Duracion { get; private set; } = null!;
 
@@ -54,5 +54,48 @@ public sealed class Servicio : EntidadBase
             FechaAlta = ahoraUtc,
             FechaModificacion = ahoraUtc,
         };
+    }
+
+    public void ActualizarDatos(
+        NombreServicio nombre,
+        DescripcionServicio? descripcion,
+        Duracion duracion,
+        Precio precio,
+        DateTime ahoraUtc)
+    {
+        Validacion.InstanteUtc(ahoraUtc, "La fecha de modificacion del servicio");
+
+        Nombre = nombre;
+        Descripcion = descripcion;
+        Duracion = duracion;
+        Precio = precio;
+        FechaModificacion = ahoraUtc;
+    }
+
+    public void EstablecerPoliticas(
+        IntervaloHuecos? intervaloHuecos,
+        AntelacionMinimaReserva? antelacionMinima,
+        AntelacionMaximaReserva? antelacionMaxima,
+        DateTime ahoraUtc)
+    {
+        Validacion.InstanteUtc(ahoraUtc, "La fecha de modificacion del servicio");
+
+        IntervaloHuecosMinutos = intervaloHuecos?.Minutos;
+        AntelacionMinimaMinutos = antelacionMinima?.Minutos;
+        AntelacionMaximaDias = antelacionMaxima?.Dias;
+        FechaModificacion = ahoraUtc;
+    }
+
+    public void Desactivar(DateTime ahoraUtc)
+    {
+        Validacion.InstanteUtc(ahoraUtc, "La fecha de modificacion del servicio");
+
+        if (!Activo)
+        {
+            throw new DominioException("El servicio ya esta desactivado.");
+        }
+
+        Activo = false;
+        FechaModificacion = ahoraUtc;
     }
 }

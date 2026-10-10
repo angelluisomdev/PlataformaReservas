@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
+using PlataformaReservas.Aplicacion;
 using PlataformaReservas.Infraestructura;
 using PlataformaReservas.Infraestructura.Identidad;
 using PlataformaReservas.Infraestructura.Persistencia.DatosIniciales;
@@ -18,6 +19,7 @@ builder.Services.AddSingleton<IEmailSender<Usuario>, IdentityNoOpEmailSender>();
 builder.Services.AddScoped<AuthenticationStateProvider, RevalidadorIdentidad>();
 
 builder.Services.AgregarInfraestructura(builder.Configuration);
+builder.Services.AgregarAplicacion();
 
 var app = builder.Build();
 

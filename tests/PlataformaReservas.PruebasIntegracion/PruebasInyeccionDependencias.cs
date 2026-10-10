@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using PlataformaReservas.Aplicacion.Abstracciones;
+using PlataformaReservas.Dominio.Repositorios;
 using PlataformaReservas.Infraestructura;
 using PlataformaReservas.Infraestructura.Identidad;
 using PlataformaReservas.PruebasIntegracion.Infraestructura;

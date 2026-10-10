@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PlataformaReservas.Dominio.Entidades;
+using PlataformaReservas.Dominio.ValueObjects;
 using PlataformaReservas.Infraestructura.Persistencia;
 using PlataformaReservas.PruebasIntegracion.Infraestructura;
 
@@ -17,6 +18,7 @@ public sealed class PruebasConfiguracionServicio(BaseDatosFixture baseDatos)
         Categoria categoria = DominioPrueba.Categoria(sufijo);
         Empresa empresa = DominioPrueba.Empresa(sufijo, categoria.Id);
         Servicio servicio = DominioPrueba.Servicio(empresa.Id);
+        servicio.ActualizarDatos(servicio.Nombre, new DescripcionServicio("Con lavado"), servicio.Duracion, servicio.Precio, DominioPrueba.Ahora);
 
         await using (AsyncServiceScope escritura = baseDatos.ServiciosIdentidad.CreateAsyncScope())
         {
@@ -32,6 +34,7 @@ public sealed class PruebasConfiguracionServicio(BaseDatosFixture baseDatos)
         leido.Nombre.Should().Be(servicio.Nombre);
         leido.Duracion.Should().Be(servicio.Duracion);
         leido.Precio.Importe.Should().Be(18.50m);
+        leido.Descripcion.Should().Be(new DescripcionServicio("Con lavado"));
         leido.Activo.Should().BeTrue();
     }
 }

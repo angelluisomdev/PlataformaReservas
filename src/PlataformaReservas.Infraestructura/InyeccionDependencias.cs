@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PlataformaReservas.Aplicacion.Abstracciones;
+using PlataformaReservas.Dominio.Repositorios;
+using PlataformaReservas.Infraestructura.Consultas;
 using PlataformaReservas.Infraestructura.Identidad;
 using PlataformaReservas.Infraestructura.Persistencia;
 using PlataformaReservas.Infraestructura.Repositorios;
@@ -36,6 +38,9 @@ public static class InyeccionDependencias
 
     private static void AgregarRepositorios(this IServiceCollection servicios)
     {
+        servicios.AddSingleton<IRelojSistema, RelojSistema>();
+        servicios.AddScoped<IUnidadTrabajo, UnidadTrabajo>();
+        servicios.AddScoped<IConsultasCatalogoPublico, ConsultasCatalogoPublico>();
         servicios.AddScoped<IContextoEmpresa, ContextoEmpresa>();
         servicios.AddScoped<IRepositorioEmpresas, RepositorioEmpresas>();
         servicios.AddScoped<IRepositorioServicios, RepositorioServicios>();
@@ -78,6 +83,7 @@ public static class InyeccionDependencias
 
         servicios.AddScoped<SolicitudRestablecimientoClave>();
         servicios.AddScoped<RegistroCliente>();
+        servicios.AddScoped<IServicioCuentas, ServicioCuentas>();
 
         servicios.AddAuthorizationBuilder()
             .AddPolicy(RolesIdentidad.PoliticaCliente, p => p.RequireRole(RolesIdentidad.Cliente))
