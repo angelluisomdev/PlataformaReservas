@@ -26,6 +26,7 @@ public static class InyeccionDependencias
             sp.GetRequiredService<IDbContextFactory<ContextoDatos>>().CreateDbContext());
 
         servicios.AgregarIdentidad(configuracion);
+        servicios.AgregarPuertosAplicacion();
         servicios.AgregarRepositorios();
 
         return servicios;
@@ -36,12 +37,16 @@ public static class InyeccionDependencias
         servicios.GetRequiredService<AnilloClaves>();
     }
 
-    private static void AgregarRepositorios(this IServiceCollection servicios)
+    private static void AgregarPuertosAplicacion(this IServiceCollection servicios)
     {
         servicios.AddSingleton<IRelojSistema, RelojSistema>();
         servicios.AddScoped<IUnidadTrabajo, UnidadTrabajo>();
         servicios.AddScoped<IConsultasCatalogoPublico, ConsultasCatalogoPublico>();
         servicios.AddScoped<IContextoEmpresa, ContextoEmpresa>();
+    }
+
+    private static void AgregarRepositorios(this IServiceCollection servicios)
+    {
         servicios.AddScoped<IRepositorioEmpresas, RepositorioEmpresas>();
         servicios.AddScoped<IRepositorioServicios, RepositorioServicios>();
         servicios.AddScoped<IRepositorioProfesionales, RepositorioProfesionales>();

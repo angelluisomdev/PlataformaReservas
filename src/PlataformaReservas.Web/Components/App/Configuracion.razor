@@ -74,15 +74,15 @@ else
 
         <h2>Políticas de reserva</h2>
         <div class="mb-3">
-            <label for="intervalo" class="form-label">Intervalo entre huecos (minutos, de 1 a 480)</label>
+            <label for="intervalo" class="form-label">Intervalo entre huecos (minutos, de @IntervaloHuecos.Minimo a @IntervaloHuecos.Maximo)</label>
             <InputNumber id="intervalo" @bind-Value="formulario.IntervaloHuecosMinutos" class="form-control" />
         </div>
         <div class="mb-3">
-            <label for="antelacion-minima" class="form-label">Antelación mínima (minutos, de 0 a 43 200)</label>
+            <label for="antelacion-minima" class="form-label">Antelación mínima (minutos, de @AntelacionMinimaReserva.Minimo a @AntelacionMinimaReserva.Maximo)</label>
             <InputNumber id="antelacion-minima" @bind-Value="formulario.AntelacionMinimaMinutos" class="form-control" />
         </div>
         <div class="mb-3">
-            <label for="antelacion-maxima" class="form-label">Antelación máxima (días, de 1 a 365)</label>
+            <label for="antelacion-maxima" class="form-label">Antelación máxima (días, de @AntelacionMaximaReserva.Minimo a @AntelacionMaximaReserva.Maximo)</label>
             <InputNumber id="antelacion-maxima" @bind-Value="formulario.AntelacionMaximaDias" class="form-control" />
         </div>
 
