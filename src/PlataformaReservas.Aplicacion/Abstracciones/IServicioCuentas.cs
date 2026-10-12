@@ -9,4 +9,6 @@ public interface IServicioCuentas
         Email email, NombrePersona nombreCompleto, Telefono? telefono, string clave, DateTime ahoraUtc, CancellationToken ct);
 
     Task RenovarSelloMiembrosAsync(Guid empresaId, CancellationToken ct);
+
+    Task<(NombrePersona Nombre, Telefono? Telefono)?> ObtenerContactoAsync(Guid usuarioId, CancellationToken ct);
 }

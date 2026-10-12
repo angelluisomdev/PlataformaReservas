@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using PlataformaReservas.Aplicacion;
 using PlataformaReservas.Aplicacion.Abstracciones;
+using PlataformaReservas.Aplicacion.CasosUso.Reservas;
 using PlataformaReservas.Aplicacion.Disponibilidad;
 using PlataformaReservas.Dominio.Repositorios;
 using PlataformaReservas.Infraestructura;
@@ -93,6 +94,29 @@ public sealed class PruebasInyeccionDependencias(BaseDatosFixture baseDatos)
 
         await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
         ambito.ServiceProvider.GetRequiredService<IMotorDisponibilidad>().Should().BeOfType<MotorDisponibilidad>();
+    }
+
+    [Fact]
+    public async Task El_eje_cliente_y_los_casos_de_uso_de_reservas_se_resuelven_como_scoped()
+    {
+        Type[] tipos =
+        [
+            typeof(IContextoUsuario), typeof(IRepositorioReservasCliente), typeof(CrearReserva),
+            typeof(CancelarReservaCliente), typeof(CancelarReservaEmpresa), typeof(CompletarReserva),
+        ];
+        ServiceCollection servicios = new();
+        servicios.AgregarInfraestructura(new ConfigurationBuilder().Build());
+        servicios.AgregarAplicacion();
+
+        servicios.Where(d => tipos.Contains(d.ServiceType))
+            .Should().HaveCount(tipos.Length)
+            .And.OnlyContain(d => d.Lifetime == ServiceLifetime.Scoped);
+
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        foreach (Type tipo in tipos)
+        {
+            ambito.ServiceProvider.GetRequiredService(tipo).Should().NotBeNull();
+        }
     }
 
     private static ClaimsPrincipal Principal(params Claim[] claims)

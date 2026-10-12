@@ -84,6 +84,42 @@ public sealed class PruebasServicioCuentas(BaseDatosFixture baseDatos)
         (await SelloAsync(usuario.Id)).Should().Be(antes);
     }
 
+    [Fact]
+    public async Task El_contacto_devuelve_el_nombre_y_el_telefono_descifrados()
+    {
+        Usuario usuario = await CrearAsync(baseDatos, CorreoUnico(), "Lucia Fernandez", "611222333");
+
+        (NombrePersona Nombre, Telefono? Telefono)? contacto = await ObtenerContactoAsync(usuario.Id);
+
+        contacto.Should().NotBeNull();
+        contacto!.Value.Nombre.Should().Be(new NombrePersona("Lucia Fernandez"));
+        contacto.Value.Telefono.Should().Be(new Telefono("611222333"));
+    }
+
+    [Fact]
+    public async Task El_contacto_de_un_usuario_sin_telefono_no_lleva_telefono()
+    {
+        Usuario usuario = await CrearAsync(baseDatos, CorreoUnico());
+
+        (NombrePersona Nombre, Telefono? Telefono)? contacto = await ObtenerContactoAsync(usuario.Id);
+
+        contacto.Should().NotBeNull();
+        contacto!.Value.Telefono.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task El_contacto_de_un_usuario_inexistente_no_se_encuentra()
+    {
+        (await ObtenerContactoAsync(Guid.CreateVersion7())).Should().BeNull();
+    }
+
+    private async Task<(NombrePersona Nombre, Telefono? Telefono)?> ObtenerContactoAsync(Guid usuarioId)
+    {
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        return await ambito.ServiceProvider.GetRequiredService<IServicioCuentas>()
+            .ObtenerContactoAsync(usuarioId, CancellationToken.None);
+    }
+
     private async Task<Resultado<Guid>> CrearPropietarioAsync(string correo, string clave)
     {
         await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();

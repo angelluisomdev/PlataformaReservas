@@ -60,4 +60,15 @@ public sealed class ServicioCuentas(UserManager<Usuario> usuarios, ContextoDatos
             }
         }
     }
+
+    public async Task<(NombrePersona Nombre, Telefono? Telefono)?> ObtenerContactoAsync(Guid usuarioId, CancellationToken ct)
+    {
+        Usuario? usuario = await usuarios.FindByIdAsync(usuarioId.ToString());
+        if (usuario is null)
+        {
+            return null;
+        }
+
+        return (new NombrePersona(usuario.NombreCompleto), usuario.Telefono is null ? null : new Telefono(usuario.Telefono));
+    }
 }

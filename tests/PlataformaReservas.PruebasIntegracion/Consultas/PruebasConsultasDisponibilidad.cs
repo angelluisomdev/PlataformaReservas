@@ -43,7 +43,7 @@ public sealed class PruebasConsultasDisponibilidad(BaseDatosFixture baseDatos)
         ServicioDisponibilidadDto? propio = await ConsultarAsync(c => c.ObtenerServicioAsync(propia.Id, servicio.Id, CancellationToken.None));
         ServicioDisponibilidadDto? deOtra = await ConsultarAsync(c => c.ObtenerServicioAsync(propia.Id, servicioAjeno.Id, CancellationToken.None));
 
-        propio.Should().Be(new ServicioDisponibilidadDto(true, 45, null, null, null));
+        propio.Should().Be(new ServicioDisponibilidadDto(true, 45, 18.50m, null, null, null));
         deOtra.Should().BeNull();
     }
 

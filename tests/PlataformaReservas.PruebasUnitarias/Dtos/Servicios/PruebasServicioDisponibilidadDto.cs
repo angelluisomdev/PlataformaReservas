@@ -16,7 +16,7 @@ public sealed class PruebasServicioDisponibilidadDto
 
         ServicioDisponibilidadDto dto = ServicioDisponibilidadDto.ConvertirADto(servicio);
 
-        dto.Should().Be(new ServicioDisponibilidadDto(true, 45, null, null, null));
+        dto.Should().Be(new ServicioDisponibilidadDto(true, 45, 18.50m, null, null, null));
     }
 
     [Fact]
@@ -27,7 +27,7 @@ public sealed class PruebasServicioDisponibilidadDto
 
         ServicioDisponibilidadDto dto = ServicioDisponibilidadDto.ConvertirADto(servicio);
 
-        dto.Should().Be(new ServicioDisponibilidadDto(true, 45, 20, 0, 7));
+        dto.Should().Be(new ServicioDisponibilidadDto(true, 45, 18.50m, 20, 0, 7));
     }
 
     [Fact]

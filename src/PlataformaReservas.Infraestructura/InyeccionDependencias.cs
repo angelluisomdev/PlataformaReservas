@@ -44,6 +44,7 @@ public static class InyeccionDependencias
         servicios.AddScoped<IConsultasCatalogoPublico, ConsultasCatalogoPublico>();
         servicios.AddScoped<IConsultasDisponibilidad, ConsultasDisponibilidad>();
         servicios.AddScoped<IContextoEmpresa, ContextoEmpresa>();
+        servicios.AddScoped<IContextoUsuario, ContextoUsuario>();
     }
 
     private static void AgregarRepositorios(this IServiceCollection servicios)
@@ -53,6 +54,7 @@ public static class InyeccionDependencias
         servicios.AddScoped<IRepositorioProfesionales, RepositorioProfesionales>();
         servicios.AddScoped<IRepositorioReservas, RepositorioReservas>();
         servicios.AddScoped<IRepositorioMiembros, RepositorioMiembros>();
+        servicios.AddScoped<IRepositorioReservasCliente, RepositorioReservasCliente>();
     }
 
     private static void AgregarIdentidad(this IServiceCollection servicios, IConfiguration configuracion)

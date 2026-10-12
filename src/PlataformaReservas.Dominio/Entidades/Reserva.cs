@@ -50,18 +50,38 @@ public sealed class Reserva : EntidadBase
         Observaciones? observaciones,
         DateTime ahoraUtc)
     {
-        Validacion.IdentificadorObligatorio(id, "La reserva");
-        Validacion.IdentificadorObligatorio(empresaId, "La empresa de la reserva");
-        Validacion.IdentificadorObligatorio(usuarioId, "El usuario de la reserva");
-        Validacion.IdentificadorObligatorio(profesionalId, "El profesional de la reserva");
-        Validacion.InstanteUtc(ahoraUtc, "La fecha de alta de la reserva");
-
         if (servicio.EmpresaId != empresaId)
         {
             throw new DominioException("El servicio no pertenece a la empresa de la reserva.");
         }
 
-        FranjaHoraria franja = new(inicioUtc, inicioUtc.AddMinutes(servicio.Duracion.Minutos));
+        return Crear(
+            id, empresaId, usuarioId, profesionalId, servicio.Id, servicio.Duracion, servicio.Precio,
+            inicioUtc, nombreCliente, telefonoCliente, observaciones, ahoraUtc);
+    }
+
+    public static Reserva Crear(
+        Guid id,
+        Guid empresaId,
+        Guid usuarioId,
+        Guid profesionalId,
+        Guid servicioId,
+        Duracion duracion,
+        Precio precio,
+        DateTime inicioUtc,
+        NombrePersona nombreCliente,
+        Telefono telefonoCliente,
+        Observaciones? observaciones,
+        DateTime ahoraUtc)
+    {
+        Validacion.IdentificadorObligatorio(id, "La reserva");
+        Validacion.IdentificadorObligatorio(empresaId, "La empresa de la reserva");
+        Validacion.IdentificadorObligatorio(usuarioId, "El usuario de la reserva");
+        Validacion.IdentificadorObligatorio(profesionalId, "El profesional de la reserva");
+        Validacion.IdentificadorObligatorio(servicioId, "El servicio de la reserva");
+        Validacion.InstanteUtc(ahoraUtc, "La fecha de alta de la reserva");
+
+        FranjaHoraria franja = new(inicioUtc, inicioUtc.AddMinutes(duracion.Minutos));
 
         return new Reserva
         {
@@ -69,10 +89,10 @@ public sealed class Reserva : EntidadBase
             EmpresaId = empresaId,
             UsuarioId = usuarioId,
             ProfesionalId = profesionalId,
-            ServicioId = servicio.Id,
+            ServicioId = servicioId,
             Franja = franja,
-            PrecioAplicado = servicio.Precio,
-            DuracionAplicada = servicio.Duracion,
+            PrecioAplicado = precio,
+            DuracionAplicada = duracion,
             NombreCliente = nombreCliente,
             TelefonoCliente = telefonoCliente,
             Estado = EstadoReserva.Confirmada,
@@ -80,6 +100,43 @@ public sealed class Reserva : EntidadBase
             FechaAlta = ahoraUtc,
             FechaModificacion = ahoraUtc,
         };
+    }
+
+    public void CancelarPorCliente(DateTime ahoraUtc)
+    {
+        Validacion.InstanteUtc(ahoraUtc, "La fecha de cancelacion de la reserva");
+
+        if (Estado != EstadoReserva.Confirmada)
+        {
+            throw new DominioException("Solo se cancelan reservas confirmadas.");
+        }
+
+        if (Franja.InicioUtc <= ahoraUtc)
+        {
+            throw new DominioException("La reserva ya ha comenzado.");
+        }
+
+        Estado = EstadoReserva.Cancelada;
+        FechaCancelacion = ahoraUtc;
+        FechaModificacion = ahoraUtc;
+    }
+
+    public void Completar(DateTime ahoraUtc)
+    {
+        Validacion.InstanteUtc(ahoraUtc, "La fecha en que se completa la reserva");
+
+        if (Estado != EstadoReserva.Confirmada)
+        {
+            throw new DominioException("Solo se completan reservas confirmadas.");
+        }
+
+        if (Franja.FinUtc >= ahoraUtc)
+        {
+            throw new DominioException("La reserva aun no ha terminado.");
+        }
+
+        Estado = EstadoReserva.Completada;
+        FechaModificacion = ahoraUtc;
     }
 
     public void CancelarPorEmpresa(DateTime ahoraUtc)

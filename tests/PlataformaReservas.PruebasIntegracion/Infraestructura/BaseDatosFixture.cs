@@ -73,6 +73,8 @@ public sealed class BaseDatosFixture : IAsyncLifetime
         servicios.AddSingleton<IRelojSistema, RelojFijo>();
         servicios.AddScoped<ContextoEmpresaAjustable>();
         servicios.AddScoped<IContextoEmpresa>(sp => sp.GetRequiredService<ContextoEmpresaAjustable>());
+        servicios.AddScoped<ContextoUsuarioAjustable>();
+        servicios.AddScoped<IContextoUsuario>(sp => sp.GetRequiredService<ContextoUsuarioAjustable>());
         return servicios.BuildServiceProvider();
     }
 
@@ -80,6 +82,13 @@ public sealed class BaseDatosFixture : IAsyncLifetime
     {
         AsyncServiceScope ambito = ServiciosIdentidad.CreateAsyncScope();
         ambito.ServiceProvider.GetRequiredService<ContextoEmpresaAjustable>().EmpresaId = empresaId;
+        return ambito;
+    }
+
+    public AsyncServiceScope AmbitoDeUsuario(Guid? usuarioId)
+    {
+        AsyncServiceScope ambito = ServiciosIdentidad.CreateAsyncScope();
+        ambito.ServiceProvider.GetRequiredService<ContextoUsuarioAjustable>().UsuarioId = usuarioId;
         return ambito;
     }
 
