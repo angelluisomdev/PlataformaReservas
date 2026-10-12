@@ -1,6 +1,7 @@
 using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Aplicacion.Compartido;
-using PlataformaReservas.Aplicacion.Dtos;
+using PlataformaReservas.Aplicacion.Dtos.Categorias;
+using PlataformaReservas.Aplicacion.Dtos.Empresas;
 using PlataformaReservas.Dominio.Compartido;
 using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.Dominio.Enumeraciones;
@@ -70,6 +71,6 @@ public sealed class RegistrarEmpresa(
         await unidadTrabajo.GuardarCambiosAsync(ct);
         await transaccion.ConfirmarAsync(ct);
 
-        return Resultado<EmpresaRegistradaDto>.Exito(new EmpresaRegistradaDto(cuenta.Valor, empresa.Id, slug.Valor));
+        return Resultado<EmpresaRegistradaDto>.Exito(EmpresaRegistradaDto.ConvertirADto(empresa, cuenta.Valor));
     }
 }

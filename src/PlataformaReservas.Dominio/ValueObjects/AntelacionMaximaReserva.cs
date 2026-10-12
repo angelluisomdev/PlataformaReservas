@@ -17,4 +17,9 @@ public sealed record AntelacionMaximaReserva
     }
 
     public int Dias { get; }
+
+    public static AntelacionMaximaReserva? Desde(int? dias)
+    {
+        return dias is null ? null : new AntelacionMaximaReserva(dias.Value);
+    }
 }

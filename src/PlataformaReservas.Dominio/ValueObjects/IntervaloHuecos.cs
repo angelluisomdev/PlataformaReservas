@@ -17,4 +17,9 @@ public sealed record IntervaloHuecos
     }
 
     public int Minutos { get; }
+
+    public static IntervaloHuecos? Desde(int? minutos)
+    {
+        return minutos is null ? null : new IntervaloHuecos(minutos.Value);
+    }
 }

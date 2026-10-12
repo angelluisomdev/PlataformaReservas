@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using PlataformaReservas.Aplicacion;
 using PlataformaReservas.Aplicacion.Abstracciones;
+using PlataformaReservas.Aplicacion.Disponibilidad;
 using PlataformaReservas.Dominio.Repositorios;
 using PlataformaReservas.Infraestructura;
 using PlataformaReservas.Infraestructura.Identidad;
@@ -76,6 +78,21 @@ public sealed class PruebasInyeccionDependencias(BaseDatosFixture baseDatos)
         servicios.Where(d => tipos.Contains(d.ServiceType))
             .Should().HaveCount(tipos.Length)
             .And.OnlyContain(d => d.Lifetime == ServiceLifetime.Scoped);
+    }
+
+    [Fact]
+    public async Task El_motor_de_disponibilidad_y_su_puerto_de_lectura_se_resuelven_como_scoped()
+    {
+        ServiceCollection servicios = new();
+        servicios.AgregarInfraestructura(new ConfigurationBuilder().Build());
+        servicios.AgregarAplicacion();
+
+        servicios.Where(d => d.ServiceType == typeof(IMotorDisponibilidad) || d.ServiceType == typeof(IConsultasDisponibilidad))
+            .Should().HaveCount(2)
+            .And.OnlyContain(d => d.Lifetime == ServiceLifetime.Scoped);
+
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        ambito.ServiceProvider.GetRequiredService<IMotorDisponibilidad>().Should().BeOfType<MotorDisponibilidad>();
     }
 
     private static ClaimsPrincipal Principal(params Claim[] claims)

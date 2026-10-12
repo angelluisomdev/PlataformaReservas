@@ -2,7 +2,7 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using PlataformaReservas.Aplicacion.CasosUso.Horarios;
 using PlataformaReservas.Aplicacion.Compartido;
-using PlataformaReservas.Aplicacion.Dtos;
+using PlataformaReservas.Aplicacion.Dtos.Profesionales;
 using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.Dominio.ValueObjects;
 using PlataformaReservas.PruebasIntegracion.Infraestructura;

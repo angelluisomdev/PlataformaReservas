@@ -24,4 +24,24 @@ public sealed class PruebasAntelacionMaximaReserva
 
         crear.Should().Throw<DominioException>();
     }
+
+    [Fact]
+    public void Desde_sin_valor_devuelve_null()
+    {
+        AntelacionMaximaReserva.Desde(null).Should().BeNull();
+    }
+
+    [Fact]
+    public void Desde_con_un_valor_valido_equivale_al_constructor()
+    {
+        AntelacionMaximaReserva.Desde(1).Should().Be(new AntelacionMaximaReserva(1));
+    }
+
+    [Fact]
+    public void Desde_con_un_valor_fuera_de_rango_lanza()
+    {
+        Action crear = () => _ = AntelacionMaximaReserva.Desde(366);
+
+        crear.Should().Throw<DominioException>();
+    }
 }

@@ -1,5 +1,5 @@
 using PlataformaReservas.Aplicacion.Compartido;
-using PlataformaReservas.Aplicacion.Dtos;
+using PlataformaReservas.Aplicacion.Dtos.Profesionales;
 using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.Dominio.Repositorios;
 
@@ -13,8 +13,7 @@ public sealed class ListarProfesionales(IRepositorioProfesionales profesionales)
 
         List<ProfesionalDto> dtos = encontrados
             .OrderBy(p => p.NombreCompleto.Valor, StringComparer.CurrentCulture)
-            .Select(p => new ProfesionalDto(
-                p.Id, p.NombreCompleto.Valor, p.Email?.Valor, p.Telefono?.Valor, p.Activo, p.ServiciosQuePresta.ToList()))
+            .Select(ProfesionalDto.ConvertirADto)
             .ToList();
 
         return Resultado<IReadOnlyList<ProfesionalDto>>.Exito(dtos);

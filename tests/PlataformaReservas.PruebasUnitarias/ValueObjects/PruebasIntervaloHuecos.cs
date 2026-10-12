@@ -24,4 +24,24 @@ public sealed class PruebasIntervaloHuecos
 
         crear.Should().Throw<DominioException>();
     }
+
+    [Fact]
+    public void Desde_sin_valor_devuelve_null()
+    {
+        IntervaloHuecos.Desde(null).Should().BeNull();
+    }
+
+    [Fact]
+    public void Desde_con_un_valor_valido_equivale_al_constructor()
+    {
+        IntervaloHuecos.Desde(1).Should().Be(new IntervaloHuecos(1));
+    }
+
+    [Fact]
+    public void Desde_con_un_valor_fuera_de_rango_lanza()
+    {
+        Action crear = () => _ = IntervaloHuecos.Desde(481);
+
+        crear.Should().Throw<DominioException>();
+    }
 }

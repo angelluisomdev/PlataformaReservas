@@ -1,5 +1,5 @@
 using PlataformaReservas.Aplicacion.Compartido;
-using PlataformaReservas.Aplicacion.Dtos;
+using PlataformaReservas.Aplicacion.Dtos.Servicios;
 using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.Dominio.Repositorios;
 
@@ -13,16 +13,7 @@ public sealed class ListarServicios(IRepositorioServicios servicios)
 
         List<ServicioDto> dtos = encontrados
             .OrderBy(s => s.Nombre.Valor, StringComparer.CurrentCulture)
-            .Select(s => new ServicioDto(
-                s.Id,
-                s.Nombre.Valor,
-                s.Descripcion?.Valor,
-                s.Duracion.Minutos,
-                s.Precio.Importe,
-                s.IntervaloHuecosMinutos,
-                s.AntelacionMinimaMinutos,
-                s.AntelacionMaximaDias,
-                s.Activo))
+            .Select(ServicioDto.ConvertirADto)
             .ToList();
 
         return Resultado<IReadOnlyList<ServicioDto>>.Exito(dtos);

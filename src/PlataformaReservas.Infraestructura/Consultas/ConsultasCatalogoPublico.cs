@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PlataformaReservas.Aplicacion.Abstracciones;
-using PlataformaReservas.Aplicacion.Dtos;
+using PlataformaReservas.Aplicacion.Dtos.Categorias;
 using PlataformaReservas.Infraestructura.Persistencia;
 
 namespace PlataformaReservas.Infraestructura.Consultas;
@@ -12,7 +12,7 @@ public sealed class ConsultasCatalogoPublico(ContextoDatos db) : IConsultasCatal
         return await db.Categorias
             .Where(c => c.Activa)
             .OrderBy(c => c.Nombre)
-            .Select(c => new CategoriaDto(c.Id, c.Nombre.Valor))
+            .Select(c => CategoriaDto.ConvertirADto(c))
             .ToListAsync(ct);
     }
 }

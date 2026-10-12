@@ -1,6 +1,6 @@
 using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Aplicacion.Compartido;
-using PlataformaReservas.Aplicacion.Dtos;
+using PlataformaReservas.Aplicacion.Dtos.Categorias;
 using PlataformaReservas.Dominio.Compartido;
 using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.Dominio.Repositorios;

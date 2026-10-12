@@ -3,6 +3,7 @@ using PlataformaReservas.Aplicacion.CasosUso.Empresas;
 using PlataformaReservas.Aplicacion.CasosUso.Horarios;
 using PlataformaReservas.Aplicacion.CasosUso.Profesionales;
 using PlataformaReservas.Aplicacion.CasosUso.Servicios;
+using PlataformaReservas.Aplicacion.Disponibilidad;
 
 namespace PlataformaReservas.Aplicacion;
 
@@ -33,6 +34,8 @@ public static class InyeccionDependencias
         servicios.AddScoped<EliminarIntervalo>();
         servicios.AddScoped<MarcarNoDisponible>();
         servicios.AddScoped<QuitarExcepcion>();
+
+        servicios.AddScoped<IMotorDisponibilidad, MotorDisponibilidad>();
 
         return servicios;
     }

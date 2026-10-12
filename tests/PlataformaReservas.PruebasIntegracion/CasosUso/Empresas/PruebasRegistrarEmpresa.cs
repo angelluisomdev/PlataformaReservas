@@ -7,7 +7,7 @@ using PlataformaReservas.PruebasIntegracion.Infraestructura;
 using Microsoft.AspNetCore.Identity;
 using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Aplicacion.CasosUso.Empresas;
-using PlataformaReservas.Aplicacion.Dtos;
+using PlataformaReservas.Aplicacion.Dtos.Empresas;
 using PlataformaReservas.Dominio.Repositorios;
 using PlataformaReservas.Dominio.ValueObjects;
 using PlataformaReservas.Infraestructura.Identidad;

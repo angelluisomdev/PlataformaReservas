@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using PlataformaReservas.Aplicacion.Abstracciones;
-using PlataformaReservas.Aplicacion.Dtos;
+using PlataformaReservas.Aplicacion.Dtos.Categorias;
 using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.PruebasIntegracion.Infraestructura;
 

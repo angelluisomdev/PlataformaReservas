@@ -1,3 +1,11 @@
-namespace PlataformaReservas.Aplicacion.Dtos;
+using PlataformaReservas.Dominio.Entidades;
 
-public sealed record EmpresaRegistradaDto(Guid UsuarioId, Guid EmpresaId, string Slug);
+namespace PlataformaReservas.Aplicacion.Dtos.Empresas;
+
+public sealed record EmpresaRegistradaDto(Guid UsuarioId, Guid EmpresaId, string Slug)
+{
+    public static EmpresaRegistradaDto ConvertirADto(Empresa empresa, Guid usuarioId)
+    {
+        return new EmpresaRegistradaDto(usuarioId, empresa.Id, empresa.Slug.Valor);
+    }
+}

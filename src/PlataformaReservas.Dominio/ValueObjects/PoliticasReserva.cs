@@ -23,9 +23,22 @@ public sealed record PoliticasReserva
 
     public static PoliticasReserva Resolver(Empresa empresa, Servicio servicio)
     {
+        return Resolver(
+            empresa.Politicas,
+            IntervaloHuecos.Desde(servicio.IntervaloHuecosMinutos),
+            AntelacionMinimaReserva.Desde(servicio.AntelacionMinimaMinutos),
+            AntelacionMaximaReserva.Desde(servicio.AntelacionMaximaDias));
+    }
+
+    public static PoliticasReserva Resolver(
+        PoliticasReserva deEmpresa,
+        IntervaloHuecos? intervaloHuecos,
+        AntelacionMinimaReserva? antelacionMinima,
+        AntelacionMaximaReserva? antelacionMaxima)
+    {
         return new PoliticasReserva(
-            servicio.IntervaloHuecosMinutos ?? empresa.Politicas.IntervaloHuecosMinutos,
-            servicio.AntelacionMinimaMinutos ?? empresa.Politicas.AntelacionMinimaMinutos,
-            servicio.AntelacionMaximaDias ?? empresa.Politicas.AntelacionMaximaDias);
+            intervaloHuecos?.Minutos ?? deEmpresa.IntervaloHuecosMinutos,
+            antelacionMinima?.Minutos ?? deEmpresa.AntelacionMinimaMinutos,
+            antelacionMaxima?.Dias ?? deEmpresa.AntelacionMaximaDias);
     }
 }

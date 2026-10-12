@@ -17,4 +17,9 @@ public sealed record AntelacionMinimaReserva
     }
 
     public int Minutos { get; }
+
+    public static AntelacionMinimaReserva? Desde(int? minutos)
+    {
+        return minutos is null ? null : new AntelacionMinimaReserva(minutos.Value);
+    }
 }

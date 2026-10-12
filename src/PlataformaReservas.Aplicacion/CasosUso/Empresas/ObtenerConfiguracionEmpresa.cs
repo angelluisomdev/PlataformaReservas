@@ -1,6 +1,6 @@
 using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Aplicacion.Compartido;
-using PlataformaReservas.Aplicacion.Dtos;
+using PlataformaReservas.Aplicacion.Dtos.Empresas;
 using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.Dominio.Repositorios;
 
@@ -22,20 +22,6 @@ public sealed class ObtenerConfiguracionEmpresa(
 
         int reservasFuturas = await reservas.ContarFuturasConfirmadasAsync(reloj.AhoraUtc, ct);
 
-        return Resultado<ConfiguracionEmpresaDto>.Exito(new ConfiguracionEmpresaDto(
-            empresa.Nombre.Valor,
-            empresa.Slug.Valor,
-            empresa.CategoriaId,
-            empresa.Descripcion?.Valor,
-            empresa.Email.Valor,
-            empresa.Telefono.Valor,
-            empresa.Direccion.Valor,
-            empresa.CodigoPostal.Valor,
-            empresa.Ciudad.Valor,
-            empresa.Politicas.IntervaloHuecosMinutos,
-            empresa.Politicas.AntelacionMinimaMinutos,
-            empresa.Politicas.AntelacionMaximaDias,
-            empresa.Activa,
-            reservasFuturas));
+        return Resultado<ConfiguracionEmpresaDto>.Exito(ConfiguracionEmpresaDto.ConvertirADto(empresa, reservasFuturas));
     }
 }

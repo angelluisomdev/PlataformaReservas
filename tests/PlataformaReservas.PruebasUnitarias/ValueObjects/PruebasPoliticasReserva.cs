@@ -46,6 +46,40 @@ public sealed class PruebasPoliticasReserva
     }
 
     [Fact]
+    public void Resolver_toma_del_servicio_lo_que_sobrescribe_y_de_la_empresa_lo_demas()
+    {
+        DateTime ahora = new(2026, 10, 1, 8, 0, 0, DateTimeKind.Utc);
+        Empresa empresa = Empresa.Crear(
+            Guid.CreateVersion7(), new NombreEmpresa("Peluqueria Prueba"), Slug.Desde("peluqueria-prueba"), Guid.CreateVersion7(),
+            null, new Email("contacto@prueba.es"), new Telefono("600000000"), new Direccion("Calle Mayor 1"), new CodigoPostal("28001"), new Ciudad("Madrid"), ahora);
+        empresa.CambiarPoliticas(new PoliticasReserva(30, 120, 90), ahora);
+        Servicio servicio = Servicio.Crear(Guid.CreateVersion7(), empresa.Id, new NombreServicio("Corte"), new Duracion(45), new Precio(18.50m), ahora);
+        servicio.EstablecerPoliticas(new IntervaloHuecos(45), null, new AntelacionMaximaReserva(7), ahora);
+
+        PoliticasReserva efectivas = PoliticasReserva.Resolver(empresa, servicio);
+
+        efectivas.Should().Be(new PoliticasReserva(45, 120, 7));
+    }
+
+    [Theory]
+    [InlineData(null, null, null, 30, 120, 90)]
+    [InlineData(45, null, 7, 45, 120, 7)]
+    [InlineData(45, 0, 7, 45, 0, 7)]
+    public void Resolver_desde_politicas_toma_cada_valor_propio_o_el_de_la_empresa(
+        int? intervalo, int? antelacionMinima, int? antelacionMaxima, int intervaloEsperado, int antelacionEsperada, int ventanaEsperada)
+    {
+        PoliticasReserva deEmpresa = new(30, 120, 90);
+
+        PoliticasReserva efectivas = PoliticasReserva.Resolver(
+            deEmpresa,
+            intervalo is null ? null : new IntervaloHuecos(intervalo.Value),
+            antelacionMinima is null ? null : new AntelacionMinimaReserva(antelacionMinima.Value),
+            antelacionMaxima is null ? null : new AntelacionMaximaReserva(antelacionMaxima.Value));
+
+        efectivas.Should().Be(new PoliticasReserva(intervaloEsperado, antelacionEsperada, ventanaEsperada));
+    }
+
+    [Fact]
     public void Dos_politicas_con_los_mismos_valores_son_iguales()
     {
         new PoliticasReserva(15, 60, 60).Should().Be(new PoliticasReserva(15, 60, 60));

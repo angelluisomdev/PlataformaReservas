@@ -5,7 +5,7 @@ using PlataformaReservas.Aplicacion.Compartido;
 using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.PruebasIntegracion.Infraestructura;
 using PlataformaReservas.Aplicacion.CasosUso.Empresas;
-using PlataformaReservas.Aplicacion.Dtos;
+using PlataformaReservas.Aplicacion.Dtos.Empresas;
 using PlataformaReservas.Dominio.ValueObjects;
 using PlataformaReservas.Infraestructura.Identidad;
 

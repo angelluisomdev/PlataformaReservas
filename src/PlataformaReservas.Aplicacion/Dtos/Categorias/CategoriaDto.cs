@@ -1,3 +1,11 @@
-namespace PlataformaReservas.Aplicacion.Dtos;
+using PlataformaReservas.Dominio.Entidades;
 
-public sealed record CategoriaDto(Guid Id, string Nombre);
+namespace PlataformaReservas.Aplicacion.Dtos.Categorias;
+
+public sealed record CategoriaDto(Guid Id, string Nombre)
+{
+    public static CategoriaDto ConvertirADto(Categoria categoria)
+    {
+        return new CategoriaDto(categoria.Id, categoria.Nombre.Valor);
+    }
+}

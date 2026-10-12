@@ -1,4 +1,6 @@
-namespace PlataformaReservas.Aplicacion.Dtos;
+using PlataformaReservas.Dominio.Entidades;
+
+namespace PlataformaReservas.Aplicacion.Dtos.Empresas;
 
 public sealed record ConfiguracionEmpresaDto(
     string Nombre,
@@ -14,4 +16,24 @@ public sealed record ConfiguracionEmpresaDto(
     int AntelacionMinimaMinutos,
     int AntelacionMaximaDias,
     bool Activa,
-    int ReservasFuturas);
+    int ReservasFuturas)
+{
+    public static ConfiguracionEmpresaDto ConvertirADto(Empresa empresa, int reservasFuturas)
+    {
+        return new ConfiguracionEmpresaDto(
+            empresa.Nombre.Valor,
+            empresa.Slug.Valor,
+            empresa.CategoriaId,
+            empresa.Descripcion?.Valor,
+            empresa.Email.Valor,
+            empresa.Telefono.Valor,
+            empresa.Direccion.Valor,
+            empresa.CodigoPostal.Valor,
+            empresa.Ciudad.Valor,
+            empresa.Politicas.IntervaloHuecosMinutos,
+            empresa.Politicas.AntelacionMinimaMinutos,
+            empresa.Politicas.AntelacionMaximaDias,
+            empresa.Activa,
+            reservasFuturas);
+    }
+}

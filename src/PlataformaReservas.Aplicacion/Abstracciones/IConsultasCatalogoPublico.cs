@@ -1,4 +1,4 @@
-using PlataformaReservas.Aplicacion.Dtos;
+using PlataformaReservas.Aplicacion.Dtos.Categorias;
 
 namespace PlataformaReservas.Aplicacion.Abstracciones;
 
