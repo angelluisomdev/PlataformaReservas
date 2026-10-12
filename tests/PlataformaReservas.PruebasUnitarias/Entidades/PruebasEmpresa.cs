@@ -1,6 +1,7 @@
 using FluentAssertions;
 using PlataformaReservas.Dominio.Compartido;
 using PlataformaReservas.Dominio.Entidades;
+using PlataformaReservas.Dominio.Eventos;
 using PlataformaReservas.Dominio.ValueObjects;
 
 namespace PlataformaReservas.PruebasUnitarias.Entidades;
@@ -162,5 +163,39 @@ public sealed class PruebasEmpresa
         baja.Should().Throw<DominioException>();
         politicas.Should().Throw<DominioException>();
         empresa.Activa.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Crear_registra_el_evento_de_empresa_registrada()
+    {
+        Empresa empresa = CrearEmpresa();
+
+        empresa.Eventos.Should().ContainSingle().Which.Should().Be(new EmpresaRegistrada(empresa.Id, Ahora));
+    }
+
+    [Fact]
+    public void DarDeBaja_registra_el_evento_de_empresa_dada_de_baja_y_una_segunda_baja_no_registra_otro()
+    {
+        Empresa empresa = CrearEmpresa();
+        empresa.LimpiarEventos();
+        DateTime baja = Ahora.AddDays(1);
+
+        empresa.DarDeBaja(baja);
+        Action otraVez = () => empresa.DarDeBaja(baja.AddMinutes(1));
+
+        otraVez.Should().Throw<DominioException>();
+        empresa.Eventos.Should().ContainSingle().Which.Should().Be(new EmpresaDadaDeBaja(empresa.Id, baja));
+    }
+
+    [Fact]
+    public void Reactivar_no_registra_ningun_evento()
+    {
+        Empresa empresa = CrearEmpresa();
+        empresa.DarDeBaja(Ahora);
+        empresa.LimpiarEventos();
+
+        empresa.Reactivar(Ahora.AddDays(1));
+
+        empresa.Eventos.Should().BeEmpty();
     }
 }

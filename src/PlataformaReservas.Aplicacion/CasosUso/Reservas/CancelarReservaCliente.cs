@@ -10,6 +10,7 @@ public sealed class CancelarReservaCliente(
     IContextoUsuario contexto,
     IRepositorioReservasCliente reservas,
     IUnidadTrabajo unidadTrabajo,
+    IPublicadorEventos publicador,
     IRelojSistema reloj)
 {
     public async Task<Resultado> EjecutarAsync(CancelarReservaClienteComando comando, CancellationToken ct)
@@ -38,6 +39,9 @@ public sealed class CancelarReservaCliente(
 
         reserva.CancelarPorCliente(ahora);
         await unidadTrabajo.GuardarCambiosAsync(ct);
+
+        await publicador.PublicarAsync(reserva.Eventos, ct);
+        reserva.LimpiarEventos();
         return Resultado.Exito();
     }
 }

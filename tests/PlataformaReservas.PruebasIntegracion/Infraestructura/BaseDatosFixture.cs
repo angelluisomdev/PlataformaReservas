@@ -75,6 +75,8 @@ public sealed class BaseDatosFixture : IAsyncLifetime
         servicios.AddScoped<IContextoEmpresa>(sp => sp.GetRequiredService<ContextoEmpresaAjustable>());
         servicios.AddScoped<ContextoUsuarioAjustable>();
         servicios.AddScoped<IContextoUsuario>(sp => sp.GetRequiredService<ContextoUsuarioAjustable>());
+        servicios.AddScoped<PublicadorCaptura>();
+        servicios.AddScoped<IPublicadorEventos>(sp => sp.GetRequiredService<PublicadorCaptura>());
         return servicios.BuildServiceProvider();
     }
 

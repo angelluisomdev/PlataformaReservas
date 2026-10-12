@@ -2,6 +2,7 @@ using System.Globalization;
 using FluentAssertions;
 using PlataformaReservas.Aplicacion.Disponibilidad;
 using PlataformaReservas.Dominio.Entidades;
+using PlataformaReservas.Dominio.Enumeraciones;
 using PlataformaReservas.Dominio.ValueObjects;
 using PlataformaReservas.PruebasUnitarias.Infraestructura;
 
@@ -109,7 +110,7 @@ public sealed class PruebasMotorDisponibilidad
         Profesional profesional = NuevoProfesional(empresa, servicio, "Ana Garcia");
         Horario(profesional, DayOfWeek.Wednesday, "09:00", "14:00");
         Reserva cancelada = NuevaReserva(empresa, profesional, EnUtc("10:00")[0], 60);
-        cancelada.CancelarPorEmpresa(Ahora);
+        cancelada.CancelarPorEmpresa(Ahora, OrigenCancelacion.Empresa);
 
         IReadOnlyList<HuecoDisponible> huecos = await HuecosAsync(
             Consultas(empresa, servicio, profesional).Con(cancelada), empresa, servicio, Miercoles);

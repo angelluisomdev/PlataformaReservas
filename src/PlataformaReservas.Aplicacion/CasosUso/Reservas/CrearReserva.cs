@@ -18,6 +18,7 @@ public sealed class CrearReserva(
     IServicioCuentas cuentas,
     IRepositorioReservasCliente reservas,
     IUnidadTrabajo unidadTrabajo,
+    IPublicadorEventos publicador,
     IRelojSistema reloj)
 {
     public async Task<Resultado<Guid>> EjecutarAsync(CrearReservaComando comando, CancellationToken ct)
@@ -91,6 +92,9 @@ public sealed class CrearReserva(
         }
 
         await transaccion.ConfirmarAsync(ct);
+
+        await publicador.PublicarAsync(reserva.Eventos, ct);
+        reserva.LimpiarEventos();
         return Resultado<Guid>.Exito(reserva.Id);
     }
 }

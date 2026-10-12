@@ -118,7 +118,7 @@ public sealed class PruebasAislamientoEmpresas(BaseDatosFixture baseDatos)
 
         (await desdeA.ObtenerPorIdAsync(reserva.Id, CancellationToken.None)).Should().BeNull();
         (await desdeA.ObtenerParaModificarAsync(reserva.Id, CancellationToken.None)).Should().BeNull();
-        (await desdeB.ObtenerPorIdAsync(reserva.Id, CancellationToken.None)).Should().BeEquivalentTo(reserva);
+        (await desdeB.ObtenerPorIdAsync(reserva.Id, CancellationToken.None)).Should().BeEquivalentTo(reserva, o => o.Excluding(r => r.Eventos));
     }
 
     private async Task<(Empresa A, Empresa B)> CrearEmpresasAsync()

@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Dominio.Repositorios;
 using PlataformaReservas.Infraestructura.Consultas;
+using PlataformaReservas.Infraestructura.Eventos;
 using PlataformaReservas.Infraestructura.Identidad;
 using PlataformaReservas.Infraestructura.Persistencia;
 using PlataformaReservas.Infraestructura.Repositorios;
@@ -45,6 +46,9 @@ public static class InyeccionDependencias
         servicios.AddScoped<IConsultasDisponibilidad, ConsultasDisponibilidad>();
         servicios.AddScoped<IContextoEmpresa, ContextoEmpresa>();
         servicios.AddScoped<IContextoUsuario, ContextoUsuario>();
+        servicios.AddSingleton<ColaEventos>();
+        servicios.AddSingleton<IPublicadorEventos>(sp => sp.GetRequiredService<ColaEventos>());
+        servicios.AddHostedService<ProcesadorEventos>();
     }
 
     private static void AgregarRepositorios(this IServiceCollection servicios)

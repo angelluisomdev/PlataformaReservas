@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using PlataformaReservas.Aplicacion;
 using PlataformaReservas.Aplicacion.Abstracciones;
@@ -11,6 +12,7 @@ using PlataformaReservas.Aplicacion.CasosUso.Reservas;
 using PlataformaReservas.Aplicacion.Disponibilidad;
 using PlataformaReservas.Dominio.Repositorios;
 using PlataformaReservas.Infraestructura;
+using PlataformaReservas.Infraestructura.Eventos;
 using PlataformaReservas.Infraestructura.Identidad;
 using PlataformaReservas.PruebasIntegracion.Infraestructura;
 
@@ -117,6 +119,22 @@ public sealed class PruebasInyeccionDependencias(BaseDatosFixture baseDatos)
         {
             ambito.ServiceProvider.GetRequiredService(tipo).Should().NotBeNull();
         }
+    }
+
+    [Fact]
+    public void La_cola_de_eventos_es_un_singleton_compartido_con_el_publicador_y_el_procesador_es_un_servicio_alojado()
+    {
+        ServiceCollection servicios = new();
+        servicios.AddLogging();
+        servicios.AgregarInfraestructura(new ConfigurationBuilder().Build());
+        using ServiceProvider proveedor = servicios.BuildServiceProvider();
+
+        servicios.Should().ContainSingle(d => d.ServiceType == typeof(ColaEventos))
+            .Which.Lifetime.Should().Be(ServiceLifetime.Singleton);
+        servicios.Should().ContainSingle(d => d.ServiceType == typeof(IPublicadorEventos))
+            .Which.Lifetime.Should().Be(ServiceLifetime.Singleton);
+        proveedor.GetRequiredService<IPublicadorEventos>().Should().BeSameAs(proveedor.GetRequiredService<ColaEventos>());
+        servicios.Should().Contain(d => d.ServiceType == typeof(IHostedService) && d.ImplementationType == typeof(ProcesadorEventos));
     }
 
     private static ClaimsPrincipal Principal(params Claim[] claims)

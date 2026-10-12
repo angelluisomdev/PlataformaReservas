@@ -1,6 +1,7 @@
 using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Aplicacion.Compartido;
 using PlataformaReservas.Dominio.Entidades;
+using PlataformaReservas.Dominio.Enumeraciones;
 using PlataformaReservas.Dominio.Repositorios;
 
 namespace PlataformaReservas.Aplicacion.CasosUso.Empresas;
@@ -11,6 +12,7 @@ public sealed class DarDeBajaEmpresa(
     IServicioCuentas cuentas,
     IContextoEmpresa contexto,
     IUnidadTrabajo unidadTrabajo,
+    IPublicadorEventos publicador,
     IRelojSistema reloj)
 {
     public async Task<Resultado<int>> EjecutarAsync(CancellationToken ct)
@@ -33,12 +35,19 @@ public sealed class DarDeBajaEmpresa(
         IReadOnlyList<Reserva> futuras = await reservas.ObtenerFuturasConfirmadasParaModificarAsync(ahora, ct);
         foreach (Reserva reserva in futuras)
         {
-            reserva.CancelarPorEmpresa(ahora);
+            reserva.CancelarPorEmpresa(ahora, OrigenCancelacion.BajaEmpresa);
         }
 
         await unidadTrabajo.GuardarCambiosAsync(ct);
         await cuentas.RenovarSelloMiembrosAsync(empresa.Id, ct);
         await transaccion.ConfirmarAsync(ct);
+
+        await publicador.PublicarAsync([.. empresa.Eventos, .. futuras.SelectMany(r => r.Eventos)], ct);
+        empresa.LimpiarEventos();
+        foreach (Reserva reserva in futuras)
+        {
+            reserva.LimpiarEventos();
+        }
 
         return Resultado<int>.Exito(futuras.Count);
     }

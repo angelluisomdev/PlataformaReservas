@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PlataformaReservas.Aplicacion.Compartido;
 using PlataformaReservas.Dominio.Entidades;
+using PlataformaReservas.Dominio.Eventos;
 using PlataformaReservas.PruebasIntegracion.Infraestructura;
 using Microsoft.AspNetCore.Identity;
 using PlataformaReservas.Aplicacion.Abstracciones;
@@ -98,6 +99,7 @@ public sealed class PruebasRegistrarEmpresa(BaseDatosFixture baseDatos)
             servicios.GetRequiredService<IRepositorioMiembros>(),
             servicios.GetRequiredService<IConsultasCatalogoPublico>(),
             servicios.GetRequiredService<IUnidadTrabajo>(),
+            servicios.GetRequiredService<IPublicadorEventos>(),
             servicios.GetRequiredService<IRelojSistema>());
         Func<Task> registrarConSlugRepetido = () => registrar.EjecutarAsync(Comando(correo, categoria.Id, nombre), CancellationToken.None);
 
@@ -150,5 +152,38 @@ public sealed class PruebasRegistrarEmpresa(BaseDatosFixture baseDatos)
         public Task<bool> ExisteSlugAsync(Slug slug, CancellationToken ct) => Task.FromResult(false);
 
         public void Agregar(Empresa empresa) => real.Agregar(empresa);
+    }
+
+    [Fact]
+    public async Task Tras_confirmar_publica_el_evento_de_empresa_registrada()
+    {
+        Categoria categoria = await EscenarioEmpresa.CrearCategoriaAsync(baseDatos);
+
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        Resultado<EmpresaRegistradaDto> resultado = await ambito.ServiceProvider.GetRequiredService<RegistrarEmpresa>()
+            .EjecutarAsync(Comando(CorreoUnico(), categoria.Id, $"Barberia {DominioPrueba.Sufijo()}"), CancellationToken.None);
+
+        ambito.ServiceProvider.GetRequiredService<PublicadorCaptura>().Publicados.Should().ContainSingle()
+            .Which.Should().Be(new EmpresaRegistrada(resultado.Valor!.EmpresaId, DominioPrueba.Ahora));
+        EscenarioEmpresa.EntidadSeguida<Empresa>(ambito.ServiceProvider, resultado.Valor.EmpresaId).Eventos.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Un_correo_duplicado_o_una_validacion_no_publican_nada()
+    {
+        Categoria categoria = await EscenarioEmpresa.CrearCategoriaAsync(baseDatos);
+        string correo = CorreoUnico();
+        await CrearAsync(baseDatos, correo);
+
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        RegistrarEmpresa registrar = ambito.ServiceProvider.GetRequiredService<RegistrarEmpresa>();
+        Resultado<EmpresaRegistradaDto> duplicado = await registrar.EjecutarAsync(
+            Comando(correo, categoria.Id, $"Barberia {DominioPrueba.Sufijo()}"), CancellationToken.None);
+        Resultado<EmpresaRegistradaDto> sinCategoria = await registrar.EjecutarAsync(
+            Comando(CorreoUnico(), Guid.CreateVersion7(), $"Barberia {DominioPrueba.Sufijo()}"), CancellationToken.None);
+
+        duplicado.Codigo.Should().Be(CodigoError.Conflicto);
+        sinCategoria.Codigo.Should().Be(CodigoError.Validacion);
+        ambito.ServiceProvider.GetRequiredService<PublicadorCaptura>().Publicados.Should().BeEmpty();
     }
 }

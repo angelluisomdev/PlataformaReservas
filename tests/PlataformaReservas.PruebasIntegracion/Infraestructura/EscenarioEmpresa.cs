@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using PlataformaReservas.Dominio.Compartido;
 using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.Infraestructura.Persistencia;
 
@@ -35,5 +36,10 @@ public static class EscenarioEmpresa
     {
         await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
         return await consulta(ambito.ServiceProvider.GetRequiredService<ContextoDatos>());
+    }
+
+    public static T EntidadSeguida<T>(IServiceProvider servicios, Guid id) where T : EntidadBase
+    {
+        return servicios.GetRequiredService<ContextoDatos>().ChangeTracker.Entries<T>().Single(e => e.Entity.Id == id).Entity;
     }
 }

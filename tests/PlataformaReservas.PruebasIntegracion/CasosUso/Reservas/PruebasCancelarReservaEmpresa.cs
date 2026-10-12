@@ -5,6 +5,7 @@ using PlataformaReservas.Aplicacion.CasosUso.Reservas;
 using PlataformaReservas.Aplicacion.Compartido;
 using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.Dominio.Enumeraciones;
+using PlataformaReservas.Dominio.Eventos;
 using PlataformaReservas.PruebasIntegracion.Infraestructura;
 
 namespace PlataformaReservas.PruebasIntegracion.CasosUso.Reservas;
@@ -70,7 +71,7 @@ public sealed class PruebasCancelarReservaEmpresa(BaseDatosFixture baseDatos)
     {
         EscenarioReserva escenario = await EscenarioReserva.CrearAsync(baseDatos);
         Reserva cancelada = escenario.Reserva(EscenarioReserva.NueveLunesUtc);
-        cancelada.CancelarPorEmpresa(DominioPrueba.Ahora.AddHours(-1));
+        cancelada.CancelarPorEmpresa(DominioPrueba.Ahora.AddHours(-1), OrigenCancelacion.Empresa);
         await EscenarioEmpresa.GuardarAsync(baseDatos, cancelada);
 
         Resultado resultado = await CancelarAsync(escenario.Empresa.Id, cancelada.Id);
@@ -103,5 +104,45 @@ public sealed class PruebasCancelarReservaEmpresa(BaseDatosFixture baseDatos)
     private Task<Reserva> LeerReservaAsync(Guid id)
     {
         return EscenarioEmpresa.LeerAsync(baseDatos, db => db.Reservas.SingleAsync(r => r.Id == id));
+    }
+
+    [Fact]
+    public async Task Tras_cancelar_publica_la_cancelacion_con_origen_empresa()
+    {
+        EscenarioReserva escenario = await EscenarioReserva.CrearAsync(baseDatos);
+        Reserva reserva = escenario.Reserva(EscenarioReserva.NueveLunesUtc);
+        await EscenarioEmpresa.GuardarAsync(baseDatos, reserva);
+
+        await using AsyncServiceScope ambito = baseDatos.AmbitoDeEmpresa(escenario.Empresa.Id);
+        Resultado resultado = await ambito.ServiceProvider.GetRequiredService<CancelarReservaEmpresa>()
+            .EjecutarAsync(new CancelarReservaEmpresaComando(reserva.Id), CancellationToken.None);
+
+        resultado.EsExito.Should().BeTrue();
+        ambito.ServiceProvider.GetRequiredService<PublicadorCaptura>().Publicados.Should().ContainSingle().Which.Should()
+            .Be(new ReservaCancelada(reserva.Id, OrigenCancelacion.Empresa, DominioPrueba.Ahora));
+        EscenarioEmpresa.EntidadSeguida<Reserva>(ambito.ServiceProvider, reserva.Id).Eventos.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Una_cancelacion_fallida_no_publica_nada()
+    {
+        EscenarioReserva propia = await EscenarioReserva.CrearAsync(baseDatos);
+        EscenarioReserva ajena = await EscenarioReserva.CrearAsync(baseDatos);
+        Reserva deLaAjena = ajena.Reserva(EscenarioReserva.NueveLunesUtc);
+        await EscenarioEmpresa.GuardarAsync(baseDatos, deLaAjena);
+
+        (Resultado resultado, IReadOnlyList<IEventoDominio> publicados) = await CancelarYCapturarAsync(propia.Empresa.Id, deLaAjena.Id);
+
+        resultado.Codigo.Should().Be(CodigoError.NoEncontrado);
+        publicados.Should().BeEmpty();
+    }
+
+    private async Task<(Resultado Resultado, IReadOnlyList<IEventoDominio> Publicados)> CancelarYCapturarAsync(
+        Guid empresaId, Guid reservaId)
+    {
+        await using AsyncServiceScope ambito = baseDatos.AmbitoDeEmpresa(empresaId);
+        Resultado resultado = await ambito.ServiceProvider.GetRequiredService<CancelarReservaEmpresa>()
+            .EjecutarAsync(new CancelarReservaEmpresaComando(reservaId), CancellationToken.None);
+        return (resultado, ambito.ServiceProvider.GetRequiredService<PublicadorCaptura>().Publicados);
     }
 }

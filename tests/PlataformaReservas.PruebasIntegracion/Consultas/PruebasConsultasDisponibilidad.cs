@@ -6,6 +6,7 @@ using PlataformaReservas.Aplicacion.Dtos.Profesionales;
 using PlataformaReservas.Aplicacion.Dtos.Reservas;
 using PlataformaReservas.Aplicacion.Dtos.Servicios;
 using PlataformaReservas.Dominio.Entidades;
+using PlataformaReservas.Dominio.Enumeraciones;
 using PlataformaReservas.Dominio.ValueObjects;
 using PlataformaReservas.Infraestructura.Identidad;
 using PlataformaReservas.Infraestructura.Persistencia;
@@ -115,7 +116,7 @@ public sealed class PruebasConsultasDisponibilidad(BaseDatosFixture baseDatos)
         Reserva acabaJustoEnElInicio = Nueva(propia.Id, usuario.Id, ana.Id, servicio, Desde.AddMinutes(-45));
         Reserva empiezaEnElInicio = Nueva(propia.Id, usuario.Id, ana.Id, servicio, Desde);
         Reserva cancelada = Nueva(propia.Id, usuario.Id, ana.Id, servicio, Desde.AddMinutes(45));
-        cancelada.CancelarPorEmpresa(DominioPrueba.Ahora);
+        cancelada.CancelarPorEmpresa(DominioPrueba.Ahora, OrigenCancelacion.Empresa);
         Reserva cruzaElFin = Nueva(propia.Id, usuario.Id, ana.Id, servicio, Hasta.AddMinutes(-30));
         Reserva deBrunoDentro = Nueva(propia.Id, usuario.Id, bruno.Id, servicio, Desde.AddHours(1));
         Reserva empiezaJustoEnElFin = Nueva(propia.Id, usuario.Id, bruno.Id, servicio, Hasta);

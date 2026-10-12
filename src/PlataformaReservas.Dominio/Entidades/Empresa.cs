@@ -1,4 +1,5 @@
 using PlataformaReservas.Dominio.Compartido;
+using PlataformaReservas.Dominio.Eventos;
 using PlataformaReservas.Dominio.ValueObjects;
 
 namespace PlataformaReservas.Dominio.Entidades;
@@ -60,7 +61,7 @@ public sealed class Empresa : EntidadBase
         Validacion.IdentificadorObligatorio(categoriaId, "La categoria de la empresa");
         Validacion.InstanteUtc(ahoraUtc, "La fecha de alta de la empresa");
 
-        return new Empresa
+        Empresa empresa = new()
         {
             Id = id,
             Nombre = nombre,
@@ -81,6 +82,8 @@ public sealed class Empresa : EntidadBase
             FechaAlta = ahoraUtc,
             FechaModificacion = ahoraUtc,
         };
+        empresa.RegistrarEvento(new EmpresaRegistrada(empresa.Id, ahoraUtc));
+        return empresa;
     }
 
     public void ActualizarDatos(
@@ -133,6 +136,7 @@ public sealed class Empresa : EntidadBase
 
         Activa = false;
         FechaModificacion = ahoraUtc;
+        RegistrarEvento(new EmpresaDadaDeBaja(Id, ahoraUtc));
     }
 
     public void Reactivar(DateTime ahoraUtc)

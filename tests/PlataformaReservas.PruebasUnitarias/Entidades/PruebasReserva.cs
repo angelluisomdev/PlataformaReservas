@@ -2,6 +2,7 @@ using FluentAssertions;
 using PlataformaReservas.Dominio.Compartido;
 using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.Dominio.Enumeraciones;
+using PlataformaReservas.Dominio.Eventos;
 using PlataformaReservas.Dominio.ValueObjects;
 
 namespace PlataformaReservas.PruebasUnitarias.Entidades;
@@ -132,7 +133,7 @@ public sealed class PruebasReserva
         Reserva reserva = CrearReserva(ServicioDe(EmpresaId), inicioUtc: Ahora.AddHours(-1));
         DateTime cancelacion = Ahora.AddMinutes(5);
 
-        reserva.CancelarPorEmpresa(cancelacion);
+        reserva.CancelarPorEmpresa(cancelacion, OrigenCancelacion.Empresa);
 
         reserva.Estado.Should().Be(EstadoReserva.Cancelada);
         reserva.FechaCancelacion.Should().Be(cancelacion);
@@ -143,12 +144,13 @@ public sealed class PruebasReserva
     public void CancelarPorEmpresa_rechaza_una_reserva_ya_cancelada()
     {
         Reserva reserva = CrearReserva(ServicioDe(EmpresaId));
-        reserva.CancelarPorEmpresa(Ahora);
+        reserva.CancelarPorEmpresa(Ahora, OrigenCancelacion.Empresa);
 
-        Action otraVez = () => reserva.CancelarPorEmpresa(Ahora.AddMinutes(1));
+        Action otraVez = () => reserva.CancelarPorEmpresa(Ahora.AddMinutes(1), OrigenCancelacion.Empresa);
 
         otraVez.Should().Throw<DominioException>();
         reserva.FechaCancelacion.Should().Be(Ahora);
+        reserva.Eventos.OfType<ReservaCancelada>().Should().ContainSingle();
     }
 
     [Fact]
@@ -156,10 +158,11 @@ public sealed class PruebasReserva
     {
         Reserva reserva = CrearReserva(ServicioDe(EmpresaId));
 
-        Action cancelar = () => reserva.CancelarPorEmpresa(DateTime.SpecifyKind(Ahora, DateTimeKind.Local));
+        Action cancelar = () => reserva.CancelarPorEmpresa(DateTime.SpecifyKind(Ahora, DateTimeKind.Local), OrigenCancelacion.Empresa);
 
         cancelar.Should().Throw<DominioException>();
         reserva.Estado.Should().Be(EstadoReserva.Confirmada);
+        reserva.Eventos.OfType<ReservaCancelada>().Should().BeEmpty();
     }
 
     [Fact]
@@ -168,10 +171,11 @@ public sealed class PruebasReserva
         Reserva reserva = CrearReserva(ServicioDe(EmpresaId), inicioUtc: Ahora.AddHours(-2));
         reserva.Completar(Ahora);
 
-        Action cancelar = () => reserva.CancelarPorEmpresa(Ahora.AddMinutes(1));
+        Action cancelar = () => reserva.CancelarPorEmpresa(Ahora.AddMinutes(1), OrigenCancelacion.Empresa);
 
         cancelar.Should().Throw<DominioException>();
         reserva.Estado.Should().Be(EstadoReserva.Completada);
+        reserva.Eventos.OfType<ReservaCancelada>().Should().BeEmpty();
     }
 
     [Fact]
@@ -304,7 +308,7 @@ public sealed class PruebasReserva
     public void Completar_rechaza_una_reserva_cancelada()
     {
         Reserva reserva = CrearReserva(ServicioDe(EmpresaId), inicioUtc: Ahora.AddHours(-2));
-        reserva.CancelarPorEmpresa(Ahora.AddHours(-3));
+        reserva.CancelarPorEmpresa(Ahora.AddHours(-3), OrigenCancelacion.Empresa);
 
         Action completar = () => reserva.Completar(Ahora);
 
@@ -333,5 +337,101 @@ public sealed class PruebasReserva
 
         completar.Should().Throw<DominioException>();
         reserva.Estado.Should().Be(EstadoReserva.Confirmada);
+    }
+
+    [Fact]
+    public void Crear_registra_un_unico_evento_de_reserva_confirmada_con_su_identificador()
+    {
+        Reserva reserva = CrearReserva(ServicioDe(EmpresaId));
+
+        reserva.Eventos.Should().ContainSingle().Which.Should().Be(new ReservaConfirmada(reserva.Id, Ahora));
+    }
+
+    [Fact]
+    public void Crear_con_los_datos_del_servicio_registra_el_evento_de_reserva_confirmada()
+    {
+        Reserva reserva = Reserva.Crear(
+            Guid.CreateVersion7(), EmpresaId, Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(),
+            new Duracion(30), new Precio(12m), Ahora.AddDays(1), Cliente, TelefonoCliente, null, Ahora);
+
+        reserva.Eventos.Should().ContainSingle().Which.Should().Be(new ReservaConfirmada(reserva.Id, Ahora));
+    }
+
+    [Fact]
+    public void LimpiarEventos_vacia_los_eventos_registrados()
+    {
+        Reserva reserva = CrearReserva(ServicioDe(EmpresaId));
+
+        reserva.LimpiarEventos();
+
+        reserva.Eventos.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CancelarPorCliente_registra_la_cancelacion_con_origen_cliente()
+    {
+        Reserva reserva = CrearReserva(ServicioDe(EmpresaId));
+        reserva.LimpiarEventos();
+
+        reserva.CancelarPorCliente(Ahora);
+
+        reserva.Eventos.Should().ContainSingle().Which.Should().Be(new ReservaCancelada(reserva.Id, OrigenCancelacion.Cliente, Ahora));
+    }
+
+    [Fact]
+    public void CancelarPorCliente_que_lanza_no_registra_ningun_evento_y_repetirla_no_duplica()
+    {
+        Reserva iniciada = CrearReserva(ServicioDe(EmpresaId), inicioUtc: Ahora);
+        iniciada.LimpiarEventos();
+        Reserva cancelada = CrearReserva(ServicioDe(EmpresaId));
+        cancelada.LimpiarEventos();
+        cancelada.CancelarPorCliente(Ahora);
+
+        Action empezada = () => iniciada.CancelarPorCliente(Ahora);
+        Action otraVez = () => cancelada.CancelarPorCliente(Ahora.AddMinutes(1));
+
+        empezada.Should().Throw<DominioException>();
+        otraVez.Should().Throw<DominioException>();
+        iniciada.Eventos.Should().BeEmpty();
+        cancelada.Eventos.Should().ContainSingle();
+    }
+
+    [Theory]
+    [InlineData(OrigenCancelacion.Empresa)]
+    [InlineData(OrigenCancelacion.BajaEmpresa)]
+    public void CancelarPorEmpresa_registra_la_cancelacion_con_el_origen_recibido(OrigenCancelacion origen)
+    {
+        Reserva reserva = CrearReserva(ServicioDe(EmpresaId));
+        reserva.LimpiarEventos();
+
+        reserva.CancelarPorEmpresa(Ahora, origen);
+
+        reserva.Eventos.Should().ContainSingle().Which.Should().Be(new ReservaCancelada(reserva.Id, origen, Ahora));
+    }
+
+    [Theory]
+    [InlineData(OrigenCancelacion.Cliente)]
+    [InlineData(OrigenCancelacion.BajaCuenta)]
+    public void CancelarPorEmpresa_rechaza_un_origen_que_no_es_de_la_empresa(OrigenCancelacion origen)
+    {
+        Reserva reserva = CrearReserva(ServicioDe(EmpresaId));
+        reserva.LimpiarEventos();
+
+        Action cancelar = () => reserva.CancelarPorEmpresa(Ahora, origen);
+
+        cancelar.Should().Throw<DominioException>();
+        reserva.Estado.Should().Be(EstadoReserva.Confirmada);
+        reserva.Eventos.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Completar_no_registra_ningun_evento()
+    {
+        Reserva reserva = CrearReserva(ServicioDe(EmpresaId), inicioUtc: Ahora.AddHours(-2));
+        reserva.LimpiarEventos();
+
+        reserva.Completar(Ahora);
+
+        reserva.Eventos.Should().BeEmpty();
     }
 }

@@ -6,7 +6,11 @@ using PlataformaReservas.Dominio.Repositorios;
 
 namespace PlataformaReservas.Aplicacion.CasosUso.Reservas;
 
-public sealed class CancelarReservaEmpresa(IRepositorioReservas reservas, IUnidadTrabajo unidadTrabajo, IRelojSistema reloj)
+public sealed class CancelarReservaEmpresa(
+    IRepositorioReservas reservas,
+    IUnidadTrabajo unidadTrabajo,
+    IPublicadorEventos publicador,
+    IRelojSistema reloj)
 {
     public async Task<Resultado> EjecutarAsync(CancelarReservaEmpresaComando comando, CancellationToken ct)
     {
@@ -21,8 +25,11 @@ public sealed class CancelarReservaEmpresa(IRepositorioReservas reservas, IUnida
             return Resultado.Fallo(CodigoError.EstadoNoValido, "Solo se cancelan reservas confirmadas.");
         }
 
-        reserva.CancelarPorEmpresa(reloj.AhoraUtc);
+        reserva.CancelarPorEmpresa(reloj.AhoraUtc, OrigenCancelacion.Empresa);
         await unidadTrabajo.GuardarCambiosAsync(ct);
+
+        await publicador.PublicarAsync(reserva.Eventos, ct);
+        reserva.LimpiarEventos();
         return Resultado.Exito();
     }
 }

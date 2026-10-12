@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PlataformaReservas.Aplicacion.Compartido;
 using PlataformaReservas.Dominio.Entidades;
+using PlataformaReservas.Dominio.Eventos;
 using PlataformaReservas.PruebasIntegracion.Infraestructura;
 using Microsoft.AspNetCore.Identity;
 using PlataformaReservas.Aplicacion.CasosUso.Empresas;
@@ -97,5 +98,55 @@ public sealed class PruebasDarDeBajaEmpresa(BaseDatosFixture baseDatos)
         await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
         UserManager<Usuario> usuarios = ambito.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
         return (await usuarios.FindByIdAsync(usuarioId.ToString()))!.SecurityStamp;
+    }
+
+    [Fact]
+    public async Task Con_N_reservas_futuras_publica_la_baja_y_N_cancelaciones_por_baja_de_la_empresa()
+    {
+        Empresa empresa = await EscenarioEmpresa.CrearEmpresaAsync(baseDatos);
+        Usuario usuario = await UsuariosPrueba.CrearAsync(baseDatos, UsuariosPrueba.CorreoUnico());
+        Servicio servicio = DominioPrueba.Servicio(empresa.Id);
+        Profesional profesional = DominioPrueba.Profesional(empresa.Id);
+        Reserva[] futuras =
+        [
+            .. Enumerable.Range(1, 3).Select(d => Nueva(empresa.Id, usuario.Id, profesional.Id, servicio, DominioPrueba.Ahora.AddDays(d))),
+        ];
+        Reserva pasada = Nueva(empresa.Id, usuario.Id, profesional.Id, servicio, DominioPrueba.Ahora.AddDays(-1));
+        Reserva completada = Nueva(empresa.Id, usuario.Id, profesional.Id, servicio, DominioPrueba.Ahora.AddDays(-2));
+        await EscenarioEmpresa.GuardarAsync(baseDatos, [servicio, profesional, .. futuras, pasada, completada]);
+        await MarcarCompletadaAsync(completada.Id);
+
+        await using AsyncServiceScope ambito = baseDatos.AmbitoDeEmpresa(empresa.Id);
+        await ambito.ServiceProvider.GetRequiredService<DarDeBajaEmpresa>().EjecutarAsync(CancellationToken.None);
+        IReadOnlyList<IEventoDominio> publicados = ambito.ServiceProvider.GetRequiredService<PublicadorCaptura>().Publicados;
+
+        IEventoDominio[] esperados =
+        [
+            new EmpresaDadaDeBaja(empresa.Id, DominioPrueba.Ahora),
+            .. futuras.Select(r => new ReservaCancelada(r.Id, OrigenCancelacion.BajaEmpresa, DominioPrueba.Ahora)),
+        ];
+        publicados.Should().BeEquivalentTo(esperados, o => o.RespectingRuntimeTypes());
+        EscenarioEmpresa.EntidadSeguida<Empresa>(ambito.ServiceProvider, empresa.Id).Eventos.Should().BeEmpty();
+        futuras.Should().AllSatisfy(r =>
+            EscenarioEmpresa.EntidadSeguida<Reserva>(ambito.ServiceProvider, r.Id).Eventos.Should().BeEmpty());
+    }
+
+    [Fact]
+    public async Task Con_un_publicador_que_falla_la_baja_y_las_cancelaciones_quedan_confirmadas()
+    {
+        Empresa empresa = await EscenarioEmpresa.CrearEmpresaAsync(baseDatos);
+        Usuario usuario = await UsuariosPrueba.CrearAsync(baseDatos, UsuariosPrueba.CorreoUnico());
+        Servicio servicio = DominioPrueba.Servicio(empresa.Id);
+        Profesional profesional = DominioPrueba.Profesional(empresa.Id);
+        Reserva futura = Nueva(empresa.Id, usuario.Id, profesional.Id, servicio, DominioPrueba.Ahora.AddDays(1));
+        await EscenarioEmpresa.GuardarAsync(baseDatos, servicio, profesional, futura);
+
+        await using AsyncServiceScope ambito = baseDatos.AmbitoDeEmpresa(empresa.Id);
+        ambito.ServiceProvider.GetRequiredService<PublicadorCaptura>().Fallar = true;
+        Func<Task> darDeBaja = () => ambito.ServiceProvider.GetRequiredService<DarDeBajaEmpresa>().EjecutarAsync(CancellationToken.None);
+
+        await darDeBaja.Should().ThrowAsync<InvalidOperationException>();
+        (await EstadoAsync(futura.Id)).Should().Be(EstadoReserva.Cancelada);
+        (await EscenarioEmpresa.LeerAsync(baseDatos, db => db.Empresas.SingleAsync(e => e.Id == empresa.Id))).Activa.Should().BeFalse();
     }
 }

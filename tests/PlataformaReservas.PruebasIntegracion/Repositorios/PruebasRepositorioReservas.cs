@@ -28,7 +28,7 @@ public sealed class PruebasRepositorioReservas(BaseDatosFixture baseDatos)
         Reserva futura = Nueva(propia.Id, usuario.Id, profesional.Id, servicio, DominioPrueba.Ahora.AddDays(1));
         Reserva pasada = Nueva(propia.Id, usuario.Id, profesional.Id, servicio, DominioPrueba.Ahora.AddDays(-1));
         Reserva cancelada = Nueva(propia.Id, usuario.Id, profesional.Id, servicio, DominioPrueba.Ahora.AddDays(2));
-        cancelada.CancelarPorEmpresa(DominioPrueba.Ahora);
+        cancelada.CancelarPorEmpresa(DominioPrueba.Ahora, OrigenCancelacion.Empresa);
         Reserva deOtra = Nueva(ajena.Id, usuario.Id, profesionalAjeno.Id, servicioAjeno, DominioPrueba.Ahora.AddDays(1));
         await EscenarioEmpresa.GuardarAsync(
             baseDatos, servicio, profesional, servicioAjeno, profesionalAjeno, futura, pasada, cancelada, deOtra);

@@ -16,6 +16,7 @@ public sealed class RegistrarEmpresa(
     IRepositorioMiembros miembros,
     IConsultasCatalogoPublico catalogo,
     IUnidadTrabajo unidadTrabajo,
+    IPublicadorEventos publicador,
     IRelojSistema reloj)
 {
     public async Task<Resultado<EmpresaRegistradaDto>> EjecutarAsync(RegistrarEmpresaComando comando, CancellationToken ct)
@@ -71,6 +72,8 @@ public sealed class RegistrarEmpresa(
         await unidadTrabajo.GuardarCambiosAsync(ct);
         await transaccion.ConfirmarAsync(ct);
 
+        await publicador.PublicarAsync(empresa.Eventos, ct);
+        empresa.LimpiarEventos();
         return Resultado<EmpresaRegistradaDto>.Exito(EmpresaRegistradaDto.ConvertirADto(empresa, cuenta.Valor));
     }
 }

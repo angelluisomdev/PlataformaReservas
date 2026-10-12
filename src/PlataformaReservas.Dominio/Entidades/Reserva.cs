@@ -1,5 +1,6 @@
 using PlataformaReservas.Dominio.Compartido;
 using PlataformaReservas.Dominio.Enumeraciones;
+using PlataformaReservas.Dominio.Eventos;
 using PlataformaReservas.Dominio.ValueObjects;
 
 namespace PlataformaReservas.Dominio.Entidades;
@@ -83,7 +84,7 @@ public sealed class Reserva : EntidadBase
 
         FranjaHoraria franja = new(inicioUtc, inicioUtc.AddMinutes(duracion.Minutos));
 
-        return new Reserva
+        Reserva reserva = new()
         {
             Id = id,
             EmpresaId = empresaId,
@@ -100,6 +101,8 @@ public sealed class Reserva : EntidadBase
             FechaAlta = ahoraUtc,
             FechaModificacion = ahoraUtc,
         };
+        reserva.RegistrarEvento(new ReservaConfirmada(reserva.Id, ahoraUtc));
+        return reserva;
     }
 
     public void CancelarPorCliente(DateTime ahoraUtc)
@@ -119,6 +122,7 @@ public sealed class Reserva : EntidadBase
         Estado = EstadoReserva.Cancelada;
         FechaCancelacion = ahoraUtc;
         FechaModificacion = ahoraUtc;
+        RegistrarEvento(new ReservaCancelada(Id, OrigenCancelacion.Cliente, ahoraUtc));
     }
 
     public void Completar(DateTime ahoraUtc)
@@ -139,9 +143,14 @@ public sealed class Reserva : EntidadBase
         FechaModificacion = ahoraUtc;
     }
 
-    public void CancelarPorEmpresa(DateTime ahoraUtc)
+    public void CancelarPorEmpresa(DateTime ahoraUtc, OrigenCancelacion origen)
     {
         Validacion.InstanteUtc(ahoraUtc, "La fecha de cancelacion de la reserva");
+
+        if (origen is not (OrigenCancelacion.Empresa or OrigenCancelacion.BajaEmpresa))
+        {
+            throw new DominioException("La empresa solo cancela por decision propia o por su baja.");
+        }
 
         if (Estado != EstadoReserva.Confirmada)
         {
@@ -151,5 +160,6 @@ public sealed class Reserva : EntidadBase
         Estado = EstadoReserva.Cancelada;
         FechaCancelacion = ahoraUtc;
         FechaModificacion = ahoraUtc;
+        RegistrarEvento(new ReservaCancelada(Id, origen, ahoraUtc));
     }
 }

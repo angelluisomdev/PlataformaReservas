@@ -47,7 +47,7 @@ public sealed class PruebasCompletarReserva(BaseDatosFixture baseDatos)
     {
         EscenarioReserva escenario = await EscenarioReserva.CrearAsync(baseDatos);
         Reserva cancelada = escenario.Reserva(DominioPrueba.Ahora.AddHours(-2));
-        cancelada.CancelarPorEmpresa(DominioPrueba.Ahora.AddHours(-3));
+        cancelada.CancelarPorEmpresa(DominioPrueba.Ahora.AddHours(-3), OrigenCancelacion.Empresa);
         await EscenarioEmpresa.GuardarAsync(baseDatos, cancelada);
 
         Resultado resultado = await CompletarAsync(escenario.Empresa.Id, cancelada.Id);

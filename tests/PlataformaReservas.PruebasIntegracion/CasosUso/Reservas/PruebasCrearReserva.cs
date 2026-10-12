@@ -5,6 +5,7 @@ using PlataformaReservas.Aplicacion.CasosUso.Reservas;
 using PlataformaReservas.Aplicacion.Compartido;
 using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.Dominio.Enumeraciones;
+using PlataformaReservas.Dominio.Eventos;
 using PlataformaReservas.Dominio.ValueObjects;
 using PlataformaReservas.Infraestructura.Persistencia;
 using PlataformaReservas.PruebasIntegracion.Infraestructura;
@@ -263,5 +264,61 @@ public sealed class PruebasCrearReserva(BaseDatosFixture baseDatos)
         ContextoDatos db = ambito.ServiceProvider.GetRequiredService<ContextoDatos>();
         cambio(await cargar(db));
         await db.SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task Tras_confirmar_publica_un_unico_evento_de_reserva_confirmada()
+    {
+        EscenarioReserva escenario = await EscenarioReserva.CrearAsync(baseDatos);
+
+        await using AsyncServiceScope ambito = baseDatos.AmbitoDeUsuario(escenario.Cliente.Id);
+        Resultado<Guid> resultado = await ambito.ServiceProvider.GetRequiredService<CrearReserva>()
+            .EjecutarAsync(escenario.Comando(), CancellationToken.None);
+
+        ambito.ServiceProvider.GetRequiredService<PublicadorCaptura>().Publicados.Should().ContainSingle()
+            .Which.Should().Be(new ReservaConfirmada(resultado.Valor, DominioPrueba.Ahora));
+        EscenarioEmpresa.EntidadSeguida<Reserva>(ambito.ServiceProvider, resultado.Valor).Eventos.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Una_validacion_o_un_hueco_ocupado_no_publican_nada()
+    {
+        EscenarioReserva escenario = await EscenarioReserva.CrearAsync(baseDatos);
+        await EscenarioEmpresa.GuardarAsync(baseDatos, escenario.Reserva(EscenarioReserva.NueveLunesUtc));
+
+        (Resultado<Guid> invalida, IReadOnlyList<IEventoDominio> trasValidacion) = await CrearYCapturarAsync(
+            escenario.Cliente.Id, escenario.Comando(observaciones: new string('a', Observaciones.LongitudMaxima + 1)));
+        (Resultado<Guid> ocupada, IReadOnlyList<IEventoDominio> trasHuecoOcupado) =
+            await CrearYCapturarAsync(escenario.Cliente.Id, escenario.Comando());
+
+        invalida.Codigo.Should().Be(CodigoError.Validacion);
+        ocupada.Codigo.Should().Be(CodigoError.HuecoYaNoDisponible);
+        trasValidacion.Should().BeEmpty();
+        trasHuecoOcupado.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Con_un_publicador_que_falla_la_reserva_queda_confirmada()
+    {
+        EscenarioReserva escenario = await EscenarioReserva.CrearAsync(baseDatos);
+
+        await using AsyncServiceScope ambito = baseDatos.AmbitoDeUsuario(escenario.Cliente.Id);
+        ambito.ServiceProvider.GetRequiredService<PublicadorCaptura>().Fallar = true;
+        Func<Task> crear = () => ambito.ServiceProvider.GetRequiredService<CrearReserva>()
+            .EjecutarAsync(escenario.Comando(), CancellationToken.None);
+
+        await crear.Should().ThrowAsync<InvalidOperationException>();
+        Reserva reserva = await EscenarioEmpresa.LeerAsync(
+            baseDatos, db => db.Reservas.SingleAsync(r => r.ProfesionalId == escenario.Profesional.Id));
+        reserva.Estado.Should().Be(EstadoReserva.Confirmada);
+    }
+
+    private async Task<(Resultado<Guid> Resultado, IReadOnlyList<IEventoDominio> Publicados)> CrearYCapturarAsync(
+        Guid usuarioId, CrearReservaComando comando)
+    {
+        await using AsyncServiceScope ambito = baseDatos.AmbitoDeUsuario(usuarioId);
+        Resultado<Guid> resultado = await ambito.ServiceProvider.GetRequiredService<CrearReserva>()
+            .EjecutarAsync(comando, CancellationToken.None);
+        return (resultado, ambito.ServiceProvider.GetRequiredService<PublicadorCaptura>().Publicados);
     }
 }

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using PlataformaReservas.Dominio.Compartido;
 using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.Infraestructura.Identidad;
 using PlataformaReservas.Infraestructura.Persistencia.Configuraciones;
@@ -29,6 +30,11 @@ public sealed class ContextoDatos(DbContextOptions<ContextoDatos> opciones)
 
         builder.ApplyConfigurationsFromAssembly(typeof(ContextoDatos).Assembly);
         builder.ApplyConfiguration(new ConfiguracionReserva(ObtenerProtector()));
+
+        foreach (Type entidad in builder.Model.GetEntityTypes().Select(t => t.ClrType).Where(t => t.IsSubclassOf(typeof(EntidadBase))))
+        {
+            builder.Entity(entidad).Ignore(nameof(EntidadBase.Eventos));
+        }
     }
 
     // Falla en cerrado: sin protector, las copias de Reserva se guardarian en claro. Solo dotnet ef puede prescindir de el.
