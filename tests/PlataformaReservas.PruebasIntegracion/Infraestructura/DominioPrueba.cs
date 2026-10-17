@@ -15,11 +15,12 @@ public static class DominioPrueba
             Guid.CreateVersion7(), new NombreCategoria($"Categoria {sufijo}"), Slug.Desde($"cat-{sufijo}"));
     }
 
-    public static Empresa Empresa(string sufijo, Guid categoriaId, DescripcionEmpresa? descripcion = null)
+    public static Empresa Empresa(
+        string sufijo, Guid categoriaId, DescripcionEmpresa? descripcion = null, NombreEmpresa? nombre = null, Ciudad? ciudad = null)
     {
         return Dominio.Entidades.Empresa.Crear(
             Guid.CreateVersion7(),
-            new NombreEmpresa("Barberia Centro"),
+            nombre ?? new NombreEmpresa("Barberia Centro"),
             Slug.Desde($"empresa-{sufijo}"),
             categoriaId,
             descripcion,
@@ -27,7 +28,7 @@ public static class DominioPrueba
             new Telefono("+34 600 000 000"),
             new Direccion("Calle Mayor 1"),
             new CodigoPostal("37001"),
-            new Ciudad("Salamanca"),
+            ciudad ?? new Ciudad("Salamanca"),
             Ahora);
     }
 

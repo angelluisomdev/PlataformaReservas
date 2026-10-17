@@ -1,0 +1,74 @@
+.buscador {
+    margin: 0 auto;
+    max-width: 64rem;
+    padding: 2rem 1rem;
+}
+
+form {
+    align-items: end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.campo {
+    display: flex;
+    flex: 1 1 12rem;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.campo input,
+.campo select {
+    font: inherit;
+    padding: 0.5rem;
+}
+
+button {
+    background: #1f5f8b;
+    border: none;
+    border-radius: 0.25rem;
+    color: #fff;
+    cursor: pointer;
+    font: inherit;
+    padding: 0.55rem 1.25rem;
+}
+
+.aviso {
+    background: #f2f6f9;
+    border-radius: 0.25rem;
+    padding: 0.75rem 1rem;
+}
+
+.resultados {
+    display: grid;
+    gap: 1rem;
+    list-style: none;
+    padding: 0;
+}
+
+.resultados li {
+    border: 1px solid #c8d3dc;
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+}
+
+.resultados h2 {
+    font-size: 1.2rem;
+    margin: 0 0 0.25rem;
+}
+
+.meta {
+    color: #4a5a66;
+    font-size: 0.9rem;
+    margin: 0 0 0.5rem;
+}
+
+.paginacion {
+    align-items: center;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1.5rem;
+}

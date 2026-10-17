@@ -1,0 +1,97 @@
+@page "/businesses/{Slug}"
+@using System.Globalization
+@using PlataformaReservas.Aplicacion.Abstracciones
+@using PlataformaReservas.Aplicacion.Dtos.Empresas
+@using PlataformaReservas.Dominio.ValueObjects
+
+@inject IConsultasCatalogoPublico Catalogo
+@inject NavigationManager Navegacion
+
+@if (ficha is not null)
+{
+    <PageTitle>@ficha.Nombre</PageTitle>
+
+    <article class="ficha">
+        <header>
+            <p class="categoria">@ficha.Categoria</p>
+            <h1>@ficha.Nombre</h1>
+            <p class="direccion">@ficha.Direccion, @ficha.CodigoPostal @ficha.Ciudad · Teléfono @ficha.Telefono</p>
+            <a class="boton" href="book/@ficha.Slug">Reservar</a>
+        </header>
+
+        @if (ficha.Descripcion is not null)
+        {
+            <p class="descripcion">@ficha.Descripcion</p>
+        }
+
+        <section>
+            <h2>Servicios</h2>
+            <ul class="servicios">
+                @foreach (ServicioFichaDto servicio in ficha.Servicios)
+                {
+                    <li>
+                        <h3>@servicio.Nombre</h3>
+                        <p class="meta">@servicio.DuracionMinutos min · @servicio.Precio.ToString("C", Espanol)</p>
+                        @if (servicio.Descripcion is not null)
+                        {
+                            <p>@servicio.Descripcion</p>
+                        }
+                    </li>
+                }
+            </ul>
+        </section>
+
+        <section>
+            <h2>Profesionales</h2>
+            <ul class="profesionales">
+                @foreach (ProfesionalFichaDto profesional in ficha.Profesionales)
+                {
+                    <li>@profesional.Nombre</li>
+                }
+            </ul>
+        </section>
+
+        <section>
+            <h2>Horario</h2>
+            <dl class="horario">
+                @foreach (HorarioDiaDto dia in ficha.Horario)
+                {
+                    <dt>@Espanol.DateTimeFormat.GetDayName(dia.Dia)</dt>
+                    <dd>
+                        @if (dia.Cerrado)
+                        {
+                            <span>Cerrado</span>
+                        }
+                        else
+                        {
+                            @string.Join(" y ", dia.Intervalos.Select(Tramo))
+                        }
+                    </dd>
+                }
+            </dl>
+        </section>
+    </article>
+}
+
+@code {
+    private static readonly CultureInfo Espanol = CultureInfo.GetCultureInfo("es-ES");
+
+    private FichaEmpresaDto? ficha;
+
+    [Parameter]
+    public string Slug { get; set; } = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        ficha = await Catalogo.ObtenerFichaAsync(Slug, CancellationToken.None);
+        if (ficha is null)
+        {
+            Navegacion.NotFound();
+        }
+    }
+
+    private static string Tramo(IntervaloHorario intervalo)
+    {
+        return $"{intervalo.HoraInicio:HH\\:mm} a {intervalo.HoraFin:HH\\:mm}";
+    }
+}

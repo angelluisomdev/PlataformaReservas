@@ -257,7 +257,8 @@ namespace PlataformaReservas.Infraestructura.Persistencia.Migraciones
                         .IsRequired()
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)")
-                        .HasColumnName("ciudad");
+                        .HasColumnName("ciudad")
+                        .UseCollation("ciudad_sin_acentos");
 
                     b.Property<string>("CodigoPostal")
                         .IsRequired()

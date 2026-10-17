@@ -23,7 +23,11 @@ public sealed class ConfiguracionEmpresa : IEntityTypeConfiguration<Empresa>
         builder.Property(e => e.Telefono).HasConversion<ConversorTelefono>().HasMaxLength(20).IsRequired();
         builder.Property(e => e.Direccion).HasConversion<ConversorDireccion>().HasMaxLength(200).IsRequired();
         builder.Property(e => e.CodigoPostal).HasConversion<ConversorCodigoPostal>().HasMaxLength(10).IsRequired();
-        builder.Property(e => e.Ciudad).HasConversion<ConversorCiudad>().HasMaxLength(80).IsRequired();
+        builder.Property(e => e.Ciudad)
+            .HasConversion<ConversorCiudad>()
+            .HasMaxLength(80)
+            .UseCollation("ciudad_sin_acentos")
+            .IsRequired();
         builder.Property(e => e.ZonaHoraria).HasMaxLength(60).IsRequired();
 
         builder.ComplexProperty(e => e.Politicas, politicas =>

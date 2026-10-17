@@ -17,6 +17,7 @@ public static class InyeccionDependencias
         servicios.AddScoped<ActualizarEmpresa>();
         servicios.AddScoped<DarDeBajaEmpresa>();
         servicios.AddScoped<ReactivarEmpresa>();
+        servicios.AddScoped<BuscarEstablecimientos>();
 
         servicios.AddScoped<ListarServicios>();
         servicios.AddScoped<CrearServicio>();

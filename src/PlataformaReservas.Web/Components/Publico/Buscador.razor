@@ -1,0 +1,112 @@
+@page "/businesses"
+@using PlataformaReservas.Aplicacion.Abstracciones
+@using PlataformaReservas.Aplicacion.CasosUso.Empresas
+@using PlataformaReservas.Aplicacion.Compartido
+@using PlataformaReservas.Aplicacion.Dtos.Categorias
+@using PlataformaReservas.Aplicacion.Dtos.Empresas
+
+@inject BuscarEstablecimientos Buscar
+@inject IConsultasCatalogoPublico Catalogo
+
+<PageTitle>Buscar establecimientos</PageTitle>
+
+<section class="buscador">
+    <h1>Buscar establecimientos</h1>
+
+    <form method="get" action="businesses">
+        <div class="campo">
+            <label for="ciudad">Ciudad</label>
+            <input id="ciudad" name="city" type="text" value="@Ciudad" placeholder="Por ejemplo, Málaga" />
+        </div>
+        <div class="campo">
+            <label for="categoria">Categoría</label>
+            <select id="categoria" name="category">
+                <option value="">Todas</option>
+                @foreach (CategoriaDto categoria in categorias)
+                {
+                    <option value="@categoria.Slug" selected="@(categoria.Slug == Categoria)">@categoria.Nombre</option>
+                }
+            </select>
+        </div>
+        <button type="submit">Buscar</button>
+    </form>
+
+    @if (Ciudad is not null && !BuscarEstablecimientos.EsCiudadValida(Ciudad))
+    {
+        <p class="aviso" role="alert">
+            Indica una ciudad válida para buscar: al menos @BuscarEstablecimientos.LongitudMinimaCiudad caracteres.
+        </p>
+    }
+    else if (pagina is not null && pagina.Total == 0)
+    {
+        <p class="aviso">No hay establecimientos en @Ciudad con esos criterios.</p>
+        @if (!string.IsNullOrWhiteSpace(Categoria))
+        {
+            <p><a href="@Enlace(1, null)">Buscar en todas las categorías</a></p>
+        }
+    }
+    else if (pagina is not null)
+    {
+        <p class="total">@pagina.Total establecimiento(s) en @Ciudad</p>
+        <ul class="resultados">
+            @foreach (ResumenEmpresaDto empresa in pagina.Elementos)
+            {
+                <li>
+                    <h2><a href="businesses/@empresa.Slug">@empresa.Nombre</a></h2>
+                    <p class="meta">@empresa.Categoria · @empresa.Ciudad</p>
+                    @if (empresa.DescripcionBreve is not null)
+                    {
+                        <p>@empresa.DescripcionBreve</p>
+                    }
+                </li>
+            }
+        </ul>
+        <nav class="paginacion" aria-label="Páginas de resultados">
+            @if (pagina.Pagina > 1)
+            {
+                <a href="@Enlace(pagina.Pagina - 1, Categoria)">Anterior</a>
+            }
+            <span>Página @pagina.Pagina de @TotalPaginas</span>
+            @if (pagina.Pagina < TotalPaginas)
+            {
+                <a href="@Enlace(pagina.Pagina + 1, Categoria)">Siguiente</a>
+            }
+        </nav>
+    }
+</section>
+
+@code {
+    private IReadOnlyList<CategoriaDto> categorias = [];
+    private PaginaResultados<ResumenEmpresaDto>? pagina;
+
+    [SupplyParameterFromQuery(Name = "city")]
+    private string? Ciudad { get; set; }
+
+    [SupplyParameterFromQuery(Name = "category")]
+    private string? Categoria { get; set; }
+
+    [SupplyParameterFromQuery(Name = "page")]
+    private int? Pagina { get; set; }
+
+    [SupplyParameterFromQuery(Name = "pageSize")]
+    private int? TamanoPagina { get; set; }
+
+    private int TotalPaginas => pagina is null ? 1 : Math.Max(1, (pagina.Total + pagina.TamanoPagina - 1) / pagina.TamanoPagina);
+
+    protected override async Task OnInitializedAsync()
+    {
+        categorias = await Catalogo.ObtenerCategoriasAsync(CancellationToken.None);
+        if (Ciudad is not null)
+        {
+            Resultado<PaginaResultados<ResumenEmpresaDto>> resultado = await Buscar.EjecutarAsync(
+                new BuscarEstablecimientosComando(Ciudad, Categoria, Pagina, TamanoPagina), CancellationToken.None);
+            pagina = resultado.Valor;
+        }
+    }
+
+    private string Enlace(int numero, string? categoria)
+    {
+        string enlace = $"businesses?city={Uri.EscapeDataString(Ciudad ?? "")}&page={numero}";
+        return string.IsNullOrWhiteSpace(categoria) ? enlace : $"{enlace}&category={Uri.EscapeDataString(categoria)}";
+    }
+}

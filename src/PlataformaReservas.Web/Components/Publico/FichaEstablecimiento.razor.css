@@ -1,0 +1,66 @@
+.ficha {
+    margin: 0 auto;
+    max-width: 64rem;
+    padding: 2rem 1rem;
+}
+
+.categoria,
+.meta,
+.direccion {
+    color: #4a5a66;
+    font-size: 0.9rem;
+    margin: 0 0 0.5rem;
+}
+
+h1 {
+    font-size: 2rem;
+    margin: 0 0 0.5rem;
+}
+
+.boton {
+    background: #1f5f8b;
+    border-radius: 0.25rem;
+    color: #fff;
+    display: inline-block;
+    margin: 0.5rem 0 1rem;
+    padding: 0.55rem 1.25rem;
+    text-decoration: none;
+}
+
+.descripcion {
+    white-space: pre-line;
+}
+
+.servicios {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    list-style: none;
+    padding: 0;
+}
+
+.servicios li {
+    border: 1px solid #c8d3dc;
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.servicios h3 {
+    font-size: 1.05rem;
+    margin: 0 0 0.25rem;
+}
+
+.horario {
+    display: grid;
+    gap: 0.25rem 1rem;
+    grid-template-columns: max-content 1fr;
+}
+
+.horario dt {
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.horario dd {
+    margin: 0;
+}
