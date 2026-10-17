@@ -1,4 +1,4 @@
-using System.Globalization;
+using PlataformaReservas.Aplicacion.Compartido;
 using PlataformaReservas.Dominio.Entidades;
 
 namespace PlataformaReservas.Aplicacion.Dtos.Empresas;
@@ -16,8 +16,6 @@ public sealed record FichaEmpresaDto(
     IReadOnlyList<ProfesionalFichaDto> Profesionales,
     IReadOnlyList<HorarioDiaDto> Horario)
 {
-    private static readonly StringComparer OrdenEspanol = StringComparer.Create(CultureInfo.GetCultureInfo("es-ES"), ignoreCase: false);
-
     public static FichaEmpresaDto ConvertirADto(
         Empresa empresa, string categoria, IEnumerable<Servicio> servicios, IEnumerable<Profesional> profesionales)
     {
@@ -31,8 +29,8 @@ public sealed record FichaEmpresaDto(
             empresa.CodigoPostal.Valor,
             empresa.Ciudad.Valor,
             empresa.Telefono.Valor,
-            servicios.OrderBy(s => s.Nombre.Valor, OrdenEspanol).Select(ServicioFichaDto.ConvertirADto).ToList(),
-            lista.OrderBy(p => p.NombreCompleto.Valor, OrdenEspanol).Select(ProfesionalFichaDto.ConvertirADto).ToList(),
+            servicios.OrderBy(s => s.Nombre.Valor, OrdenEspanol.Comparador).Select(ServicioFichaDto.ConvertirADto).ToList(),
+            lista.OrderBy(p => p.NombreCompleto.Valor, OrdenEspanol.Comparador).Select(ProfesionalFichaDto.ConvertirADto).ToList(),
             HorarioDiaDto.ConvertirADto(lista.SelectMany(p => p.Horarios)));
     }
 }

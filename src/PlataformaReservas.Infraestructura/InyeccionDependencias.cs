@@ -43,6 +43,7 @@ public static class InyeccionDependencias
         servicios.AddSingleton<IRelojSistema, RelojSistema>();
         servicios.AddScoped<IUnidadTrabajo, UnidadTrabajo>();
         servicios.AddScoped<IConsultasCatalogoPublico, ConsultasCatalogoPublico>();
+        servicios.AddScoped<IConsultasReservaPublica, ConsultasCatalogoPublico>();
         servicios.AddScoped<IConsultasDisponibilidad, ConsultasDisponibilidad>();
         servicios.AddScoped<IContextoEmpresa, ContextoEmpresa>();
         servicios.AddScoped<IContextoUsuario, ContextoUsuario>();

@@ -1,0 +1,352 @@
+@page "/book/{Slug}"
+@rendermode InteractiveServer
+@using System.Globalization
+@using PlataformaReservas.Aplicacion.Abstracciones
+@using PlataformaReservas.Aplicacion.CasosUso.Cuenta
+@using PlataformaReservas.Aplicacion.CasosUso.Reservas
+@using PlataformaReservas.Aplicacion.Compartido
+@using PlataformaReservas.Aplicacion.Disponibilidad
+@using PlataformaReservas.Aplicacion.Dtos.Empresas
+@using PlataformaReservas.Aplicacion.Dtos.Profesionales
+@using PlataformaReservas.Aplicacion.Dtos.Servicios
+@using PlataformaReservas.Dominio.ValueObjects
+
+@inject IConsultasReservaPublica ConsultasReserva
+@inject ConsultarDisponibilidad Consultar
+@inject EstablecerTelefono GuardarTelefono
+@inject CrearReserva Crear
+@inject IContextoUsuario ContextoUsuario
+@inject IServicioCuentas Cuentas
+@inject IRelojSistema Reloj
+@inject NavigationManager Navegacion
+
+@if (datos is not null)
+{
+    <PageTitle>Reservar en @datos.Nombre</PageTitle>
+
+    <section class="reserva">
+        <h1>Reservar en @datos.Nombre</h1>
+
+        @if (reservaCreada is Guid idReserva)
+        {
+            <div class="confirmada" role="status">
+                <h2>Reserva confirmada</h2>
+                <p>@servicio!.Nombre con @hueco!.NombreProfesional, @Momento(hueco.InicioUtc).</p>
+                <p><a href="my-account/bookings/@idReserva">Ver el detalle de la reserva</a></p>
+            </div>
+        }
+        else if (datos.Servicios.Count == 0)
+        {
+            <p class="aviso">El establecimiento no admite reservas en este momento.</p>
+        }
+        else
+        {
+            @if (mensaje is not null)
+            {
+                <p class="aviso" role="alert">@mensaje</p>
+            }
+
+            <h2>1. Servicio</h2>
+            <ul class="opciones">
+                @foreach (ServicioReservaDto opcion in datos.Servicios)
+                {
+                    <li>
+                        <button type="button" class="@(opcion == servicio ? "elegido" : null)" disabled="@enviando"
+                                @onclick="() => ElegirServicioAsync(opcion)">
+                            <span>@opcion.Nombre</span>
+                            <span class="meta">@opcion.DuracionMinutos min · @opcion.Precio.ToString("C", Espanol)</span>
+                        </button>
+                    </li>
+                }
+            </ul>
+
+            @if (servicio is not null)
+            {
+                @if (servicio.Profesionales.Count == 0)
+                {
+                    <p class="aviso">El servicio no está disponible.</p>
+                }
+                else
+                {
+                    <h2>2. Profesional</h2>
+                    <select aria-label="Profesional" disabled="@enviando" @onchange="CambiarProfesionalAsync">
+                        <option value="" selected="@(profesionalId is null)">Cualquier profesional</option>
+                        @foreach (ProfesionalReservaDto profesional in servicio.Profesionales)
+                        {
+                            <option value="@profesional.Id" selected="@(profesional.Id == profesionalId)">@profesional.Nombre</option>
+                        }
+                    </select>
+
+                    <h2>3. Fecha</h2>
+                    <input type="date" aria-label="Fecha" disabled="@enviando"
+                           min="@rango.Primera.ToString(FormatoFecha, CultureInfo.InvariantCulture)"
+                           max="@rango.Ultima.ToString(FormatoFecha, CultureInfo.InvariantCulture)"
+                           value="@fecha?.ToString(FormatoFecha, CultureInfo.InvariantCulture)"
+                           @onchange="CambiarFechaAsync" />
+
+                    @if (huecos is not null)
+                    {
+                        <h2>4. Hora</h2>
+                        @if (huecos.Count == 0)
+                        {
+                            <p class="aviso">No hay horas libres ese día. Prueba con otra fecha.</p>
+                        }
+                        else
+                        {
+                            <ul class="huecos">
+                                @foreach (HuecoDisponible opcion in huecos)
+                                {
+                                    <li>
+                                        <button type="button" class="@(opcion == hueco ? "elegido" : null)" disabled="@enviando"
+                                                @onclick="() => ElegirHuecoAsync(opcion)">
+                                            <span>@MotorDisponibilidad.ALocal(opcion.InicioUtc).ToString("HH:mm", Espanol)</span>
+                                            <span class="meta">@opcion.NombreProfesional</span>
+                                        </button>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    }
+                }
+            }
+
+            @if (hueco is not null)
+            {
+                <h2>5. Confirmar</h2>
+                <dl class="resumen">
+                    <dt>Establecimiento</dt><dd>@datos.Nombre</dd>
+                    <dt>Servicio</dt><dd>@servicio!.Nombre</dd>
+                    <dt>Profesional</dt><dd>@hueco.NombreProfesional</dd>
+                    <dt>Cuándo</dt><dd>@Momento(hueco.InicioUtc)</dd>
+                    <dt>Duración</dt><dd>@servicio.DuracionMinutos min</dd>
+                    <dt>Precio</dt><dd>@servicio.Precio.ToString("C", Espanol)</dd>
+                </dl>
+
+                @if (!conSesion)
+                {
+                    <p>Para confirmar la reserva tienes que iniciar sesión o crear una cuenta. Volverás aquí con tu selección.</p>
+                    <button type="button" class="principal" @onclick="IrAIniciarSesion">Continuar</button>
+                }
+                else
+                {
+                    <dl class="resumen">
+                        <dt>A nombre de</dt><dd>@nombreCliente</dd>
+                        @if (telefonoPerfil is not null)
+                        {
+                            <dt>Teléfono</dt><dd>@telefonoPerfil</dd>
+                        }
+                    </dl>
+
+                    @if (telefonoPerfil is null)
+                    {
+                        <label for="telefono">Teléfono de contacto (obligatorio)</label>
+                        <input id="telefono" type="tel" autocomplete="tel" maxlength="@Telefono.LongitudMaxima"
+                               disabled="@enviando" @bind="telefonoNuevo" />
+                    }
+
+                    <label for="observaciones">Observaciones (opcional)</label>
+                    <textarea id="observaciones" maxlength="@Observaciones.LongitudMaxima" disabled="@enviando"
+                              @bind="observaciones"></textarea>
+
+                    <button type="button" class="principal" disabled="@enviando" @onclick="ConfirmarAsync">
+                        @(enviando ? "Confirmando…" : "Confirmar reserva")
+                    </button>
+                }
+            }
+        }
+    </section>
+}
+
+@code {
+    private const string FormatoFecha = "yyyy-MM-dd";
+    private static readonly CultureInfo Espanol = CultureInfo.GetCultureInfo("es-ES");
+
+    private DatosReservaDto? datos;
+    private ServicioReservaDto? servicio;
+    private Guid? profesionalId;
+    private DateOnly? fecha;
+    private (DateOnly Primera, DateOnly Ultima) rango;
+    private IReadOnlyList<HuecoDisponible>? huecos;
+    private HuecoDisponible? hueco;
+    private bool conSesion;
+    private string? nombreCliente;
+    private string? telefonoPerfil;
+    private string? telefonoNuevo;
+    private string? observaciones;
+    private bool enviando;
+    private Guid? reservaCreada;
+    private string? mensaje;
+
+    [Parameter]
+    public string Slug { get; set; } = "";
+
+    [SupplyParameterFromQuery(Name = "service")]
+    private Guid? ServicioElegido { get; set; }
+
+    [SupplyParameterFromQuery(Name = "staff")]
+    private Guid? ProfesionalElegido { get; set; }
+
+    [SupplyParameterFromQuery(Name = "date")]
+    private string? FechaElegida { get; set; }
+
+    [SupplyParameterFromQuery(Name = "start")]
+    private string? InicioElegido { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        datos = await ConsultasReserva.ObtenerDatosReservaAsync(Slug, CancellationToken.None);
+        if (datos is null)
+        {
+            Navegacion.NotFound();
+            return;
+        }
+
+        await RestaurarSeleccionAsync();
+    }
+
+    private async Task RestaurarSeleccionAsync()
+    {
+        ServicioReservaDto? previo = datos!.Servicios.FirstOrDefault(s => s.Id == ServicioElegido);
+        if (previo is null)
+        {
+            return;
+        }
+
+        await ElegirServicioAsync(previo);
+        if (servicio!.Profesionales.Any(p => p.Id == ProfesionalElegido))
+        {
+            profesionalId = ProfesionalElegido;
+        }
+
+        if (!DateOnly.TryParseExact(FechaElegida, FormatoFecha, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateOnly elegida))
+        {
+            return;
+        }
+
+        await CargarHuecosAsync(elegida);
+        if (DateTime.TryParse(InicioElegido, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out DateTime inicio))
+        {
+            HuecoDisponible? libre = huecos?.FirstOrDefault(h => h.InicioUtc == inicio && h.ProfesionalId == ProfesionalElegido);
+            if (libre is not null)
+            {
+                await ElegirHuecoAsync(libre);
+            }
+        }
+    }
+
+    private Task ElegirServicioAsync(ServicioReservaDto elegido)
+    {
+        servicio = elegido;
+        profesionalId = null;
+        fecha = null;
+        huecos = null;
+        hueco = null;
+        mensaje = null;
+        rango = MotorDisponibilidad.FechasReservables(Reloj.AhoraUtc, elegido.AntelacionMaximaDias);
+        return Task.CompletedTask;
+    }
+
+    private async Task CambiarProfesionalAsync(ChangeEventArgs evento)
+    {
+        profesionalId = Guid.TryParse(evento.Value?.ToString(), out Guid id) ? id : null;
+        if (fecha is DateOnly actual)
+        {
+            await CargarHuecosAsync(actual);
+        }
+    }
+
+    private async Task CambiarFechaAsync(ChangeEventArgs evento)
+    {
+        if (DateOnly.TryParseExact(evento.Value?.ToString(), FormatoFecha, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateOnly elegida))
+        {
+            await CargarHuecosAsync(elegida);
+        }
+    }
+
+    private async Task CargarHuecosAsync(DateOnly elegida)
+    {
+        fecha = elegida;
+        hueco = null;
+        Resultado<IReadOnlyList<HuecoDisponible>> resultado = await Consultar.EjecutarAsync(
+            new ConsultarDisponibilidadComando(datos!.EmpresaId, servicio!.Id, profesionalId, elegida), CancellationToken.None);
+        huecos = resultado.Valor ?? [];
+    }
+
+    private async Task ElegirHuecoAsync(HuecoDisponible elegido)
+    {
+        hueco = elegido;
+        mensaje = null;
+        conSesion = ContextoUsuario.TieneUsuario;
+        if (conSesion)
+        {
+            await CargarContactoAsync();
+        }
+    }
+
+    private async Task CargarContactoAsync()
+    {
+        (NombrePersona Nombre, Telefono? Telefono)? contacto = await Cuentas.ObtenerContactoAsync(
+            ContextoUsuario.UsuarioActualId, CancellationToken.None);
+        nombreCliente = contacto?.Nombre.Valor;
+        telefonoPerfil = contacto?.Telefono?.Valor;
+    }
+
+    private void IrAIniciarSesion()
+    {
+        string retorno = $"book/{Uri.EscapeDataString(Slug)}?service={servicio!.Id}&staff={hueco!.ProfesionalId}"
+            + $"&date={fecha!.Value.ToString(FormatoFecha, CultureInfo.InvariantCulture)}"
+            + $"&start={Uri.EscapeDataString(hueco.InicioUtc.ToString("o", CultureInfo.InvariantCulture))}";
+        Navegacion.NavigateTo($"login?returnUrl={Uri.EscapeDataString(retorno)}", forceLoad: true);
+    }
+
+    private async Task ConfirmarAsync()
+    {
+        if (enviando || reservaCreada is not null || hueco is null)
+        {
+            return;
+        }
+
+        enviando = true;
+        mensaje = null;
+        try
+        {
+            if (telefonoPerfil is null)
+            {
+                Resultado guardado = await GuardarTelefono.EjecutarAsync(new EstablecerTelefonoComando(telefonoNuevo), CancellationToken.None);
+                if (!guardado.EsExito && guardado.Codigo != CodigoError.Conflicto)
+                {
+                    mensaje = guardado.Mensaje;
+                    return;
+                }
+
+                await CargarContactoAsync();
+            }
+
+            Resultado<Guid> resultado = await Crear.EjecutarAsync(
+                new CrearReservaComando(datos!.EmpresaId, servicio!.Id, hueco.ProfesionalId, fecha!.Value, hueco.InicioUtc, observaciones),
+                CancellationToken.None);
+            if (resultado.EsExito)
+            {
+                reservaCreada = resultado.Valor;
+            }
+            else if (resultado.Codigo == CodigoError.HuecoYaNoDisponible)
+            {
+                await CargarHuecosAsync(fecha.Value);
+                mensaje = "Esa hora ya no está disponible. Elige otra.";
+            }
+            else
+            {
+                mensaje = resultado.Mensaje;
+            }
+        }
+        finally
+        {
+            enviando = false;
+        }
+    }
+
+    private static string Momento(DateTime inicioUtc)
+    {
+        return MotorDisponibilidad.ALocal(inicioUtc).ToString("dddd d 'de' MMMM, HH:mm", Espanol);
+    }
+}

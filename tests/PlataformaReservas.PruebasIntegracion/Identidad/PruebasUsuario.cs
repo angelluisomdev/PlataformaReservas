@@ -111,4 +111,32 @@ public sealed class PruebasUsuario(BaseDatosFixture baseDatos)
 
         crear.Should().Throw<DominioException>();
     }
+
+    [Fact]
+    public async Task EstablecerTelefono_a_un_usuario_sin_telefono_lo_guarda()
+    {
+        Usuario creado = await CrearAsync(baseDatos, CorreoUnico(), Nombre);
+
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        UserManager<Usuario> usuarios = ambito.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
+        Usuario usuario = (await usuarios.FindByIdAsync(creado.Id.ToString()))!;
+        usuario.EstablecerTelefono(new Telefono(" 611 222 333 "));
+        (await usuarios.UpdateAsync(usuario)).Succeeded.Should().BeTrue();
+
+        await using AsyncServiceScope relectura = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        Usuario releido = (await relectura.ServiceProvider.GetRequiredService<UserManager<Usuario>>()
+            .FindByIdAsync(creado.Id.ToString()))!;
+        releido.Telefono.Should().Be("611 222 333");
+    }
+
+    [Fact]
+    public void EstablecerTelefono_a_un_usuario_que_ya_lo_tiene_lanza_y_no_lo_cambia()
+    {
+        Usuario usuario = Usuario.Crear("ana@prueba.es", new NombrePersona("Ana Garcia"), new Telefono(Telefono), Ahora);
+
+        Action establecer = () => usuario.EstablecerTelefono(new Telefono("611222333"));
+
+        establecer.Should().Throw<DominioException>();
+        usuario.Telefono.Should().Be(Telefono);
+    }
 }

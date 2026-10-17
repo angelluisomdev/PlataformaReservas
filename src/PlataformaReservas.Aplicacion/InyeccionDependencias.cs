@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using PlataformaReservas.Aplicacion.CasosUso.Cuenta;
 using PlataformaReservas.Aplicacion.CasosUso.Empresas;
 using PlataformaReservas.Aplicacion.CasosUso.Horarios;
 using PlataformaReservas.Aplicacion.CasosUso.Profesionales;
@@ -41,6 +42,9 @@ public static class InyeccionDependencias
         servicios.AddScoped<CancelarReservaCliente>();
         servicios.AddScoped<CancelarReservaEmpresa>();
         servicios.AddScoped<CompletarReserva>();
+        servicios.AddScoped<ConsultarDisponibilidad>();
+
+        servicios.AddScoped<EstablecerTelefono>();
 
         servicios.AddScoped<IMotorDisponibilidad, MotorDisponibilidad>();
 

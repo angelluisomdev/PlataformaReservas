@@ -14,6 +14,44 @@ public sealed class PruebasMotorDisponibilidad
     private static readonly DateOnly Miercoles = new(2026, 10, 7);
     private const int DesfaseVerano = 2;
 
+    [Theory]
+    [InlineData("2026-10-05T06:00:00Z", 60, "2026-10-05", "2026-12-04")]
+    [InlineData("2026-10-05T23:30:00Z", 60, "2026-10-06", "2026-12-05")]
+    [InlineData("2026-12-31T22:59:00Z", 1, "2026-12-31", "2027-01-01")]
+    [InlineData("2026-12-31T23:00:00Z", 1, "2027-01-01", "2027-01-02")]
+    [InlineData("2026-10-05T06:00:00Z", 365, "2026-10-05", "2027-10-05")]
+    public void FechasReservables_va_de_hoy_en_madrid_a_hoy_mas_la_ventana(string ahora, int ventana, string primera, string ultima)
+    {
+        DateTime ahoraUtc = DateTime.Parse(ahora, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
+
+        (DateOnly Primera, DateOnly Ultima) fechas = MotorDisponibilidad.FechasReservables(ahoraUtc, ventana);
+
+        fechas.Primera.Should().Be(DateOnly.Parse(primera, CultureInfo.InvariantCulture));
+        fechas.Ultima.Should().Be(DateOnly.Parse(ultima, CultureInfo.InvariantCulture));
+    }
+
+    [Theory]
+    [InlineData("2026-07-15T07:00:00Z", "2026-07-15T09:00:00")]
+    [InlineData("2026-01-15T08:00:00Z", "2026-01-15T09:00:00")]
+    [InlineData("2026-10-25T00:30:00Z", "2026-10-25T02:30:00")]
+    [InlineData("2026-10-25T01:30:00Z", "2026-10-25T02:30:00")]
+    public void ALocal_convierte_el_instante_utc_a_la_hora_de_madrid(string instante, string local)
+    {
+        DateTime instanteUtc = DateTime.Parse(instante, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
+
+        MotorDisponibilidad.ALocal(instanteUtc).Should().Be(DateTime.Parse(local, CultureInfo.InvariantCulture));
+    }
+
+    [Theory]
+    [InlineData(DateTimeKind.Local)]
+    [InlineData(DateTimeKind.Unspecified)]
+    public void ALocal_rechaza_un_instante_que_no_esta_en_utc(DateTimeKind tipo)
+    {
+        Action convertir = () => MotorDisponibilidad.ALocal(DateTime.SpecifyKind(Ahora, tipo));
+
+        convertir.Should().Throw<ArgumentException>();
+    }
+
     [Fact]
     public async Task Caso01_sin_horario_ese_dia_no_hay_huecos()
     {

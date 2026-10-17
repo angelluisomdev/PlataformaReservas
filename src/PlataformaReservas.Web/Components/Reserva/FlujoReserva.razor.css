@@ -1,0 +1,94 @@
+.reserva {
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 1.5rem 1rem;
+}
+
+.reserva h2 {
+    margin-top: 1.5rem;
+    font-size: 1.15rem;
+}
+
+.opciones,
+.huecos {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.opciones button,
+.huecos button {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #c8c8c8;
+    border-radius: 0.375rem;
+    background: #fff;
+    cursor: pointer;
+}
+
+.opciones button.elegido,
+.huecos button.elegido {
+    border-color: #1b6ec2;
+    background: #e7f1fb;
+}
+
+.meta {
+    font-size: 0.85rem;
+    color: #555;
+}
+
+.resumen {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.25rem 1rem;
+}
+
+.resumen dt {
+    font-weight: 600;
+}
+
+.resumen dd {
+    margin: 0;
+}
+
+label {
+    display: block;
+    margin-top: 1rem;
+}
+
+input[type="tel"],
+textarea {
+    width: 100%;
+    max-width: 30rem;
+}
+
+.principal {
+    margin-top: 1rem;
+    padding: 0.6rem 1.25rem;
+    border: none;
+    border-radius: 0.375rem;
+    background: #1b6ec2;
+    color: #fff;
+    cursor: pointer;
+}
+
+.principal:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.aviso {
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    background: #fff4e5;
+}
+
+.confirmada {
+    padding: 1rem;
+    border-radius: 0.375rem;
+    background: #e8f5e9;
+}

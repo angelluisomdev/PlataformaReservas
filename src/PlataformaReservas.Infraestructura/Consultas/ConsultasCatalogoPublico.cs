@@ -10,7 +10,7 @@ using PlataformaReservas.Infraestructura.Persistencia;
 
 namespace PlataformaReservas.Infraestructura.Consultas;
 
-public sealed class ConsultasCatalogoPublico(ContextoDatos db) : IConsultasCatalogoPublico
+public sealed class ConsultasCatalogoPublico(ContextoDatos db) : IConsultasCatalogoPublico, IConsultasReservaPublica
 {
     public async Task<IReadOnlyList<CategoriaDto>> ObtenerCategoriasAsync(CancellationToken ct)
     {
@@ -87,6 +87,29 @@ public sealed class ConsultasCatalogoPublico(ContextoDatos db) : IConsultasCatal
             .Where(p => p.EmpresaId == empresa.Id && p.Activo)
             .ToListAsync(ct);
         return FichaEmpresaDto.ConvertirADto(empresa, categoria.Valor, servicios, profesionales);
+    }
+
+    public async Task<DatosReservaDto?> ObtenerDatosReservaAsync(string slug, CancellationToken ct)
+    {
+        Slug? buscado = SlugExacto(slug);
+        if (buscado is null)
+        {
+            return null;
+        }
+
+        Empresa? empresa = await Visibles().FirstOrDefaultAsync(e => e.Slug == buscado, ct);
+        if (empresa is null)
+        {
+            return null;
+        }
+
+        List<Servicio> servicios = await db.Servicios
+            .Where(s => s.EmpresaId == empresa.Id && s.Activo)
+            .ToListAsync(ct);
+        List<Profesional> profesionales = await db.Profesionales
+            .Where(p => p.EmpresaId == empresa.Id && p.Activo)
+            .ToListAsync(ct);
+        return DatosReservaDto.ConvertirADto(empresa, servicios, profesionales);
     }
 
     private IQueryable<Empresa> Visibles()

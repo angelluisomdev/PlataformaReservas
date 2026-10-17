@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Aplicacion.Compartido;
@@ -111,6 +112,35 @@ public sealed class PruebasServicioCuentas(BaseDatosFixture baseDatos)
     public async Task El_contacto_de_un_usuario_inexistente_no_se_encuentra()
     {
         (await ObtenerContactoAsync(Guid.CreateVersion7())).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Establecer_el_telefono_lo_guarda_en_el_perfil_y_cifrado_en_la_tabla()
+    {
+        Usuario usuario = await CrearAsync(baseDatos, CorreoUnico());
+
+        await using (AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope())
+        {
+            await ambito.ServiceProvider.GetRequiredService<IServicioCuentas>()
+                .EstablecerTelefonoAsync(usuario.Id, new Telefono("644 555 666"), CancellationToken.None);
+        }
+
+        (await ObtenerContactoAsync(usuario.Id))!.Value.Telefono.Should().Be(new Telefono("644 555 666"));
+        string? enTabla = await EscenarioEmpresa.LeerAsync(baseDatos, db => db.Database
+            .SqlQuery<string?>($"""SELECT telefono AS "Value" FROM asp_net_users WHERE id = {usuario.Id}""")
+            .SingleAsync());
+        enTabla.Should().NotBeNullOrEmpty().And.NotContain("644 555 666");
+    }
+
+    [Fact]
+    public async Task Establecer_el_telefono_de_un_usuario_inexistente_lanza()
+    {
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+
+        Func<Task> establecer = () => ambito.ServiceProvider.GetRequiredService<IServicioCuentas>()
+            .EstablecerTelefonoAsync(Guid.CreateVersion7(), new Telefono("644555666"), CancellationToken.None);
+
+        await establecer.Should().ThrowAsync<InvalidOperationException>();
     }
 
     private async Task<(NombrePersona Nombre, Telefono? Telefono)?> ObtenerContactoAsync(Guid usuarioId)

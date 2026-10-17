@@ -87,13 +87,28 @@ public sealed class MotorDisponibilidad(IConsultasDisponibilidad consultas, IRel
         }
     }
 
-    private static bool SuperaLaVentana(DateOnly fecha, int ventanaDias, DateTime ahoraUtc)
+    public static (DateOnly Primera, DateOnly Ultima) FechasReservables(DateTime ahoraUtc, int antelacionMaximaDias)
     {
-        DateTime? comienzo = ALocalUtc(fecha.AddDays(-ventanaDias), TimeSpan.Zero);
-        return comienzo is not null && ahoraUtc < comienzo;
+        DateOnly hoy = DateOnly.FromDateTime(ALocal(ahoraUtc));
+        return (hoy, hoy.AddDays(antelacionMaximaDias));
     }
 
-    // Unico punto de conversion local -> UTC (RN-102). Una hora local inexistente no se ofrece (fase 10, duda 2).
+    public static DateTime ALocal(DateTime instanteUtc)
+    {
+        if (instanteUtc.Kind != DateTimeKind.Utc)
+        {
+            throw new ArgumentException("El instante debe estar en UTC.", nameof(instanteUtc));
+        }
+
+        return TimeZoneInfo.ConvertTimeFromUtc(instanteUtc, ZonaHoraria);
+    }
+
+    private static bool SuperaLaVentana(DateOnly fecha, int ventanaDias, DateTime ahoraUtc)
+    {
+        return fecha > FechasReservables(ahoraUtc, ventanaDias).Ultima;
+    }
+
+    // Unico punto de conversion local <-> UTC (RN-102), junto con ALocal. Una hora local inexistente no se ofrece (fase 10, duda 2).
     private static DateTime? ALocalUtc(DateOnly fecha, TimeSpan hora)
     {
         DateTime local = fecha.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified).Add(hora);

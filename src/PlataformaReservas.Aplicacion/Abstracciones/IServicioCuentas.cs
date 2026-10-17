@@ -11,4 +11,6 @@ public interface IServicioCuentas
     Task RenovarSelloMiembrosAsync(Guid empresaId, CancellationToken ct);
 
     Task<(NombrePersona Nombre, Telefono? Telefono)?> ObtenerContactoAsync(Guid usuarioId, CancellationToken ct);
+
+    Task EstablecerTelefonoAsync(Guid usuarioId, Telefono telefono, CancellationToken ct);
 }

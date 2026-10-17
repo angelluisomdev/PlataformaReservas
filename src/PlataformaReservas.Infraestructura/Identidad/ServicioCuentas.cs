@@ -71,4 +71,18 @@ public sealed class ServicioCuentas(UserManager<Usuario> usuarios, ContextoDatos
 
         return (new NombrePersona(usuario.NombreCompleto), usuario.Telefono is null ? null : new Telefono(usuario.Telefono));
     }
+
+    public async Task EstablecerTelefonoAsync(Guid usuarioId, Telefono telefono, CancellationToken ct)
+    {
+        Usuario usuario = await usuarios.FindByIdAsync(usuarioId.ToString())
+            ?? throw new InvalidOperationException("El usuario de la sesion no existe.");
+
+        usuario.EstablecerTelefono(telefono);
+        IdentityResult resultado = await usuarios.UpdateAsync(usuario);
+        if (!resultado.Succeeded)
+        {
+            throw new InvalidOperationException(
+                $"No se pudo guardar el telefono: {string.Join(", ", resultado.Errors.Select(e => e.Code))}");
+        }
+    }
 }

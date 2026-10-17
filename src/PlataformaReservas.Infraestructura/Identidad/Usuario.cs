@@ -46,4 +46,14 @@ public sealed class Usuario : IdentityUser<Guid>
             Activo = true,
         };
     }
+
+    public void EstablecerTelefono(TelefonoValidado telefono)
+    {
+        if (Telefono is not null)
+        {
+            throw new DominioException("El usuario ya tiene telefono.");
+        }
+
+        Telefono = telefono.Valor;
+    }
 }

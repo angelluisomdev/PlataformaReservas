@@ -269,7 +269,81 @@ public sealed class PruebasConsultasCatalogoPublico(BaseDatosFixture baseDatos)
         (await BuscarAsync(ciudad)).Elementos.Should().ContainSingle();
     }
 
+    [Fact]
+    public async Task Los_datos_para_reservar_solo_llevan_servicios_y_profesionales_activos_y_asociados()
+    {
+        Categoria categoria = await EscenarioEmpresa.CrearCategoriaAsync(baseDatos);
+        Empresa empresa = await CrearPublicableAsync(categoria.Id, CiudadUnica());
+        Servicio inactivo = DominioPrueba.Servicio(empresa.Id);
+        inactivo.Desactivar(DominioPrueba.Ahora);
+        Profesional profesionalInactivo = EscenarioReserva.ProfesionalQuePresta(empresa.Id, inactivo.Id);
+        profesionalInactivo.Desactivar();
+        Profesional sinAsociar = DominioPrueba.Profesional(empresa.Id);
+        await EscenarioEmpresa.GuardarAsync(baseDatos, inactivo, profesionalInactivo, sinAsociar);
+
+        DatosReservaDto? datos = await DatosReservaAsync(empresa.Slug.Valor);
+
+        datos.Should().NotBeNull();
+        datos!.EmpresaId.Should().Be(empresa.Id);
+        datos.Slug.Should().Be(empresa.Slug.Valor);
+        Servicio activo = await EscenarioEmpresa.LeerAsync(
+            baseDatos, db => db.Servicios.SingleAsync(s => s.EmpresaId == empresa.Id && s.Activo));
+        datos.Servicios.Should().ContainSingle().Which.Id.Should().Be(activo.Id);
+        datos.Servicios[0].Profesionales.Should().ContainSingle().Which.Id.Should().NotBe(sinAsociar.Id);
+    }
+
+    [Fact]
+    public async Task Los_datos_para_reservar_de_una_empresa_inactiva_o_no_publicable_son_nulos()
+    {
+        Categoria categoria = await EscenarioEmpresa.CrearCategoriaAsync(baseDatos);
+        Empresa inactiva = await CrearPublicableAsync(categoria.Id, CiudadUnica());
+        await EjecutarSqlAsync($"UPDATE empresas SET activa = false WHERE id = {inactiva.Id}");
+        Empresa noPublicable = DominioPrueba.Empresa(DominioPrueba.Sufijo(), categoria.Id);
+        Servicio sinProfesional = DominioPrueba.Servicio(noPublicable.Id);
+        await EscenarioEmpresa.GuardarAsync(baseDatos, noPublicable, sinProfesional);
+
+        (await DatosReservaAsync(inactiva.Slug.Valor)).Should().BeNull();
+        (await DatosReservaAsync(noPublicable.Slug.Valor)).Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("no-existe-este-slug")]
+    [InlineData("Mal Formado")]
+    [InlineData("")]
+    public async Task Los_datos_para_reservar_de_un_slug_inexistente_o_mal_formado_son_nulos(string slug)
+    {
+        (await DatosReservaAsync(slug)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task La_ventana_del_servicio_sobrescribe_la_de_la_empresa_y_sin_ella_se_hereda()
+    {
+        Categoria categoria = await EscenarioEmpresa.CrearCategoriaAsync(baseDatos);
+        Empresa empresa = DominioPrueba.Empresa(DominioPrueba.Sufijo(), categoria.Id);
+        empresa.CambiarPoliticas(new PoliticasReserva(15, 60, 30), DominioPrueba.Ahora);
+        Servicio heredado = Servicio.Crear(
+            Guid.CreateVersion7(), empresa.Id, new NombreServicio("Afeitado"), new Duracion(30), new Precio(10m), DominioPrueba.Ahora);
+        Servicio propio = Servicio.Crear(
+            Guid.CreateVersion7(), empresa.Id, new NombreServicio("Barba"), new Duracion(30), new Precio(10m), DominioPrueba.Ahora);
+        propio.EstablecerPoliticas(null, null, new AntelacionMaximaReserva(7), DominioPrueba.Ahora);
+        Profesional profesional = EscenarioReserva.ProfesionalQuePresta(empresa.Id, heredado.Id);
+        profesional.AsociarServicio(propio.Id);
+        await EscenarioEmpresa.GuardarAsync(baseDatos, empresa, heredado, propio, profesional);
+
+        DatosReservaDto datos = (await DatosReservaAsync(empresa.Slug.Valor))!;
+
+        datos.Servicios.Single(s => s.Id == heredado.Id).AntelacionMaximaDias.Should().Be(30);
+        datos.Servicios.Single(s => s.Id == propio.Id).AntelacionMaximaDias.Should().Be(7);
+    }
+
     private static string CiudadUnica() => $"Ciudad {DominioPrueba.Sufijo()}";
+
+    private async Task<DatosReservaDto?> DatosReservaAsync(string slug)
+    {
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        return await ambito.ServiceProvider.GetRequiredService<IConsultasReservaPublica>()
+            .ObtenerDatosReservaAsync(slug, CancellationToken.None);
+    }
 
     private async Task<Empresa> CrearPublicableAsync(Guid categoriaId, string ciudad, string nombre = "Barberia Centro")
     {
