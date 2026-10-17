@@ -1,0 +1,105 @@
+@page "/"
+@using PlataformaReservas.Aplicacion.Abstracciones
+@using PlataformaReservas.Aplicacion.Dtos.Categorias
+
+@inject IConsultasCatalogoPublico Catalogo
+
+<PageTitle>Reserva tu cita en establecimientos de tu ciudad</PageTitle>
+
+<section class="hero">
+    <h1>Reserva tu cita en establecimientos de tu ciudad</h1>
+    <p class="propuesta">
+        Peluquerías, centros de estética, fisioterapeutas, academias y mucho más.
+        Consulta la disponibilidad real y reserva en un minuto, sin llamadas ni esperas.
+    </p>
+
+    <form class="buscador" method="get" action="businesses">
+        <div class="campo">
+            <label for="ciudad">Ciudad</label>
+            <input id="ciudad" name="city" type="text" placeholder="Por ejemplo, Málaga" />
+        </div>
+        <div class="campo">
+            <label for="categoria">Categoría</label>
+            <select id="categoria" name="category">
+                <option value="">Todas</option>
+                @foreach (CategoriaDto categoria in categorias)
+                {
+                    <option value="@categoria.Slug">@categoria.Nombre</option>
+                }
+            </select>
+        </div>
+        <button type="submit">Buscar</button>
+    </form>
+</section>
+
+<section class="como-funciona">
+    <h2>Cómo funciona</h2>
+    <ol class="pasos">
+        <li>
+            <h3>Busca</h3>
+            <p>Indica tu ciudad y, si quieres, el tipo de servicio que necesitas.</p>
+        </li>
+        <li>
+            <h3>Elige</h3>
+            <p>Entra en la ficha del establecimiento y escoge el servicio, el profesional y la hora que te vengan bien.</p>
+        </li>
+        <li>
+            <h3>Reserva</h3>
+            <p>Confirma la cita con tu cuenta. Podrás consultarla o cancelarla desde tu área personal.</p>
+        </li>
+    </ol>
+</section>
+
+<section class="categorias">
+    <h2>Categorías</h2>
+    <ul class="rejilla">
+        @foreach (CategoriaDto categoria in categorias)
+        {
+            <li><a href="businesses?category=@categoria.Slug">@categoria.Nombre</a></li>
+        }
+    </ul>
+</section>
+
+<section class="preguntas">
+    <h2>Preguntas frecuentes</h2>
+    <dl>
+        <dt>¿Tengo que pagar por reservar?</dt>
+        <dd>No. La plataforma no gestiona pagos: solo reserva la cita.</dd>
+
+        <dt>¿Necesito una cuenta?</dt>
+        <dd>Puedes buscar establecimientos y ver su disponibilidad sin registrarte. Para confirmar una reserva sí necesitas una cuenta.</dd>
+
+        <dt>¿Puedo cancelar una cita?</dt>
+        <dd>Sí, desde tu área personal, siempre que la cita no haya empezado.</dd>
+
+        <dt>Tengo un negocio, ¿cómo aparezco en la plataforma?</dt>
+        <dd>Registra tu establecimiento, añade tus servicios, profesionales y horarios, y aparecerás en las búsquedas.</dd>
+    </dl>
+</section>
+
+<section class="llamadas">
+    <div class="llamada">
+        <h2>¿Buscas una cita?</h2>
+        <p>Crea tu cuenta y reserva en los establecimientos de tu ciudad.</p>
+        <a class="boton" href="register">Crear cuenta</a>
+    </div>
+    <div class="llamada">
+        <h2>¿Tienes un establecimiento?</h2>
+        <p>Publica tu agenda y recibe reservas sin atender el teléfono.</p>
+        <a class="boton" href="for-business/register">Registrar mi negocio</a>
+    </div>
+</section>
+
+<footer class="pie">
+    <p>Contacto: para cualquier consulta sobre una cita, dirígete al establecimiento; sus datos de contacto están en su ficha.</p>
+    <p>PlataformaReservas</p>
+</footer>
+
+@code {
+    private IReadOnlyList<CategoriaDto> categorias = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        categorias = await Catalogo.ObtenerCategoriasAsync(CancellationToken.None);
+    }
+}

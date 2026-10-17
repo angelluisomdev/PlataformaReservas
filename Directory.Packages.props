@@ -1,6 +1,7 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>
     <!-- Aplicacion -->
@@ -14,6 +15,8 @@
     <PackageVersion Include="EFCore.NamingConventions" Version="10.0.1" />
     <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.12" />
     <PackageVersion Include="MailKit" Version="4.18.0" />
+    <!-- Transitiva de MimeKit, fijada por CVE-2026-70162 y CVE-2026-84008 (E-2). Quitar cuando MimeKit dependa de >= 10.0.13 -->
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
 
     <!-- Web -->
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
