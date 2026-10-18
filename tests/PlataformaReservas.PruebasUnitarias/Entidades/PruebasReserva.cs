@@ -339,6 +339,30 @@ public sealed class PruebasReserva
         Reserva.EsCancelablePorCliente(EstadoReserva.Confirmada, franja, medianoche).Should().BeFalse();
     }
 
+    [Theory]
+    [InlineData(EstadoReserva.Confirmada, -1, true)]
+    [InlineData(EstadoReserva.Confirmada, 0, false)]
+    [InlineData(EstadoReserva.Confirmada, 1, false)]
+    [InlineData(EstadoReserva.Cancelada, -1, false)]
+    [InlineData(EstadoReserva.Completada, -1, false)]
+    public void EsCompletable_solo_una_confirmada_que_termino_antes_de_ahora(
+        EstadoReserva estado, int ticksHastaFin, bool completable)
+    {
+        DateTime fin = Ahora.AddTicks(ticksHastaFin);
+
+        Reserva.EsCompletable(estado, new FranjaHoraria(fin.AddMinutes(-30), fin), Ahora).Should().Be(completable);
+    }
+
+    [Fact]
+    public void EsCompletable_cruza_el_cambio_de_dia_en_utc()
+    {
+        DateTime medianoche = new(2026, 10, 2, 0, 0, 0, DateTimeKind.Utc);
+        FranjaHoraria franja = new(medianoche.AddMinutes(-30), medianoche);
+
+        Reserva.EsCompletable(EstadoReserva.Confirmada, franja, medianoche).Should().BeFalse();
+        Reserva.EsCompletable(EstadoReserva.Confirmada, franja, medianoche.AddTicks(1)).Should().BeTrue();
+    }
+
     [Fact]
     public void Completar_completa_una_confirmada_ya_terminada()
     {

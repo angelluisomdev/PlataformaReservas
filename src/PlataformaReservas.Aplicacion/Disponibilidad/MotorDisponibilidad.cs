@@ -108,6 +108,11 @@ public sealed class MotorDisponibilidad(IConsultasDisponibilidad consultas, IRel
         return fecha > FechasReservables(ahoraUtc, ventanaDias).Ultima;
     }
 
+    public static (DateTime DesdeUtc, DateTime HastaUtc) DiaLocalEnUtc(DateOnly fecha)
+    {
+        return (ALocalUtc(fecha, TimeSpan.Zero)!.Value, ALocalUtc(fecha.AddDays(1), TimeSpan.Zero)!.Value);
+    }
+
     // Unico punto de conversion local <-> UTC (RN-102), junto con ALocal. Una hora local inexistente no se ofrece (fase 10, duda 2).
     private static DateTime? ALocalUtc(DateOnly fecha, TimeSpan hora)
     {

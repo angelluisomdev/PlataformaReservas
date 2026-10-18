@@ -135,18 +135,19 @@ public sealed class Reserva : EntidadBase
     {
         Validacion.InstanteUtc(ahoraUtc, "La fecha en que se completa la reserva");
 
-        if (Estado != EstadoReserva.Confirmada)
+        if (!EsCompletable(Estado, Franja, ahoraUtc))
         {
-            throw new DominioException("Solo se completan reservas confirmadas.");
-        }
-
-        if (Franja.FinUtc >= ahoraUtc)
-        {
-            throw new DominioException("La reserva aun no ha terminado.");
+            throw new DominioException("Solo se completan reservas confirmadas que ya han terminado.");
         }
 
         Estado = EstadoReserva.Completada;
         FechaModificacion = ahoraUtc;
+    }
+
+    public static bool EsCompletable(EstadoReserva estado, FranjaHoraria franja, DateTime ahoraUtc)
+    {
+        ArgumentNullException.ThrowIfNull(franja);
+        return estado == EstadoReserva.Confirmada && franja.FinUtc < ahoraUtc;
     }
 
     public void CancelarPorEmpresa(DateTime ahoraUtc, OrigenCancelacion origen)

@@ -37,6 +37,24 @@ public sealed class PruebasFichaEmpresaDto
             .Should().Equal(new IntervaloHorario(new TimeOnly(9, 0), new TimeOnly(18, 0)));
     }
 
+    [Fact]
+    public void Ordena_en_espanol_los_nombres_que_empiezan_por_tilde()
+    {
+        Empresa empresa = Empresa.Crear(
+            Guid.CreateVersion7(), new NombreEmpresa("Barberia Centro"), Slug.Desde("barberia-centro"), Guid.CreateVersion7(),
+            null, new Email("contacto@prueba.es"), new Telefono("600000000"),
+            new Direccion("Calle Mayor 1"), new CodigoPostal("29001"), new Ciudad("Málaga"), Ahora);
+        Servicio corte = Servicio.Crear(Guid.CreateVersion7(), empresa.Id, new NombreServicio("Corte"), new Duracion(30), new Precio(12m), Ahora);
+        Servicio acido = Servicio.Crear(Guid.CreateVersion7(), empresa.Id, new NombreServicio("Ácido hialurónico"), new Duracion(30), new Precio(40m), Ahora);
+        Profesional zoe = ConHorario("Zoe Ruiz", empresa.Id, 9, 14);
+        Profesional alvaro = ConHorario("Álvaro Diez", empresa.Id, 9, 14);
+
+        FichaEmpresaDto ficha = FichaEmpresaDto.ConvertirADto(empresa, "Barbería", [corte, acido], [zoe, alvaro]);
+
+        ficha.Servicios.Select(s => s.Nombre).Should().Equal("Ácido hialurónico", "Corte");
+        ficha.Profesionales.Select(p => p.Nombre).Should().Equal("Álvaro Diez", "Zoe Ruiz");
+    }
+
     private static Profesional ConHorario(string nombre, Guid empresaId, int inicio, int fin)
     {
         Profesional profesional = Profesional.Crear(Guid.CreateVersion7(), empresaId, new NombrePersona(nombre), Ahora);

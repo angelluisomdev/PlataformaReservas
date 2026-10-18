@@ -274,9 +274,14 @@ public sealed class PruebasConsultasCatalogoPublico(BaseDatosFixture baseDatos)
     {
         Categoria categoria = await EscenarioEmpresa.CrearCategoriaAsync(baseDatos);
         Empresa empresa = await CrearPublicableAsync(categoria.Id, CiudadUnica());
+        Servicio activo = await EscenarioEmpresa.LeerAsync(
+            baseDatos, db => db.Servicios.SingleAsync(s => s.EmpresaId == empresa.Id && s.Activo));
+        Profesional publicado = await EscenarioEmpresa.LeerAsync(
+            baseDatos, db => db.Profesionales.SingleAsync(p => p.EmpresaId == empresa.Id && p.Activo));
         Servicio inactivo = DominioPrueba.Servicio(empresa.Id);
         inactivo.Desactivar(DominioPrueba.Ahora);
         Profesional profesionalInactivo = EscenarioReserva.ProfesionalQuePresta(empresa.Id, inactivo.Id);
+        profesionalInactivo.AsociarServicio(activo.Id);
         profesionalInactivo.Desactivar();
         Profesional sinAsociar = DominioPrueba.Profesional(empresa.Id);
         await EscenarioEmpresa.GuardarAsync(baseDatos, inactivo, profesionalInactivo, sinAsociar);
@@ -286,10 +291,8 @@ public sealed class PruebasConsultasCatalogoPublico(BaseDatosFixture baseDatos)
         datos.Should().NotBeNull();
         datos!.EmpresaId.Should().Be(empresa.Id);
         datos.Slug.Should().Be(empresa.Slug.Valor);
-        Servicio activo = await EscenarioEmpresa.LeerAsync(
-            baseDatos, db => db.Servicios.SingleAsync(s => s.EmpresaId == empresa.Id && s.Activo));
         datos.Servicios.Should().ContainSingle().Which.Id.Should().Be(activo.Id);
-        datos.Servicios[0].Profesionales.Should().ContainSingle().Which.Id.Should().NotBe(sinAsociar.Id);
+        datos.Servicios[0].Profesionales.Should().ContainSingle().Which.Id.Should().Be(publicado.Id);
     }
 
     [Fact]

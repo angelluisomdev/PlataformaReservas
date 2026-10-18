@@ -1,0 +1,205 @@
+@page "/app/bookings"
+@rendermode InteractiveServer
+
+@inject ListarProfesionales ListarProfesionales
+@inject ConsultarReservasEmpresa Consultar
+@inject CancelarReservaEmpresa Cancelar
+@inject CompletarReserva Completar
+@inject IRelojSistema Reloj
+
+<PageTitle>Reservas</PageTitle>
+
+<section class="reservas-empresa">
+    <p><a href="app">← Panel</a></p>
+    <h1>Reservas</h1>
+
+    <div class="filtros">
+        <label>
+            Fecha
+            <input type="date" value="@fecha.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" disabled="@enviando"
+                   @onchange="CambiarFechaAsync" />
+        </label>
+        <label>
+            Profesional
+            <select disabled="@enviando" @onchange="CambiarProfesionalAsync">
+                <option value="">Todos</option>
+                @foreach (ProfesionalDto profesional in profesionales)
+                {
+                    <option value="@profesional.Id" selected="@(profesional.Id == profesionalId)">@profesional.NombreCompleto</option>
+                }
+            </select>
+        </label>
+        <label>
+            Estado
+            <select disabled="@enviando" @onchange="CambiarEstadoAsync">
+                <option value="">Todos</option>
+                @foreach (EstadoReserva opcion in Enum.GetValues<EstadoReserva>())
+                {
+                    <option value="@opcion" selected="@(opcion == estado)">@NombreEstado(opcion)</option>
+                }
+            </select>
+        </label>
+    </div>
+
+    @if (mensaje is not null)
+    {
+        <p class="aviso" role="status">@mensaje</p>
+    }
+
+    @if (reservas is null)
+    {
+        <p>Cargando…</p>
+    }
+    else if (reservas.Count == 0)
+    {
+        <p>No hay reservas ese día con estos filtros.</p>
+    }
+    else
+    {
+        <ul class="lista">
+            @foreach (ReservaEmpresaDto reserva in reservas)
+            {
+                <li>
+                    <strong>@Hora(reserva.InicioUtc)–@Hora(reserva.FinUtc)</strong>
+                    <span>@reserva.Servicio con @reserva.Profesional</span>
+                    <span>@reserva.NombreCliente · <a href="tel:@reserva.TelefonoCliente">@reserva.TelefonoCliente</a></span>
+                    @if (reserva.Observaciones is not null)
+                    {
+                        <span class="observaciones">@reserva.Observaciones</span>
+                    }
+                    <span class="estado">@NombreEstado(reserva.Estado)</span>
+
+                    <div class="acciones">
+                        @if (reserva.Cancelable && confirmandoCancelacion == reserva.Id)
+                        {
+                            <span>¿Cancelar esta reserva? Se avisará al cliente.</span>
+                            <button type="button" class="peligro" disabled="@enviando" @onclick="() => CancelarAsync(reserva.Id)">Sí, cancelar</button>
+                            <button type="button" disabled="@enviando" @onclick="() => confirmandoCancelacion = null">No</button>
+                        }
+                        else
+                        {
+                            @if (reserva.Completable)
+                            {
+                                <button type="button" disabled="@enviando" @onclick="() => CompletarAsync(reserva.Id)">Marcar como completada</button>
+                            }
+                            @if (reserva.Cancelable)
+                            {
+                                <button type="button" class="peligro" disabled="@enviando" @onclick="() => confirmandoCancelacion = reserva.Id">Cancelar</button>
+                            }
+                        }
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+</section>
+
+@code {
+    private static readonly CultureInfo Espanol = CultureInfo.GetCultureInfo("es-ES");
+
+    private IReadOnlyList<ProfesionalDto> profesionales = [];
+    private IReadOnlyList<ReservaEmpresaDto>? reservas;
+    private DateOnly fecha;
+    private Guid? profesionalId;
+    private EstadoReserva? estado;
+    private Guid? confirmandoCancelacion;
+    private bool enviando;
+    private string? mensaje;
+
+    protected override async Task OnInitializedAsync()
+    {
+        fecha = DateOnly.FromDateTime(MotorDisponibilidad.ALocal(Reloj.AhoraUtc));
+        Resultado<IReadOnlyList<ProfesionalDto>> lista = await ListarProfesionales.EjecutarAsync(CancellationToken.None);
+        profesionales = lista.Valor ?? [];
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        Resultado<IReadOnlyList<ReservaEmpresaDto>> resultado = await Consultar.EjecutarAsync(
+            new ConsultarReservasEmpresaComando(fecha, profesionalId, estado), CancellationToken.None);
+        if (resultado.EsExito)
+        {
+            reservas = resultado.Valor;
+        }
+        else
+        {
+            mensaje = resultado.Mensaje;
+        }
+    }
+
+    private async Task CambiarFechaAsync(ChangeEventArgs e)
+    {
+        if (DateOnly.TryParseExact(e.Value?.ToString(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateOnly elegida))
+        {
+            fecha = elegida;
+            await RecargarAsync();
+        }
+    }
+
+    private async Task CambiarProfesionalAsync(ChangeEventArgs e)
+    {
+        profesionalId = Guid.TryParse(e.Value?.ToString(), out Guid id) ? id : null;
+        await RecargarAsync();
+    }
+
+    private async Task CambiarEstadoAsync(ChangeEventArgs e)
+    {
+        estado = Enum.TryParse(e.Value?.ToString(), out EstadoReserva elegido) ? elegido : null;
+        await RecargarAsync();
+    }
+
+    private async Task RecargarAsync()
+    {
+        mensaje = null;
+        confirmandoCancelacion = null;
+        await CargarAsync();
+    }
+
+    private async Task CancelarAsync(Guid reservaId)
+    {
+        await EjecutarAccionAsync(
+            () => Cancelar.EjecutarAsync(new CancelarReservaEmpresaComando(reservaId), CancellationToken.None),
+            "La reserva se ha cancelado.");
+    }
+
+    private async Task CompletarAsync(Guid reservaId)
+    {
+        await EjecutarAccionAsync(
+            () => Completar.EjecutarAsync(new CompletarReservaComando(reservaId), CancellationToken.None),
+            "La reserva se ha marcado como completada.");
+    }
+
+    private async Task EjecutarAccionAsync(Func<Task<Resultado>> accion, string exito)
+    {
+        if (enviando)
+        {
+            return;
+        }
+
+        enviando = true;
+        try
+        {
+            Resultado resultado = await accion();
+            confirmandoCancelacion = null;
+            await CargarAsync();
+            mensaje = resultado.EsExito ? exito : resultado.Mensaje;
+        }
+        finally
+        {
+            enviando = false;
+        }
+    }
+
+    private static string Hora(DateTime instanteUtc)
+    {
+        return MotorDisponibilidad.ALocal(instanteUtc).ToString("HH:mm", Espanol);
+    }
+
+    private static string NombreEstado(EstadoReserva estado) => estado switch
+    {
+        EstadoReserva.Confirmada => "Confirmada",
+        EstadoReserva.Cancelada => "Cancelada",
+        _ => "Completada",
+    };
+}

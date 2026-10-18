@@ -606,6 +606,21 @@ public sealed class PruebasMotorDisponibilidad
         huecos.Should().BeEmpty();
     }
 
+    [Theory]
+    [InlineData("2026-01-15", "2026-01-14T23:00:00", "2026-01-15T23:00:00")]
+    [InlineData("2026-07-15", "2026-07-14T22:00:00", "2026-07-15T22:00:00")]
+    [InlineData("2026-03-29", "2026-03-28T23:00:00", "2026-03-29T22:00:00")]
+    [InlineData("2026-10-25", "2026-10-24T22:00:00", "2026-10-25T23:00:00")]
+    public void DiaLocalEnUtc_da_el_rango_semiabierto_del_dia_en_madrid(string fecha, string desde, string hasta)
+    {
+        (DateTime desdeUtc, DateTime hastaUtc) = MotorDisponibilidad.DiaLocalEnUtc(DateOnly.Parse(fecha, CultureInfo.InvariantCulture));
+
+        desdeUtc.Should().Be(DateTime.SpecifyKind(DateTime.Parse(desde, CultureInfo.InvariantCulture), DateTimeKind.Utc));
+        hastaUtc.Should().Be(DateTime.SpecifyKind(DateTime.Parse(hasta, CultureInfo.InvariantCulture), DateTimeKind.Utc));
+        desdeUtc.Kind.Should().Be(DateTimeKind.Utc);
+        hastaUtc.Kind.Should().Be(DateTimeKind.Utc);
+    }
+
     private static Empresa NuevaEmpresa()
     {
         return Empresa.Crear(

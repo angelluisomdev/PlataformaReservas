@@ -74,12 +74,24 @@ public sealed class PruebasInyeccionDependencias(BaseDatosFixture baseDatos)
         [
             typeof(IContextoEmpresa), typeof(IRepositorioEmpresas), typeof(IRepositorioServicios),
             typeof(IRepositorioProfesionales), typeof(IRepositorioReservas), typeof(IRepositorioMiembros),
+            typeof(IConsultasReservasEmpresa),
         ];
         ServiceCollection servicios = new();
         servicios.AgregarInfraestructura(new ConfigurationBuilder().Build());
 
         servicios.Where(d => tipos.Contains(d.ServiceType))
             .Should().HaveCount(tipos.Length)
+            .And.OnlyContain(d => d.Lifetime == ServiceLifetime.Scoped);
+    }
+
+    [Fact]
+    public void Los_casos_de_uso_del_panel_y_del_listado_de_la_empresa_son_scoped()
+    {
+        ServiceCollection servicios = new();
+        servicios.AgregarAplicacion();
+
+        servicios.Where(d => d.ServiceType == typeof(ConsultarReservasEmpresa) || d.ServiceType == typeof(ConsultarPanelEmpresa))
+            .Should().HaveCount(2)
             .And.OnlyContain(d => d.Lifetime == ServiceLifetime.Scoped);
     }
 

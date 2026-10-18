@@ -114,10 +114,7 @@ public sealed class ConsultasCatalogoPublico(ContextoDatos db) : IConsultasCatal
 
     private IQueryable<Empresa> Visibles()
     {
-        return db.Empresas.Where(e => e.Activa && db.Servicios.Any(s =>
-            s.EmpresaId == e.Id && s.Activo && db.Profesionales.Any(p =>
-                p.EmpresaId == e.Id && p.Activo && p.Horarios.Any()
-                && EF.Property<List<ProfesionalServicio>>(p, "_servicios").Any(ps => ps.ServicioId == s.Id))));
+        return db.Empresas.Where(e => e.Activa).Where(CondicionPublicable.Aplica(db));
     }
 
     private static Slug? SlugExacto(string texto)

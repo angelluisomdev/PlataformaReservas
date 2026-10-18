@@ -45,6 +45,7 @@ public static class InyeccionDependencias
         servicios.AddScoped<IConsultasCatalogoPublico, ConsultasCatalogoPublico>();
         servicios.AddScoped<IConsultasReservaPublica, ConsultasCatalogoPublico>();
         servicios.AddScoped<IConsultasReservasCliente, ConsultasReservasCliente>();
+        servicios.AddScoped<IConsultasReservasEmpresa, ConsultasReservasEmpresa>();
         servicios.AddScoped<IConsultasDisponibilidad, ConsultasDisponibilidad>();
         servicios.AddScoped<IContextoEmpresa, ContextoEmpresa>();
         servicios.AddScoped<IContextoUsuario, ContextoUsuario>();

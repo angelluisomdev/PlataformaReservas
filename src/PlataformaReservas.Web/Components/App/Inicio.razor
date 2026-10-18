@@ -1,15 +1,103 @@
 @page "/app"
 @rendermode InteractiveServer
 
+@inject ConsultarPanelEmpresa Consultar
+
 <PageTitle>Mi establecimiento</PageTitle>
 
 <h1>Mi establecimiento</h1>
 
-<p>Desde aquí gestionas tu establecimiento.</p>
+@if (panel is null)
+{
+    <p>Cargando…</p>
+}
+else
+{
+    @if (!panel.Activa)
+    {
+        <div class="aviso" role="status">
+            <strong>El establecimiento está dado de baja.</strong>
+            No aparece en el catálogo. Puedes consultar su histórico y reactivarlo desde
+            <a href="app/settings">la configuración</a>.
+        </div>
+    }
+    else if (!panel.EsPublicable)
+    {
+        <div class="aviso" role="status">
+            <strong>Tu establecimiento aún no es visible.</strong>
+            Para publicarlo falta:
+            <ul>
+                @if (!panel.TieneServicioActivo)
+                {
+                    <li><a href="app/services">Crear un servicio</a></li>
+                }
+                @if (!panel.TieneProfesionalActivo)
+                {
+                    <li><a href="app/staff">Crear un profesional</a></li>
+                }
+                @if (!panel.TieneAsociacion)
+                {
+                    <li><a href="app/staff">Asociar un profesional a un servicio</a></li>
+                }
+                <li><a href="app/schedules">Definir el horario de un profesional que preste un servicio</a></li>
+            </ul>
+        </div>
+    }
 
+    <section class="bloque">
+        <h2>Hoy</h2>
+        @Lista(panel.Hoy, "HH:mm", "No hay reservas hoy.")
+    </section>
+
+    <section class="bloque">
+        <h2>Próximos @ConsultarPanelEmpresa.DiasProximas días</h2>
+        @Lista(panel.Proximas, "ddd d MMM, HH:mm", "No hay reservas confirmadas en los próximos días.")
+    </section>
+
+    <p><a href="app/bookings">Ver y gestionar todas las reservas</a></p>
+}
+
+<h2>Configuración</h2>
 <ul>
     <li><a href="app/settings">Datos, políticas y baja del establecimiento</a></li>
     <li><a href="app/services">Servicios</a></li>
     <li><a href="app/staff">Profesionales y servicios que prestan</a></li>
     <li><a href="app/schedules">Horarios y días no disponibles</a></li>
 </ul>
+
+@code {
+    private static readonly CultureInfo Espanol = CultureInfo.GetCultureInfo("es-ES");
+
+    private PanelEmpresaDto? panel;
+
+    private static RenderFragment Lista(IReadOnlyList<ReservaEmpresaDto> reservas, string formato, string vacio) => __builder =>
+    {
+        @if (reservas.Count == 0)
+        {
+            <p>@vacio</p>
+        }
+        else
+        {
+            <ul class="lista">
+                @foreach (ReservaEmpresaDto reserva in reservas)
+                {
+                    <li>
+                        <strong>@MotorDisponibilidad.ALocal(reserva.InicioUtc).ToString(formato, Espanol)</strong>
+                        <span>@reserva.Servicio con @reserva.Profesional</span>
+                        <span>@reserva.NombreCliente</span>
+                        @if (reserva.Estado != EstadoReserva.Confirmada)
+                        {
+                            <span class="estado">@(reserva.Estado == EstadoReserva.Cancelada ? "Cancelada" : "Completada")</span>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        Resultado<PanelEmpresaDto> resultado = await Consultar.EjecutarAsync(CancellationToken.None);
+        panel = resultado.Valor;
+    }
+}
