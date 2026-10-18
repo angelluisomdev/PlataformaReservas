@@ -105,24 +105,30 @@ public sealed class Reserva : EntidadBase
         return reserva;
     }
 
-    public void CancelarPorCliente(DateTime ahoraUtc)
+    public void CancelarPorCliente(DateTime ahoraUtc, OrigenCancelacion origen)
     {
         Validacion.InstanteUtc(ahoraUtc, "La fecha de cancelacion de la reserva");
 
-        if (Estado != EstadoReserva.Confirmada)
+        if (origen is not (OrigenCancelacion.Cliente or OrigenCancelacion.BajaCuenta))
         {
-            throw new DominioException("Solo se cancelan reservas confirmadas.");
+            throw new DominioException("El cliente solo cancela por decision propia o por su baja.");
         }
 
-        if (Franja.InicioUtc <= ahoraUtc)
+        if (!EsCancelablePorCliente(Estado, Franja, ahoraUtc))
         {
-            throw new DominioException("La reserva ya ha comenzado.");
+            throw new DominioException("El cliente solo cancela reservas confirmadas que aun no han comenzado.");
         }
 
         Estado = EstadoReserva.Cancelada;
         FechaCancelacion = ahoraUtc;
         FechaModificacion = ahoraUtc;
-        RegistrarEvento(new ReservaCancelada(Id, OrigenCancelacion.Cliente, ahoraUtc));
+        RegistrarEvento(new ReservaCancelada(Id, origen, ahoraUtc));
+    }
+
+    public static bool EsCancelablePorCliente(EstadoReserva estado, FranjaHoraria franja, DateTime ahoraUtc)
+    {
+        ArgumentNullException.ThrowIfNull(franja);
+        return estado == EstadoReserva.Confirmada && franja.InicioUtc > ahoraUtc;
     }
 
     public void Completar(DateTime ahoraUtc)

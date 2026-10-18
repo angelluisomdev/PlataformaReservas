@@ -6,6 +6,10 @@
             <AuthorizeView Policy="EsPropietario" Context="propietario">
                 <a href="app">Mi establecimiento</a>
             </AuthorizeView>
+            <AuthorizeView Policy="EsCliente" Context="cliente">
+                <a href="my-account/bookings">Mis reservas</a>
+                <a href="my-account/profile">Mi perfil</a>
+            </AuthorizeView>
             <form action="Account/Logout" method="post">
                 <AntiforgeryToken />
                 <input type="hidden" name="ReturnUrl" value="" />

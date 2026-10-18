@@ -1,0 +1,154 @@
+@page "/my-account/profile"
+@rendermode InteractiveServer
+
+@inject ConsultarPerfil ConsultarPerfil
+@inject ActualizarPerfil Actualizar
+@inject ConsultarMisReservas Consultar
+@inject DarDeBajaCuenta DarDeBaja
+
+<PageTitle>Mi perfil</PageTitle>
+
+<section class="mi-cuenta">
+    <h1>Mi perfil</h1>
+    <p><a href="my-account/bookings">Mis reservas</a></p>
+
+    @if (bajaCompletada is int canceladas)
+    {
+        <div class="confirmada" role="status">
+            <h2>Tu cuenta se ha dado de baja</h2>
+            <p>Se han cancelado @canceladas reserva(s) futura(s). Ya no podrás volver a iniciar sesión con esta cuenta.</p>
+            <form action="Account/Logout" method="post">
+                <AntiforgeryToken />
+                <input type="hidden" name="ReturnUrl" value="" />
+                <button type="submit" class="principal">Cerrar sesión</button>
+            </form>
+        </div>
+    }
+    else
+    {
+        @if (mensaje is not null)
+        {
+            <p class="aviso" role="status">@mensaje</p>
+        }
+
+        <dl class="resumen">
+            <dt>Correo</dt><dd>@correo</dd>
+        </dl>
+
+        <label for="nombre">Nombre completo</label>
+        <input id="nombre" type="text" maxlength="@NombrePersona.LongitudMaxima" disabled="@enviando" @bind="nombre" />
+
+        <label for="telefono">Teléfono (opcional; se pedirá al reservar)</label>
+        <input id="telefono" type="tel" maxlength="@Telefono.LongitudMaxima" disabled="@enviando" @bind="telefono" />
+
+        <button type="button" class="principal" disabled="@enviando" @onclick="GuardarAsync">Guardar</button>
+
+        <h2>Dar de baja la cuenta</h2>
+        @if (conflictoEmpresa)
+        {
+            <p class="aviso">
+                Eres propietario de un establecimiento activo. Antes de darte de baja tienes que dar de baja
+                el establecimiento en <a href="app/settings">su configuración</a>.
+            </p>
+        }
+        else if (reservasACancelar is int numero)
+        {
+            <p class="aviso">
+                Se cancelarán @numero reserva(s) futura(s) confirmada(s). La baja no se puede deshacer desde la aplicación.
+                ¿Seguro que quieres continuar?
+            </p>
+            <button type="button" class="peligro" disabled="@enviando" @onclick="ConfirmarBajaAsync">Sí, dar de baja mi cuenta</button>
+            <button type="button" disabled="@enviando" @onclick="() => reservasACancelar = null">No</button>
+        }
+        else
+        {
+            <button type="button" class="peligro" disabled="@enviando" @onclick="PrepararBajaAsync">Dar de baja mi cuenta</button>
+        }
+    }
+</section>
+
+@code {
+    private string? correo;
+    private string? nombre;
+    private string? telefono;
+    private bool enviando;
+    private string? mensaje;
+    private int? reservasACancelar;
+    private bool conflictoEmpresa;
+    private int? bajaCompletada;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (EstadoAutenticacion is not null)
+        {
+            correo = (await EstadoAutenticacion).User.Identity?.Name;
+        }
+
+        Resultado<PerfilDto> perfil = await ConsultarPerfil.EjecutarAsync(CancellationToken.None);
+        nombre = perfil.Valor?.Nombre;
+        telefono = perfil.Valor?.Telefono;
+    }
+
+    private async Task GuardarAsync()
+    {
+        enviando = true;
+        try
+        {
+            Resultado resultado = await Actualizar.EjecutarAsync(new ActualizarPerfilComando(nombre, telefono), CancellationToken.None);
+            mensaje = resultado.EsExito ? "Perfil actualizado." : resultado.Mensaje;
+        }
+        finally
+        {
+            enviando = false;
+        }
+    }
+
+    private async Task PrepararBajaAsync()
+    {
+        enviando = true;
+        try
+        {
+            Resultado<MisReservasDto> resultado = await Consultar.EjecutarAsync(CancellationToken.None);
+            reservasACancelar = resultado.Valor?.Cancelables ?? 0;
+        }
+        finally
+        {
+            enviando = false;
+        }
+    }
+
+    private async Task ConfirmarBajaAsync()
+    {
+        if (enviando)
+        {
+            return;
+        }
+
+        enviando = true;
+        try
+        {
+            Resultado<int> resultado = await DarDeBaja.EjecutarAsync(CancellationToken.None);
+            if (resultado.EsExito)
+            {
+                bajaCompletada = resultado.Valor;
+            }
+            else if (resultado.Codigo == CodigoError.Conflicto)
+            {
+                conflictoEmpresa = true;
+            }
+            else
+            {
+                mensaje = resultado.Mensaje;
+            }
+
+            reservasACancelar = null;
+        }
+        finally
+        {
+            enviando = false;
+        }
+    }
+}

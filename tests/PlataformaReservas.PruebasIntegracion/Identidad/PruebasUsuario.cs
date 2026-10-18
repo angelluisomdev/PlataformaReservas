@@ -130,6 +130,31 @@ public sealed class PruebasUsuario(BaseDatosFixture baseDatos)
     }
 
     [Fact]
+    public void ActualizarPerfil_cambia_el_nombre_y_el_telefono_y_un_telefono_nulo_lo_quita()
+    {
+        Usuario usuario = Usuario.Crear("ana@prueba.es", new NombrePersona("Ana Garcia"), new Telefono(Telefono), Ahora);
+
+        usuario.ActualizarPerfil(new NombrePersona("Ana Lopez"), new Telefono("611222333"));
+        usuario.NombreCompleto.Should().Be("Ana Lopez");
+        usuario.Telefono.Should().Be("611222333");
+
+        usuario.ActualizarPerfil(new NombrePersona("Ana Lopez"), null);
+        usuario.Telefono.Should().BeNull();
+    }
+
+    [Fact]
+    public void DarDeBaja_desactiva_y_repetirla_lanza()
+    {
+        Usuario usuario = Usuario.Crear("ana@prueba.es", new NombrePersona("Ana Garcia"), null, Ahora);
+
+        usuario.DarDeBaja();
+        Action otraVez = usuario.DarDeBaja;
+
+        usuario.Activo.Should().BeFalse();
+        otraVez.Should().Throw<DominioException>();
+    }
+
+    [Fact]
     public void EstablecerTelefono_a_un_usuario_que_ya_lo_tiene_lanza_y_no_lo_cambia()
     {
         Usuario usuario = Usuario.Crear("ana@prueba.es", new NombrePersona("Ana Garcia"), new Telefono(Telefono), Ahora);

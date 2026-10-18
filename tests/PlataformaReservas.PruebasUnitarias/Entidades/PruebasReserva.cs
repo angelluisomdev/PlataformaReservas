@@ -212,7 +212,7 @@ public sealed class PruebasReserva
     {
         Reserva reserva = CrearReserva(ServicioDe(EmpresaId), inicioUtc: Ahora.AddHours(3));
 
-        reserva.CancelarPorCliente(Ahora);
+        reserva.CancelarPorCliente(Ahora, OrigenCancelacion.Cliente);
 
         reserva.Estado.Should().Be(EstadoReserva.Cancelada);
         reserva.FechaCancelacion.Should().Be(Ahora);
@@ -224,7 +224,7 @@ public sealed class PruebasReserva
     {
         Reserva reserva = CrearReserva(ServicioDe(EmpresaId), inicioUtc: Ahora.AddTicks(1));
 
-        reserva.CancelarPorCliente(Ahora);
+        reserva.CancelarPorCliente(Ahora, OrigenCancelacion.Cliente);
 
         reserva.Estado.Should().Be(EstadoReserva.Cancelada);
     }
@@ -236,7 +236,7 @@ public sealed class PruebasReserva
     {
         Reserva reserva = CrearReserva(ServicioDe(EmpresaId), inicioUtc: Ahora.AddMinutes(minutosDesdeAhora));
 
-        Action cancelar = () => reserva.CancelarPorCliente(Ahora);
+        Action cancelar = () => reserva.CancelarPorCliente(Ahora, OrigenCancelacion.Cliente);
 
         cancelar.Should().Throw<DominioException>();
         reserva.Estado.Should().Be(EstadoReserva.Confirmada);
@@ -247,9 +247,9 @@ public sealed class PruebasReserva
     public void CancelarPorCliente_rechaza_una_reserva_cancelada_y_repetirla_lanza()
     {
         Reserva reserva = CrearReserva(ServicioDe(EmpresaId));
-        reserva.CancelarPorCliente(Ahora);
+        reserva.CancelarPorCliente(Ahora, OrigenCancelacion.Cliente);
 
-        Action otraVez = () => reserva.CancelarPorCliente(Ahora.AddMinutes(1));
+        Action otraVez = () => reserva.CancelarPorCliente(Ahora.AddMinutes(1), OrigenCancelacion.Cliente);
 
         otraVez.Should().Throw<DominioException>();
         reserva.FechaCancelacion.Should().Be(Ahora);
@@ -261,10 +261,47 @@ public sealed class PruebasReserva
         Reserva reserva = CrearReserva(ServicioDe(EmpresaId), inicioUtc: Ahora.AddHours(-2));
         reserva.Completar(Ahora);
 
-        Action cancelar = () => reserva.CancelarPorCliente(Ahora);
+        Action cancelar = () => reserva.CancelarPorCliente(Ahora, OrigenCancelacion.Cliente);
 
         cancelar.Should().Throw<DominioException>();
         reserva.Estado.Should().Be(EstadoReserva.Completada);
+    }
+
+    [Fact]
+    public void CancelarPorCliente_por_baja_de_cuenta_registra_ese_origen()
+    {
+        Reserva reserva = CrearReserva(ServicioDe(EmpresaId), inicioUtc: Ahora.AddHours(3));
+        reserva.LimpiarEventos();
+
+        reserva.CancelarPorCliente(Ahora, OrigenCancelacion.BajaCuenta);
+
+        reserva.Estado.Should().Be(EstadoReserva.Cancelada);
+        reserva.Eventos.Should().ContainSingle()
+            .Which.Should().Be(new ReservaCancelada(reserva.Id, OrigenCancelacion.BajaCuenta, Ahora));
+    }
+
+    [Theory]
+    [InlineData(OrigenCancelacion.Empresa)]
+    [InlineData(OrigenCancelacion.BajaEmpresa)]
+    public void CancelarPorCliente_rechaza_un_origen_de_empresa(OrigenCancelacion origen)
+    {
+        Reserva reserva = CrearReserva(ServicioDe(EmpresaId), inicioUtc: Ahora.AddHours(3));
+
+        Action cancelar = () => reserva.CancelarPorCliente(Ahora, origen);
+
+        cancelar.Should().Throw<DominioException>();
+        reserva.Estado.Should().Be(EstadoReserva.Confirmada);
+    }
+
+    [Fact]
+    public void CancelarPorCliente_por_baja_de_cuenta_tambien_rechaza_una_reserva_ya_empezada()
+    {
+        Reserva reserva = CrearReserva(ServicioDe(EmpresaId), inicioUtc: Ahora);
+
+        Action cancelar = () => reserva.CancelarPorCliente(Ahora, OrigenCancelacion.BajaCuenta);
+
+        cancelar.Should().Throw<DominioException>();
+        reserva.Estado.Should().Be(EstadoReserva.Confirmada);
     }
 
     [Fact]
@@ -272,10 +309,34 @@ public sealed class PruebasReserva
     {
         Reserva reserva = CrearReserva(ServicioDe(EmpresaId));
 
-        Action cancelar = () => reserva.CancelarPorCliente(DateTime.SpecifyKind(Ahora, DateTimeKind.Local));
+        Action cancelar = () => reserva.CancelarPorCliente(DateTime.SpecifyKind(Ahora, DateTimeKind.Local), OrigenCancelacion.Cliente);
 
         cancelar.Should().Throw<DominioException>();
         reserva.Estado.Should().Be(EstadoReserva.Confirmada);
+    }
+
+    [Theory]
+    [InlineData(EstadoReserva.Confirmada, 1, true)]
+    [InlineData(EstadoReserva.Confirmada, 0, false)]
+    [InlineData(EstadoReserva.Confirmada, -1, false)]
+    [InlineData(EstadoReserva.Cancelada, 1, false)]
+    [InlineData(EstadoReserva.Completada, 1, false)]
+    public void EsCancelablePorCliente_solo_una_confirmada_que_empieza_despues_de_ahora(
+        EstadoReserva estado, int ticksHastaInicio, bool cancelable)
+    {
+        DateTime inicio = Ahora.AddTicks(ticksHastaInicio);
+
+        Reserva.EsCancelablePorCliente(estado, new FranjaHoraria(inicio, inicio.AddMinutes(30)), Ahora).Should().Be(cancelable);
+    }
+
+    [Fact]
+    public void EsCancelablePorCliente_cruza_el_cambio_de_dia_en_utc()
+    {
+        DateTime medianoche = new(2026, 10, 2, 0, 0, 0, DateTimeKind.Utc);
+        FranjaHoraria franja = new(medianoche, medianoche.AddMinutes(30));
+
+        Reserva.EsCancelablePorCliente(EstadoReserva.Confirmada, franja, medianoche.AddTicks(-1)).Should().BeTrue();
+        Reserva.EsCancelablePorCliente(EstadoReserva.Confirmada, franja, medianoche).Should().BeFalse();
     }
 
     [Fact]
@@ -373,7 +434,7 @@ public sealed class PruebasReserva
         Reserva reserva = CrearReserva(ServicioDe(EmpresaId));
         reserva.LimpiarEventos();
 
-        reserva.CancelarPorCliente(Ahora);
+        reserva.CancelarPorCliente(Ahora, OrigenCancelacion.Cliente);
 
         reserva.Eventos.Should().ContainSingle().Which.Should().Be(new ReservaCancelada(reserva.Id, OrigenCancelacion.Cliente, Ahora));
     }
@@ -385,10 +446,10 @@ public sealed class PruebasReserva
         iniciada.LimpiarEventos();
         Reserva cancelada = CrearReserva(ServicioDe(EmpresaId));
         cancelada.LimpiarEventos();
-        cancelada.CancelarPorCliente(Ahora);
+        cancelada.CancelarPorCliente(Ahora, OrigenCancelacion.Cliente);
 
-        Action empezada = () => iniciada.CancelarPorCliente(Ahora);
-        Action otraVez = () => cancelada.CancelarPorCliente(Ahora.AddMinutes(1));
+        Action empezada = () => iniciada.CancelarPorCliente(Ahora, OrigenCancelacion.Cliente);
+        Action otraVez = () => cancelada.CancelarPorCliente(Ahora.AddMinutes(1), OrigenCancelacion.Cliente);
 
         empezada.Should().Throw<DominioException>();
         otraVez.Should().Throw<DominioException>();

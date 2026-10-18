@@ -1,0 +1,120 @@
+@page "/my-account/bookings/{Id:guid}"
+@rendermode InteractiveServer
+
+@inject ConsultarDetalleReserva Consultar
+@inject CancelarReservaCliente Cancelar
+@inject NavigationManager Navegacion
+
+<PageTitle>Detalle de la reserva</PageTitle>
+
+<section class="mi-cuenta">
+    <p><a href="my-account/bookings">← Mis reservas</a></p>
+
+    @if (detalle is not null)
+    {
+        <h1>@detalle.Establecimiento</h1>
+
+        @if (mensaje is not null)
+        {
+            <p class="aviso" role="status">@mensaje</p>
+        }
+
+        <dl class="resumen">
+            <dt>Servicio</dt><dd>@detalle.Servicio</dd>
+            <dt>Profesional</dt><dd>@detalle.Profesional</dd>
+            <dt>Cuándo</dt><dd>@Momento(detalle.InicioUtc)</dd>
+            <dt>Duración</dt><dd>@detalle.DuracionMinutos min</dd>
+            <dt>Precio</dt><dd>@detalle.PrecioAplicado.ToString("C", Espanol)</dd>
+            <dt>Estado</dt><dd>@NombreEstado(detalle.Estado)</dd>
+            @if (detalle.Observaciones is not null)
+            {
+                <dt>Observaciones</dt><dd>@detalle.Observaciones</dd>
+            }
+        </dl>
+
+        @if (detalle.Cancelable)
+        {
+            @if (confirmando)
+            {
+                <p>¿Seguro que quieres cancelar esta reserva?</p>
+                <button type="button" class="peligro" disabled="@enviando" @onclick="CancelarAsync">Sí, cancelar</button>
+                <button type="button" disabled="@enviando" @onclick="() => confirmando = false">No</button>
+            }
+            else
+            {
+                <button type="button" class="peligro" @onclick="() => confirmando = true">Cancelar reserva</button>
+            }
+        }
+        else if (detalle.Estado == EstadoReserva.Confirmada)
+        {
+            <p class="aviso">La reserva ya ha comenzado y no se puede cancelar desde aquí. Contacta con el establecimiento.</p>
+        }
+        else
+        {
+            <p class="aviso">Esta reserva está @NombreEstado(detalle.Estado).ToLowerInvariant() y ya no se puede cancelar.</p>
+        }
+    }
+</section>
+
+@code {
+    private static readonly CultureInfo Espanol = CultureInfo.GetCultureInfo("es-ES");
+
+    private DetalleReservaClienteDto? detalle;
+    private bool confirmando;
+    private bool enviando;
+    private string? mensaje;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        Resultado<DetalleReservaClienteDto> resultado = await Consultar.EjecutarAsync(
+            new ConsultarDetalleReservaComando(Id), CancellationToken.None);
+        if (!resultado.EsExito)
+        {
+            Navegacion.NotFound();
+            return;
+        }
+
+        detalle = resultado.Valor;
+    }
+
+    private async Task CancelarAsync()
+    {
+        if (enviando)
+        {
+            return;
+        }
+
+        enviando = true;
+        try
+        {
+            Resultado resultado = await Cancelar.EjecutarAsync(new CancelarReservaClienteComando(Id), CancellationToken.None);
+            mensaje = resultado.EsExito ? "La reserva se ha cancelado." : resultado.Mensaje;
+            confirmando = false;
+            await CargarAsync();
+        }
+        finally
+        {
+            enviando = false;
+        }
+    }
+
+    private static string Momento(DateTime inicioUtc)
+    {
+        return MotorDisponibilidad.ALocal(inicioUtc).ToString("dddd d 'de' MMMM 'de' yyyy, HH:mm", Espanol);
+    }
+
+    private static string NombreEstado(EstadoReserva estado) => estado switch
+    {
+        EstadoReserva.Confirmada => "Confirmada",
+        EstadoReserva.Cancelada => "Cancelada",
+        _ => "Completada",
+    };
+}

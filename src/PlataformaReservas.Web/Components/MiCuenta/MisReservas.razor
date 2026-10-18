@@ -1,0 +1,76 @@
+@page "/my-account/bookings"
+@rendermode InteractiveServer
+
+@inject ConsultarMisReservas Consultar
+
+<PageTitle>Mis reservas</PageTitle>
+
+<section class="mi-cuenta">
+    <h1>Mis reservas</h1>
+    <p><a href="my-account/profile">Mi perfil</a></p>
+
+    @if (reservas is null)
+    {
+        <p>Cargando…</p>
+    }
+    else
+    {
+        <div class="pestanas" role="tablist">
+            <button type="button" role="tab" aria-selected="@verProximas" class="@(verProximas ? "activa" : null)"
+                    @onclick="() => verProximas = true">
+                Próximas (@reservas.Proximas.Count)
+            </button>
+            <button type="button" role="tab" aria-selected="@(!verProximas)" class="@(verProximas ? null : "activa")"
+                    @onclick="() => verProximas = false">
+                Históricas (@reservas.Historicas.Count)
+            </button>
+        </div>
+
+        IReadOnlyList<ReservaClienteDto> lista = verProximas ? reservas.Proximas : reservas.Historicas;
+        @if (lista.Count == 0)
+        {
+            <p class="aviso">No tienes reservas en esta pestaña.</p>
+        }
+        else
+        {
+            <ul class="reservas">
+                @foreach (ReservaClienteDto reserva in lista)
+                {
+                    <li>
+                        <a href="my-account/bookings/@reserva.Id">
+                            <strong>@reserva.Establecimiento</strong>
+                            <span>@reserva.Servicio con @reserva.Profesional</span>
+                            <span>@Momento(reserva.InicioUtc)</span>
+                            <span class="estado">@NombreEstado(reserva.Estado)</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        }
+    }
+</section>
+
+@code {
+    private static readonly CultureInfo Espanol = CultureInfo.GetCultureInfo("es-ES");
+
+    private MisReservasDto? reservas;
+    private bool verProximas = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Resultado<MisReservasDto> resultado = await Consultar.EjecutarAsync(CancellationToken.None);
+        reservas = resultado.Valor;
+    }
+
+    private static string Momento(DateTime inicioUtc)
+    {
+        return MotorDisponibilidad.ALocal(inicioUtc).ToString("dddd d 'de' MMMM 'de' yyyy, HH:mm", Espanol);
+    }
+
+    private static string NombreEstado(EstadoReserva estado) => estado switch
+    {
+        EstadoReserva.Confirmada => "Confirmada",
+        EstadoReserva.Cancelada => "Cancelada",
+        _ => "Completada",
+    };
+}

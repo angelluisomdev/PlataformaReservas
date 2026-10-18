@@ -13,4 +13,10 @@ public interface IServicioCuentas
     Task<(NombrePersona Nombre, Telefono? Telefono)?> ObtenerContactoAsync(Guid usuarioId, CancellationToken ct);
 
     Task EstablecerTelefonoAsync(Guid usuarioId, Telefono telefono, CancellationToken ct);
+
+    Task ActualizarPerfilAsync(Guid usuarioId, NombrePersona nombre, Telefono? telefono, CancellationToken ct);
+
+    Task<bool> EstaActivaAsync(Guid usuarioId, CancellationToken ct);
+
+    Task DarDeBajaAsync(Guid usuarioId, CancellationToken ct);
 }

@@ -6,6 +6,7 @@
 @using PlataformaReservas.Aplicacion.CasosUso.Reservas
 @using PlataformaReservas.Aplicacion.Compartido
 @using PlataformaReservas.Aplicacion.Disponibilidad
+@using PlataformaReservas.Aplicacion.Dtos.Cuenta
 @using PlataformaReservas.Aplicacion.Dtos.Empresas
 @using PlataformaReservas.Aplicacion.Dtos.Profesionales
 @using PlataformaReservas.Aplicacion.Dtos.Servicios
@@ -16,7 +17,7 @@
 @inject EstablecerTelefono GuardarTelefono
 @inject CrearReserva Crear
 @inject IContextoUsuario ContextoUsuario
-@inject IServicioCuentas Cuentas
+@inject ConsultarPerfil Perfil
 @inject IRelojSistema Reloj
 @inject NavigationManager Navegacion
 
@@ -285,10 +286,9 @@
 
     private async Task CargarContactoAsync()
     {
-        (NombrePersona Nombre, Telefono? Telefono)? contacto = await Cuentas.ObtenerContactoAsync(
-            ContextoUsuario.UsuarioActualId, CancellationToken.None);
-        nombreCliente = contacto?.Nombre.Valor;
-        telefonoPerfil = contacto?.Telefono?.Valor;
+        Resultado<PerfilDto> perfil = await Perfil.EjecutarAsync(CancellationToken.None);
+        nombreCliente = perfil.Valor?.Nombre;
+        telefonoPerfil = perfil.Valor?.Telefono;
     }
 
     private void IrAIniciarSesion()

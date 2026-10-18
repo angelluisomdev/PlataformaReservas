@@ -1,0 +1,13 @@
+@namespace PlataformaReservas.Web.Components.MiCuenta
+@using System.Globalization
+@using Microsoft.AspNetCore.Authorization
+@using PlataformaReservas.Aplicacion.Abstracciones
+@using PlataformaReservas.Aplicacion.CasosUso.Cuenta
+@using PlataformaReservas.Aplicacion.CasosUso.Reservas
+@using PlataformaReservas.Aplicacion.Compartido
+@using PlataformaReservas.Aplicacion.Disponibilidad
+@using PlataformaReservas.Aplicacion.Dtos.Cuenta
+@using PlataformaReservas.Aplicacion.Dtos.Reservas
+@using PlataformaReservas.Dominio.Enumeraciones
+@using PlataformaReservas.Dominio.ValueObjects
+@attribute [Authorize(Policy = "EsCliente")]

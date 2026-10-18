@@ -43,8 +43,13 @@ public static class InyeccionDependencias
         servicios.AddScoped<CancelarReservaEmpresa>();
         servicios.AddScoped<CompletarReserva>();
         servicios.AddScoped<ConsultarDisponibilidad>();
+        servicios.AddScoped<ConsultarMisReservas>();
+        servicios.AddScoped<ConsultarDetalleReserva>();
 
         servicios.AddScoped<EstablecerTelefono>();
+        servicios.AddScoped<ConsultarPerfil>();
+        servicios.AddScoped<ActualizarPerfil>();
+        servicios.AddScoped<DarDeBajaCuenta>();
 
         servicios.AddScoped<IMotorDisponibilidad, MotorDisponibilidad>();
 

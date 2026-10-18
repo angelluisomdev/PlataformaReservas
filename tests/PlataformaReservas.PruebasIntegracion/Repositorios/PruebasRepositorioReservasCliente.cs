@@ -44,6 +44,27 @@ public sealed class PruebasRepositorioReservasCliente(BaseDatosFixture baseDatos
     }
 
     [Fact]
+    public async Task Las_futuras_confirmadas_son_solo_las_del_usuario_y_con_seguimiento()
+    {
+        EscenarioReserva escenario = await EscenarioReserva.CrearAsync(baseDatos);
+        Usuario otro = await UsuariosPrueba.CrearAsync(baseDatos, UsuariosPrueba.CorreoUnico());
+        Reserva futura = escenario.Reserva(DominioPrueba.Ahora.AddDays(1));
+        Reserva pasada = escenario.Reserva(DominioPrueba.Ahora.AddDays(-1));
+        Reserva justoAhora = escenario.Reserva(DominioPrueba.Ahora);
+        Reserva cancelada = escenario.Reserva(DominioPrueba.Ahora.AddDays(2));
+        cancelada.CancelarPorCliente(DominioPrueba.Ahora, Dominio.Enumeraciones.OrigenCancelacion.Cliente);
+        Reserva deOtro = escenario.Reserva(DominioPrueba.Ahora.AddDays(3), otro.Id);
+        await EscenarioEmpresa.GuardarAsync(baseDatos, futura, pasada, justoAhora, cancelada, deOtro);
+
+        await using AsyncServiceScope ambito = baseDatos.AmbitoDeUsuario(escenario.Cliente.Id);
+        IReadOnlyList<Reserva> futuras = await ambito.ServiceProvider.GetRequiredService<IRepositorioReservasCliente>()
+            .ObtenerFuturasConfirmadasParaModificarAsync(DominioPrueba.Ahora, CancellationToken.None);
+
+        futuras.Should().ContainSingle().Which.Id.Should().Be(futura.Id);
+        ambito.ServiceProvider.GetRequiredService<ContextoDatos>().Entry(futuras[0]).State.Should().Be(EntityState.Unchanged);
+    }
+
+    [Fact]
     public async Task Agregar_la_reserva_propia_la_deja_pendiente_de_guardar()
     {
         EscenarioReserva escenario = await EscenarioReserva.CrearAsync(baseDatos);

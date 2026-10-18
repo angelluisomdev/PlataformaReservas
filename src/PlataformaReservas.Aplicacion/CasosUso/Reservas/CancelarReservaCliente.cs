@@ -37,7 +37,7 @@ public sealed class CancelarReservaCliente(
             return Resultado.Fallo(CodigoError.EstadoNoValido, "La reserva ya ha comenzado y no se puede cancelar.");
         }
 
-        reserva.CancelarPorCliente(ahora);
+        reserva.CancelarPorCliente(ahora, OrigenCancelacion.Cliente);
         await unidadTrabajo.GuardarCambiosAsync(ct);
 
         await publicador.PublicarAsync(reserva.Eventos, ct);

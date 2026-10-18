@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Aplicacion.Compartido;
+using PlataformaReservas.Dominio.Compartido;
 using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.Dominio.Enumeraciones;
 using PlataformaReservas.Dominio.ValueObjects;
@@ -26,6 +27,89 @@ public sealed class PruebasServicioCuentas(BaseDatosFixture baseDatos)
         Usuario usuario = (await usuarios.FindByIdAsync(resultado.Valor.ToString()))!;
         resultado.EsExito.Should().BeTrue();
         (await usuarios.IsInRoleAsync(usuario, RolesIdentidad.Propietario)).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task El_propietario_tiene_tambien_el_rol_cliente()
+    {
+        Resultado<Guid> resultado = await CrearPropietarioAsync(CorreoUnico(), Clave);
+
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        UserManager<Usuario> usuarios = ambito.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
+        Usuario usuario = (await usuarios.FindByIdAsync(resultado.Valor.ToString()))!;
+        (await usuarios.GetRolesAsync(usuario)).Should().BeEquivalentTo([RolesIdentidad.Propietario, RolesIdentidad.Cliente]);
+    }
+
+    [Fact]
+    public async Task Actualizar_el_perfil_lo_guarda_cifrado()
+    {
+        Usuario usuario = await CrearAsync(baseDatos, CorreoUnico(), "Ana Garcia", "611222333");
+
+        await using (AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope())
+        {
+            await ambito.ServiceProvider.GetRequiredService<IServicioCuentas>().ActualizarPerfilAsync(
+                usuario.Id, new NombrePersona("Marta Ruiz"), new Telefono("644 555 777"), CancellationToken.None);
+        }
+
+        (NombrePersona Nombre, Telefono? Telefono) contacto = (await ObtenerContactoAsync(usuario.Id))!.Value;
+        contacto.Nombre.Should().Be(new NombrePersona("Marta Ruiz"));
+        contacto.Telefono.Should().Be(new Telefono("644 555 777"));
+        List<string?> columnas = await EscenarioEmpresa.LeerAsync(baseDatos, db => db.Database
+            .SqlQuery<string?>($"""SELECT unnest(ARRAY[nombre_completo, telefono]) AS "Value" FROM asp_net_users WHERE id = {usuario.Id}""")
+            .ToListAsync());
+        columnas.Should().OnlyContain(c => c != null && !c.Contains("Marta") && !c.Contains("644 555 777"));
+    }
+
+    [Fact]
+    public async Task Dar_de_baja_desactiva_y_renueva_el_sello()
+    {
+        Usuario usuario = await CrearAsync(baseDatos, CorreoUnico());
+        string? antes = await SelloAsync(usuario.Id);
+
+        await DarDeBajaAsync(usuario.Id);
+
+        (await EstaActivaAsync(usuario.Id)).Should().BeFalse();
+        (await SelloAsync(usuario.Id)).Should().NotBe(antes);
+    }
+
+    [Fact]
+    public async Task Dar_de_baja_una_cuenta_ya_inactiva_lanza_y_no_renueva_el_sello()
+    {
+        Usuario usuario = await CrearAsync(baseDatos, CorreoUnico());
+        await DesactivarAsync(baseDatos, usuario.Id);
+        string? antes = await SelloAsync(usuario.Id);
+
+        Func<Task> darDeBaja = () => DarDeBajaAsync(usuario.Id);
+
+        await darDeBaja.Should().ThrowAsync<DominioException>();
+        (await SelloAsync(usuario.Id)).Should().Be(antes);
+    }
+
+    [Fact]
+    public async Task Dar_de_baja_un_usuario_inexistente_lanza()
+    {
+        Func<Task> darDeBaja = () => DarDeBajaAsync(Guid.CreateVersion7());
+
+        await darDeBaja.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task EstaActiva_distingue_una_cuenta_activa_de_una_dada_de_baja()
+    {
+        Usuario activo = await CrearAsync(baseDatos, CorreoUnico());
+        Usuario inactivo = await CrearAsync(baseDatos, CorreoUnico());
+        await DesactivarAsync(baseDatos, inactivo.Id);
+
+        (await EstaActivaAsync(activo.Id)).Should().BeTrue();
+        (await EstaActivaAsync(inactivo.Id)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task EstaActiva_de_un_usuario_inexistente_lanza()
+    {
+        Func<Task> consultar = () => EstaActivaAsync(Guid.CreateVersion7());
+
+        await consultar.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
@@ -141,6 +225,18 @@ public sealed class PruebasServicioCuentas(BaseDatosFixture baseDatos)
             .EstablecerTelefonoAsync(Guid.CreateVersion7(), new Telefono("644555666"), CancellationToken.None);
 
         await establecer.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    private async Task DarDeBajaAsync(Guid usuarioId)
+    {
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        await ambito.ServiceProvider.GetRequiredService<IServicioCuentas>().DarDeBajaAsync(usuarioId, CancellationToken.None);
+    }
+
+    private async Task<bool> EstaActivaAsync(Guid usuarioId)
+    {
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        return await ambito.ServiceProvider.GetRequiredService<IServicioCuentas>().EstaActivaAsync(usuarioId, CancellationToken.None);
     }
 
     private async Task<(NombrePersona Nombre, Telefono? Telefono)?> ObtenerContactoAsync(Guid usuarioId)

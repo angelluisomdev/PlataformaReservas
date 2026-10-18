@@ -56,4 +56,20 @@ public sealed class Usuario : IdentityUser<Guid>
 
         Telefono = telefono.Valor;
     }
+
+    public void ActualizarPerfil(NombrePersona nombreCompleto, TelefonoValidado? telefono)
+    {
+        NombreCompleto = nombreCompleto.Valor;
+        Telefono = telefono?.Valor;
+    }
+
+    public void DarDeBaja()
+    {
+        if (!Activo)
+        {
+            throw new DominioException("La cuenta ya esta dada de baja.");
+        }
+
+        Activo = false;
+    }
 }
