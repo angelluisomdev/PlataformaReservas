@@ -52,11 +52,33 @@ public sealed class PruebasEstablecerTelefono(BaseDatosFixture baseDatos)
     }
 
     [Fact]
-    public async Task Si_el_usuario_ya_tiene_telefono_da_conflicto_y_no_lo_cambia()
+    public async Task Si_ya_tiene_telefono_da_conflicto_sin_llegar_a_escribir()
     {
         Usuario usuario = await UsuariosPrueba.CrearAsync(baseDatos, UsuariosPrueba.CorreoUnico(), telefono: "611222333");
+        await using AsyncServiceScope ambito = baseDatos.AmbitoDeUsuario(usuario.Id);
+        CuentasQueCuentanEscrituras cuentas = new(ambito.ServiceProvider.GetRequiredService<IServicioCuentas>());
 
-        Resultado resultado = await EstablecerAsync(usuario.Id, "644555666");
+        Resultado resultado = await new EstablecerTelefono(ambito.ServiceProvider.GetRequiredService<IContextoUsuario>(), cuentas)
+            .EjecutarAsync(new EstablecerTelefonoComando("644555666"), CancellationToken.None);
+
+        resultado.Codigo.Should().Be(CodigoError.Conflicto);
+        cuentas.Escrituras.Should().Be(0);
+        (await TelefonoAsync(usuario.Id)).Should().Be(new Telefono("611222333"));
+    }
+
+    [Fact]
+    public async Task Si_otra_peticion_guarda_el_telefono_entre_la_lectura_y_la_escritura_da_conflicto()
+    {
+        Usuario usuario = await UsuariosPrueba.CrearAsync(baseDatos, UsuariosPrueba.CorreoUnico());
+        await using AsyncServiceScope ambito = baseDatos.AmbitoDeUsuario(usuario.Id);
+        IServicioCuentas real = ambito.ServiceProvider.GetRequiredService<IServicioCuentas>();
+        CuentasQueCuentanEscrituras cuentas = new(real)
+        {
+            AntesDeEscribir = () => real.EstablecerTelefonoAsync(usuario.Id, new Telefono("611222333"), CancellationToken.None),
+        };
+
+        Resultado resultado = await new EstablecerTelefono(ambito.ServiceProvider.GetRequiredService<IContextoUsuario>(), cuentas)
+            .EjecutarAsync(new EstablecerTelefonoComando("644555666"), CancellationToken.None);
 
         resultado.Codigo.Should().Be(CodigoError.Conflicto);
         (await TelefonoAsync(usuario.Id)).Should().Be(new Telefono("611222333"));
@@ -93,6 +115,40 @@ public sealed class PruebasEstablecerTelefono(BaseDatosFixture baseDatos)
         await using AsyncServiceScope ambito = baseDatos.AmbitoDeUsuario(usuarioId);
         return await ambito.ServiceProvider.GetRequiredService<EstablecerTelefono>()
             .EjecutarAsync(new EstablecerTelefonoComando(telefono), CancellationToken.None);
+    }
+
+    private sealed class CuentasQueCuentanEscrituras(IServicioCuentas real) : IServicioCuentas
+    {
+        public int Escrituras { get; private set; }
+
+        public Func<Task>? AntesDeEscribir { get; init; }
+
+        public Task<Resultado<Guid>> CrearPropietarioAsync(
+            Email email, NombrePersona nombreCompleto, Telefono? telefono, string clave, DateTime ahoraUtc, CancellationToken ct)
+            => real.CrearPropietarioAsync(email, nombreCompleto, telefono, clave, ahoraUtc, ct);
+
+        public Task RenovarSelloMiembrosAsync(Guid empresaId, CancellationToken ct) => real.RenovarSelloMiembrosAsync(empresaId, ct);
+
+        public Task<(NombrePersona Nombre, Telefono? Telefono)?> ObtenerContactoAsync(Guid usuarioId, CancellationToken ct)
+            => real.ObtenerContactoAsync(usuarioId, ct);
+
+        public async Task EstablecerTelefonoAsync(Guid usuarioId, Telefono telefono, CancellationToken ct)
+        {
+            Escrituras++;
+            if (AntesDeEscribir is not null)
+            {
+                await AntesDeEscribir();
+            }
+
+            await real.EstablecerTelefonoAsync(usuarioId, telefono, ct);
+        }
+
+        public Task ActualizarPerfilAsync(Guid usuarioId, NombrePersona nombre, Telefono? telefono, CancellationToken ct)
+            => real.ActualizarPerfilAsync(usuarioId, nombre, telefono, ct);
+
+        public Task<bool> EstaActivaAsync(Guid usuarioId, CancellationToken ct) => real.EstaActivaAsync(usuarioId, ct);
+
+        public Task DarDeBajaAsync(Guid usuarioId, CancellationToken ct) => real.DarDeBajaAsync(usuarioId, ct);
     }
 
     private async Task<Telefono?> TelefonoAsync(Guid usuarioId)

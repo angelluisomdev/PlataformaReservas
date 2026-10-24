@@ -80,6 +80,20 @@ public sealed class PruebasConsultarDisponibilidad(BaseDatosFixture baseDatos)
         (await ConsultarAsync(Comando(escenario, EscenarioReserva.Lunes))).Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task Dos_consultas_simultaneas_del_mismo_hueco_lo_muestran_disponible_a_ambas()
+    {
+        EscenarioReserva escenario = await EscenarioReserva.CrearAsync(baseDatos);
+        ConsultarDisponibilidadComando comando = Comando(escenario, EscenarioReserva.Lunes);
+
+        IReadOnlyList<HuecoDisponible>[] consultas = await Task.WhenAll(
+            Task.Run(() => ConsultarAsync(comando)), Task.Run(() => ConsultarAsync(comando)));
+
+        consultas.Should().AllSatisfy(huecos =>
+            huecos.Should().Contain(h => h.ProfesionalId == escenario.Profesional.Id && h.InicioUtc == EscenarioReserva.NueveLunesUtc));
+        consultas[0].Should().Equal(consultas[1]);
+    }
+
     private static ConsultarDisponibilidadComando Comando(EscenarioReserva escenario, DateOnly fecha)
     {
         return new ConsultarDisponibilidadComando(escenario.Empresa.Id, escenario.Servicio.Id, escenario.Profesional.Id, fecha);

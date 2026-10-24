@@ -1,6 +1,12 @@
 using FluentAssertions;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using PlataformaReservas.Aplicacion.Abstracciones;
+using PlataformaReservas.Aplicacion.Compartido;
 using PlataformaReservas.Dominio.ValueObjects;
+using PlataformaReservas.Infraestructura.Identidad;
 using PlataformaReservas.Infraestructura.Persistencia;
 using PlataformaReservas.Infraestructura.Persistencia.DatosIniciales;
 using PlataformaReservas.PruebasIntegracion.Infraestructura;
@@ -35,5 +41,99 @@ public sealed class PruebasDatosIniciales(BaseDatosFixture baseDatos)
         sembradas.Select(s => s.Valor)
             .Where(v => SlugsEsperados.Contains(v))
             .Should().BeEquivalentTo(SlugsEsperados);
+    }
+
+    [Fact]
+    public async Task Los_datos_de_demostracion_solo_se_siembran_habilitados_desde_el_arranque_sin_clave_no_crean_usuarios_y_son_idempotentes()
+    {
+        const string clave = "ClaveDemo123!";
+        await using (ContextoDatos db = baseDatos.CrearContexto())
+        {
+            await SembradorDatos.SembrarAsync(db, CancellationToken.None);
+        }
+
+        await SembrarDemostracionAsync(new Dictionary<string, string?>());
+        (await EmpresasDemostracionAsync()).Should().BeEmpty("deshabilitado por defecto no siembra nada");
+
+        await SembrarDemostracionAsync(new Dictionary<string, string?> { ["DatosDemostracion:Habilitado"] = "true" });
+        (await EmpresasDemostracionAsync()).Should().HaveCount(2);
+        (await UsuarioAsync(SembradorDatos.CorreoClienteDemostracion)).Should().BeNull("sin clave no se crea ningun usuario");
+
+        await using (AsyncServiceScope previo = baseDatos.ServiciosIdentidad.CreateAsyncScope())
+        {
+            Resultado<Guid> sinEmpresa = await previo.ServiceProvider.GetRequiredService<IServicioCuentas>().CrearPropietarioAsync(
+                new Email(PropietariosDemostracion[0].Correo), new NombrePersona("Carlos Martin"), null, clave, DominioPrueba.Ahora,
+                CancellationToken.None);
+            sinEmpresa.EsExito.Should().BeTrue("simula una siembra interrumpida entre el usuario y su pertenencia");
+        }
+
+        Dictionary<string, string?> conClave = new()
+        {
+            ["DatosDemostracion:Habilitado"] = "true",
+            ["DatosDemostracion:Clave"] = clave,
+        };
+        await using (ServiceProvider arranque = baseDatos.CrearServicios(conClave))
+        {
+            await arranque.MigrarYSembrarAsync(CancellationToken.None);
+        }
+
+        (await UsuarioAsync(SembradorDatos.CorreoClienteDemostracion)).Should().NotBeNull("el arranque siembra la demostracion");
+        await SembrarDemostracionAsync(conClave);
+
+        (await EmpresasDemostracionAsync()).Should().HaveCount(2);
+        Slug[] slugs = [.. SlugsDemostracion.Select(Slug.Desde)];
+        int miembros = await EscenarioEmpresa.LeerAsync(baseDatos, db => db.MiembrosEmpresa
+            .CountAsync(m => db.Empresas.Any(e => e.Id == m.EmpresaId && slugs.Contains(e.Slug))));
+        miembros.Should().Be(2);
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        IConsultasCatalogoPublico catalogo = ambito.ServiceProvider.GetRequiredService<IConsultasCatalogoPublico>();
+        foreach (string slug in SlugsDemostracion)
+        {
+            (await catalogo.ObtenerFichaAsync(slug, CancellationToken.None)).Should().NotBeNull("{0} tiene que ser publicable", slug);
+        }
+
+        Usuario cliente = (await UsuarioAsync(SembradorDatos.CorreoClienteDemostracion))!;
+        UserManager<Usuario> usuarios = ambito.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
+        (await usuarios.CheckPasswordAsync(cliente, clave)).Should().BeTrue();
+        (await usuarios.IsInRoleAsync(cliente, RolesIdentidad.Cliente)).Should().BeTrue();
+        foreach ((string slug, string correo) in PropietariosDemostracion)
+        {
+            Usuario propietario = (await UsuarioAsync(correo))!;
+            Slug esperado = Slug.Desde(slug);
+            List<Slug> empresas = await EscenarioEmpresa.LeerAsync(baseDatos, db => db.MiembrosEmpresa
+                .Where(m => m.UsuarioId == propietario.Id)
+                .Join(db.Empresas, m => m.EmpresaId, e => e.Id, (m, e) => e.Slug)
+                .ToListAsync());
+            empresas.Should().Equal([esperado], "{0} es miembro solo de su empresa", correo);
+            (await usuarios.CheckPasswordAsync(propietario, clave)).Should().BeTrue();
+            (await usuarios.IsInRoleAsync(propietario, RolesIdentidad.Propietario)).Should().BeTrue();
+        }
+    }
+
+    private static readonly string[] SlugsDemostracion = ["demo-barberia-centro", "demo-estetica-norte"];
+
+    private static readonly (string Slug, string Correo)[] PropietariosDemostracion =
+    [
+        ("demo-barberia-centro", "propietario.barberia@demo.example"),
+        ("demo-estetica-norte", "propietaria.estetica@demo.example"),
+    ];
+
+    private async Task SembrarDemostracionAsync(Dictionary<string, string?> valores)
+    {
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        IConfiguration configuracion = new ConfigurationBuilder().AddInMemoryCollection(valores).Build();
+        await SembradorDatos.SembrarDemostracionAsync(ambito.ServiceProvider, configuracion, CancellationToken.None);
+    }
+
+    private Task<List<Slug>> EmpresasDemostracionAsync()
+    {
+        Slug[] slugs = [.. SlugsDemostracion.Select(Slug.Desde)];
+        return EscenarioEmpresa.LeerAsync(baseDatos, db => db.Empresas.Where(e => slugs.Contains(e.Slug)).Select(e => e.Slug).ToListAsync());
+    }
+
+    private async Task<Usuario?> UsuarioAsync(string correo)
+    {
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        return await ambito.ServiceProvider.GetRequiredService<UserManager<Usuario>>().FindByEmailAsync(correo);
     }
 }

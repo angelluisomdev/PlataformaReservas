@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using PlataformaReservas.Aplicacion;
 using PlataformaReservas.Aplicacion.Abstracciones;
+using PlataformaReservas.Aplicacion.CasosUso.Cuenta;
 using PlataformaReservas.Aplicacion.CasosUso.Reservas;
 using PlataformaReservas.Aplicacion.Disponibilidad;
 using PlataformaReservas.Dominio.Eventos;
@@ -39,6 +40,28 @@ public sealed class PruebasInyeccionDependencias(BaseDatosFixture baseDatos)
         (await autorizacion.AuthorizeAsync(conEmpresa, RolesIdentidad.PoliticaPropietario)).Succeeded.Should().BeTrue();
         (await autorizacion.AuthorizeAsync(cliente, RolesIdentidad.PoliticaCliente)).Succeeded.Should().BeTrue();
         (await autorizacion.AuthorizeAsync(cliente, RolesIdentidad.PoliticaPropietario)).Succeeded.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task La_matriz_de_politicas_completa_separa_anonimo_cliente_y_propietario()
+    {
+        IAuthorizationService autorizacion = baseDatos.ServiciosIdentidad.GetRequiredService<IAuthorizationService>();
+        string empresa = Guid.CreateVersion7().ToString();
+        ClaimsPrincipal anonimo = new(new ClaimsIdentity());
+        ClaimsPrincipal clienteConClaimDeEmpresa = Principal(
+            new Claim(ClaimTypes.Role, RolesIdentidad.Cliente), new Claim(FabricaClaimsUsuario.ClaimEmpresa, empresa));
+        ClaimsPrincipal propietario = Principal(
+            new Claim(ClaimTypes.Role, RolesIdentidad.Propietario),
+            new Claim(ClaimTypes.Role, RolesIdentidad.Cliente),
+            new Claim(FabricaClaimsUsuario.ClaimEmpresa, empresa));
+        ClaimsPrincipal propietarioSinRolCliente = Principal(
+            new Claim(ClaimTypes.Role, RolesIdentidad.Propietario), new Claim(FabricaClaimsUsuario.ClaimEmpresa, empresa));
+
+        (await autorizacion.AuthorizeAsync(anonimo, RolesIdentidad.PoliticaPropietario)).Succeeded.Should().BeFalse();
+        (await autorizacion.AuthorizeAsync(anonimo, RolesIdentidad.PoliticaCliente)).Succeeded.Should().BeFalse();
+        (await autorizacion.AuthorizeAsync(clienteConClaimDeEmpresa, RolesIdentidad.PoliticaPropietario)).Succeeded.Should().BeFalse();
+        (await autorizacion.AuthorizeAsync(propietario, RolesIdentidad.PoliticaCliente)).Succeeded.Should().BeTrue();
+        (await autorizacion.AuthorizeAsync(propietarioSinRolCliente, RolesIdentidad.PoliticaCliente)).Succeeded.Should().BeFalse();
     }
 
     [Fact]
@@ -119,6 +142,8 @@ public sealed class PruebasInyeccionDependencias(BaseDatosFixture baseDatos)
         [
             typeof(IContextoUsuario), typeof(IRepositorioReservasCliente), typeof(CrearReserva),
             typeof(CancelarReservaCliente), typeof(CancelarReservaEmpresa), typeof(CompletarReserva),
+            typeof(IConsultasReservaPublica), typeof(IConsultasReservasCliente), typeof(ConsultarDisponibilidad),
+            typeof(EstablecerTelefono),
         ];
         ServiceCollection servicios = new();
         servicios.AgregarInfraestructura(new ConfigurationBuilder().Build());

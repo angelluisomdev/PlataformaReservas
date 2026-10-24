@@ -13,7 +13,7 @@ public sealed class RenderizadorPlantillas(IServiceProvider servicios, ILoggerFa
     : IRenderizadorPlantillas, IAsyncDisposable
 {
     private readonly HtmlRenderer _renderizador = new(servicios, registros);
-    private readonly string _urlBase = (configuracion["Correo:UrlBase"] ?? "").TrimEnd('/');
+    private readonly IConfiguration _configuracion = configuracion;
 
     public Task<MensajeCorreo> ReservaConfirmadaClienteAsync(DatosReservaNotificacionDto datos)
     {
@@ -103,7 +103,12 @@ public sealed class RenderizadorPlantillas(IServiceProvider servicios, ILoggerFa
 
     private Dictionary<string, object?> ParametrosConEnlaces(object datos)
     {
-        return new Dictionary<string, object?> { ["Datos"] = datos, ["UrlBase"] = _urlBase };
+        if (!UrlBaseCorreo.IntentarObtener(_configuracion, out string urlBase))
+        {
+            throw new InvalidOperationException($"{UrlBaseCorreo.Clave} no es una URL http(s) absoluta: no se puede montar el enlace.");
+        }
+
+        return new Dictionary<string, object?> { ["Datos"] = datos, ["UrlBase"] = urlBase };
     }
 
     private async Task<MensajeCorreo> MensajeAsync<TPlantilla>(string para, string asunto, Dictionary<string, object?> parametros)

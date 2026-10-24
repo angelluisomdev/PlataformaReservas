@@ -1,8 +1,10 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
+using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Dominio.Eventos;
 using PlataformaReservas.Infraestructura.Identidad;
+using PlataformaReservas.Infraestructura.Persistencia;
 using PlataformaReservas.PruebasIntegracion.Infraestructura;
 using static PlataformaReservas.PruebasIntegracion.Infraestructura.UsuariosPrueba;
 
@@ -92,6 +94,28 @@ public sealed class PruebasRegistroCliente(BaseDatosFixture baseDatos)
     }
 
     [Fact]
+    public async Task CuentaRegistrada_se_publica_cuando_el_usuario_ya_es_legible_desde_otro_ambito()
+    {
+        string correo = CorreoUnico();
+        bool? legibleAlPublicar = null;
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        PublicadorQueConsulta publicador = new(async () =>
+        {
+            await using AsyncServiceScope otro = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+            legibleAlPublicar = await otro.ServiceProvider.GetRequiredService<UserManager<Usuario>>().FindByEmailAsync(correo) is not null;
+        });
+        RegistroCliente registro = new(
+            ambito.ServiceProvider.GetRequiredService<UserManager<Usuario>>(),
+            ambito.ServiceProvider.GetRequiredService<ContextoDatos>(),
+            publicador);
+
+        (IdentityResult resultado, _) = await registro.RegistrarAsync(correo, "Ana Garcia", null, Clave, Ahora);
+
+        resultado.Succeeded.Should().BeTrue();
+        legibleAlPublicar.Should().BeTrue("el evento se publica despues del commit, cuando el alta ya es visible para otros");
+    }
+
+    [Fact]
     public async Task Un_registro_fallido_no_publica_nada()
     {
         string correo = CorreoUnico();
@@ -105,6 +129,14 @@ public sealed class PruebasRegistroCliente(BaseDatosFixture baseDatos)
         duplicado.Succeeded.Should().BeFalse();
         invalido.Succeeded.Should().BeFalse();
         ambito.ServiceProvider.GetRequiredService<PublicadorCaptura>().Publicados.Should().BeEmpty();
+    }
+
+    private sealed class PublicadorQueConsulta(Func<Task> alPublicar) : IPublicadorEventos
+    {
+        public async ValueTask PublicarAsync(IReadOnlyCollection<IEventoDominio> eventos, CancellationToken ct)
+        {
+            await alPublicar();
+        }
     }
 
     private async Task<(IdentityResult Resultado, Usuario? Usuario)> RegistrarAsync(

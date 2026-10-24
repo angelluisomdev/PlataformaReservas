@@ -19,6 +19,10 @@ public sealed class BaseDatosFixture : IAsyncLifetime
 
     private ServiceProvider _servicios = null!;
 
+    private readonly string _claveDatos = ClaveAleatoria();
+
+    private readonly string _claveBusqueda = ClaveAleatoria();
+
     public ProtectorFalso Protector { get; } = new();
 
     public ServiceProvider ServiciosIdentidad { get; private set; } = null!;
@@ -43,7 +47,7 @@ public sealed class BaseDatosFixture : IAsyncLifetime
         await using ContextoDatos db = CrearContexto();
         await db.Database.MigrateAsync();
 
-        ServiciosIdentidad = CrearServiciosIdentidad();
+        ServiciosIdentidad = CrearServicios();
     }
 
     public ContextoDatos CrearContexto()
@@ -58,16 +62,18 @@ public sealed class BaseDatosFixture : IAsyncLifetime
         return new ContextoDatos(opciones);
     }
 
-    private ServiceProvider CrearServiciosIdentidad()
+    // Mismas claves de cifrado que ServiciosIdentidad: lo que se escribe con uno se lee con el otro.
+    public ServiceProvider CrearServicios(IReadOnlyDictionary<string, string?>? configuracionAdicional = null)
     {
         IConfiguration configuracion = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:PlataformaReservas"] = CadenaConexion,
-                ["Cifrado:ClaveDatos"] = ClaveAleatoria(),
-                ["Cifrado:ClaveBusqueda"] = ClaveAleatoria(),
+                ["Cifrado:ClaveDatos"] = _claveDatos,
+                ["Cifrado:ClaveBusqueda"] = _claveBusqueda,
                 ["Correo:UrlBase"] = UrlBase,
             })
+            .AddInMemoryCollection(configuracionAdicional ?? new Dictionary<string, string?>())
             .Build();
 
         ServiceCollection servicios = new();

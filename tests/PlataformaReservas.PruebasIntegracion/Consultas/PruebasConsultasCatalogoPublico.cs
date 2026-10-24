@@ -296,6 +296,29 @@ public sealed class PruebasConsultasCatalogoPublico(BaseDatosFixture baseDatos)
     }
 
     [Fact]
+    public async Task Con_dos_empresas_publicables_los_datos_para_reservar_de_una_no_llevan_nada_de_la_otra_ni_dejan_seguimiento()
+    {
+        Categoria categoria = await EscenarioEmpresa.CrearCategoriaAsync(baseDatos);
+        string ciudad = CiudadUnica();
+        Empresa a = await CrearPublicableAsync(categoria.Id, ciudad);
+        Empresa b = await CrearPublicableAsync(categoria.Id, ciudad);
+        List<Guid> serviciosDeB = await EscenarioEmpresa.LeerAsync(
+            baseDatos, db => db.Servicios.Where(s => s.EmpresaId == b.Id).Select(s => s.Id).ToListAsync());
+        List<Guid> profesionalesDeB = await EscenarioEmpresa.LeerAsync(
+            baseDatos, db => db.Profesionales.Where(p => p.EmpresaId == b.Id).Select(p => p.Id).ToListAsync());
+
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        DatosReservaDto datos = (await ambito.ServiceProvider.GetRequiredService<IConsultasReservaPublica>()
+            .ObtenerDatosReservaAsync(a.Slug.Valor, CancellationToken.None))!;
+
+        datos.EmpresaId.Should().Be(a.Id);
+        datos.Servicios.Should().NotBeEmpty();
+        datos.Servicios.Select(s => s.Id).Should().NotIntersectWith(serviciosDeB);
+        datos.Servicios.SelectMany(s => s.Profesionales).Select(p => p.Id).Should().NotIntersectWith(profesionalesDeB);
+        ambito.ServiceProvider.GetRequiredService<ContextoDatos>().ChangeTracker.Entries().Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Los_datos_para_reservar_de_una_empresa_inactiva_o_no_publicable_son_nulos()
     {
         Categoria categoria = await EscenarioEmpresa.CrearCategoriaAsync(baseDatos);

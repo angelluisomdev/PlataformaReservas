@@ -83,6 +83,35 @@ public sealed class PruebasConsultarReservasEmpresa(BaseDatosFixture baseDatos)
         resultado.Codigo.Should().Be(CodigoError.Validacion);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Una_fecha_en_el_extremo_del_calendario_da_validacion_en_lugar_de_lanzar(bool maxima)
+    {
+        EscenarioReserva escenario = await EscenarioReserva.CrearAsync(baseDatos);
+        DateOnly fecha = maxima ? DateOnly.MaxValue : DateOnly.MinValue;
+
+        Resultado<IReadOnlyList<ReservaEmpresaDto>> resultado = await ConsultarAsync(
+            escenario.Empresa.Id, new ConsultarReservasEmpresaComando(fecha, null, null));
+
+        resultado.Codigo.Should().Be(CodigoError.Validacion);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task La_fecha_contigua_al_extremo_del_calendario_se_consulta_sin_error(bool maxima)
+    {
+        EscenarioReserva escenario = await EscenarioReserva.CrearAsync(baseDatos);
+        DateOnly fecha = maxima ? DateOnly.MaxValue.AddDays(-1) : DateOnly.MinValue.AddDays(1);
+
+        Resultado<IReadOnlyList<ReservaEmpresaDto>> resultado = await ConsultarAsync(
+            escenario.Empresa.Id, new ConsultarReservasEmpresaComando(fecha, null, null));
+
+        resultado.EsExito.Should().BeTrue();
+        resultado.Valor.Should().BeEmpty();
+    }
+
     [Fact]
     public async Task Un_profesional_de_otra_empresa_como_filtro_devuelve_una_lista_vacia()
     {

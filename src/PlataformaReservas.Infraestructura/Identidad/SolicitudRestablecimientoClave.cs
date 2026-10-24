@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using PlataformaReservas.Infraestructura.Correo;
 
 namespace PlataformaReservas.Infraestructura.Identidad;
 
@@ -25,8 +26,7 @@ public sealed partial class SolicitudRestablecimientoClave(
             return;
         }
 
-        string urlBase = (configuracion["Correo:UrlBase"] ?? "").TrimEnd('/');
-        if (!Uri.TryCreate(urlBase, UriKind.Absolute, out Uri? raiz) || (raiz.Scheme != Uri.UriSchemeHttps && raiz.Scheme != Uri.UriSchemeHttp))
+        if (!UrlBaseCorreo.IntentarObtener(configuracion, out string urlBase))
         {
             RegistrarSinUrlBase(registro);
             return;

@@ -34,4 +34,20 @@ public sealed class PruebasDatosReservaDto
         datos.Servicios[0].Profesionales.Should().ContainSingle().Which.Id.Should().Be(ana.Id);
         datos.Servicios[1].Profesionales.Should().BeEmpty();
     }
+
+    [Fact]
+    public void Ordena_en_espanol_los_servicios_que_empiezan_por_tilde()
+    {
+        Empresa empresa = Empresa.Crear(
+            Guid.CreateVersion7(), new NombreEmpresa("Barberia Centro"), Slug.Desde("barberia-centro"), Guid.CreateVersion7(),
+            null, new Email("contacto@prueba.es"), new Telefono("600000000"),
+            new Direccion("Calle Mayor 1"), new CodigoPostal("29001"), new Ciudad("Málaga"), Ahora);
+        Servicio corte = Servicio.Crear(Guid.CreateVersion7(), empresa.Id, new NombreServicio("Corte"), new Duracion(30), new Precio(12m), Ahora);
+        Servicio acido = Servicio.Crear(
+            Guid.CreateVersion7(), empresa.Id, new NombreServicio("Ácido hialurónico"), new Duracion(30), new Precio(40m), Ahora);
+
+        DatosReservaDto datos = DatosReservaDto.ConvertirADto(empresa, [corte, acido], []);
+
+        datos.Servicios.Select(s => s.Nombre).Should().Equal("Ácido hialurónico", "Corte");
+    }
 }

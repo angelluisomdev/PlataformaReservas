@@ -7,6 +7,8 @@ namespace PlataformaReservas.Aplicacion.CasosUso.Cuenta;
 
 public sealed class EstablecerTelefono(IContextoUsuario contexto, IServicioCuentas cuentas)
 {
+    private const string YaTieneTelefono = "Ya tienes un telefono en tu perfil.";
+
     public async Task<Resultado> EjecutarAsync(EstablecerTelefonoComando comando, CancellationToken ct)
     {
         if (!contexto.TieneUsuario)
@@ -15,7 +17,6 @@ public sealed class EstablecerTelefono(IContextoUsuario contexto, IServicioCuent
         }
 
         Telefono telefono;
-        
         try
         {
             telefono = new Telefono(comando.Telefono ?? "");
@@ -25,18 +26,20 @@ public sealed class EstablecerTelefono(IContextoUsuario contexto, IServicioCuent
             return Resultado.Fallo(CodigoError.Validacion, error.Message);
         }
 
-        if (telefono is null)
+        (NombrePersona Nombre, Telefono? Telefono)? contacto = await cuentas.ObtenerContactoAsync(contexto.UsuarioActualId, ct);
+        if (contacto?.Telefono is not null)
         {
-            return Resultado.Fallo(CodigoError.Conflicto, "No se ha proporcionado un número de teléfono válido.");
+            return Resultado.Fallo(CodigoError.Conflicto, YaTieneTelefono);
         }
 
         try
         {
             await cuentas.EstablecerTelefonoAsync(contexto.UsuarioActualId, telefono, ct);
         }
-        catch (DominioException error)
+        catch (DominioException)
         {
-            return Resultado.Fallo(CodigoError.Conflicto, error.Message);
+            // Carrera entre dos pestanas: la precondicion se cumplia al leer y otra peticion guardo antes.
+            return Resultado.Fallo(CodigoError.Conflicto, YaTieneTelefono);
         }
 
         return Resultado.Exito();

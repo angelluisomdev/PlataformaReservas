@@ -15,6 +15,11 @@ public sealed class ConsultarReservasEmpresa(IConsultasReservasEmpresa consultas
             return Resultado<IReadOnlyList<ReservaEmpresaDto>>.Fallo(CodigoError.Validacion, "El estado no es valido.");
         }
 
+        if (comando.Fecha == DateOnly.MinValue || comando.Fecha == DateOnly.MaxValue)
+        {
+            return Resultado<IReadOnlyList<ReservaEmpresaDto>>.Fallo(CodigoError.Validacion, "La fecha no es valida.");
+        }
+
         (DateTime desde, DateTime hasta) = MotorDisponibilidad.DiaLocalEnUtc(comando.Fecha);
         IReadOnlyList<ReservaEmpresaDto> reservas = await consultas.ObtenerReservasAsync(
             desde, hasta, comando.ProfesionalId, comando.Estado, reloj.AhoraUtc, ct);

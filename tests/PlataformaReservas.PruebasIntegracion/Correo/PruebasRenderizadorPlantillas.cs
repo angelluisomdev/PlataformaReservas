@@ -160,6 +160,24 @@ public sealed class PruebasRenderizadorPlantillas : IAsyncDisposable
             .And.NotContain("Crear un servicio");
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("/relativa")]
+    public async Task Sin_una_url_base_valida_no_se_compone_un_correo_con_enlaces_rotos(string urlBase)
+    {
+        IConfiguration configuracion = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Correo:UrlBase"] = urlBase })
+            .Build();
+        await using RenderizadorPlantillas sinUrlBase = new(_servicios, NullLoggerFactory.Instance, configuracion);
+
+        Func<Task> registrada = () => sinUrlBase.EmpresaRegistradaAsync(Empresa());
+        Func<Task> dadaDeBaja = () => sinUrlBase.EmpresaDadaDeBajaAsync(Empresa());
+
+        await registrada.Should().ThrowAsync<InvalidOperationException>().WithMessage("*Correo:UrlBase*");
+        await dadaDeBaja.Should().ThrowAsync<InvalidOperationException>();
+        (await sinUrlBase.CuentaRegistradaAsync(Cuenta())).CuerpoHtml.Should().NotBeEmpty("los correos sin enlaces no dependen de UrlBase");
+    }
+
     [Fact]
     public async Task Empresa_registrada_y_ya_publicable_no_lista_pasos()
     {

@@ -7,6 +7,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\PlataformaReservas.Aplicacion\PlataformaReservas.Aplicacion.csproj" />
     <ProjectReference Include="..\..\src\PlataformaReservas.Infraestructura\PlataformaReservas.Infraestructura.csproj" />
+    <ProjectReference Include="..\..\src\PlataformaReservas.Web\PlataformaReservas.Web.csproj" />
   </ItemGroup>
 
   <ItemGroup>

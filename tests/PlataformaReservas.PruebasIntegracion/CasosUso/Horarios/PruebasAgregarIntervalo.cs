@@ -2,7 +2,9 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PlataformaReservas.Aplicacion.CasosUso.Horarios;
+using PlataformaReservas.Aplicacion.CasosUso.Reservas;
 using PlataformaReservas.Aplicacion.Compartido;
+using PlataformaReservas.Aplicacion.Disponibilidad;
 using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.Dominio.ValueObjects;
 using PlataformaReservas.PruebasIntegracion.Infraestructura;
@@ -28,6 +30,26 @@ public sealed class PruebasAgregarIntervalo(BaseDatosFixture baseDatos)
             baseDatos, db => db.Set<Horario>().Where(h => h.ProfesionalId == profesional.Id).ToListAsync());
         guardados.Select(h => h.Id).Should().BeEquivalentTo([manana.Valor, tarde.Valor]);
         guardados.Should().OnlyContain(h => h.EmpresaId == empresa.Id && h.DiaSemana == DayOfWeek.Monday);
+    }
+
+    [Fact]
+    public async Task Tras_guardar_el_intervalo_sus_huecos_aparecen_en_la_disponibilidad_de_ese_profesional()
+    {
+        Empresa empresa = await EscenarioEmpresa.CrearEmpresaAsync(baseDatos);
+        Servicio servicio = DominioPrueba.Servicio(empresa.Id);
+        Profesional profesional = DominioPrueba.Profesional(empresa.Id);
+        profesional.AsociarServicio(servicio.Id);
+        await EscenarioEmpresa.GuardarAsync(baseDatos, servicio, profesional);
+        ConsultarDisponibilidadComando comando = new(empresa.Id, servicio.Id, profesional.Id, EscenarioReserva.Lunes);
+        IReadOnlyList<HuecoDisponible> antes = await DisponibilidadAsync(comando);
+
+        Resultado<Guid> resultado = await AgregarAsync(empresa.Id, profesional.Id, new TimeOnly(9, 0), new TimeOnly(14, 0));
+
+        resultado.EsExito.Should().BeTrue();
+        antes.Should().BeEmpty();
+        IReadOnlyList<HuecoDisponible> despues = await DisponibilidadAsync(comando);
+        despues.Should().NotBeEmpty().And.OnlyContain(h => h.ProfesionalId == profesional.Id);
+        despues[0].InicioUtc.Should().Be(EscenarioReserva.NueveLunesUtc);
     }
 
     [Fact]
@@ -70,6 +92,14 @@ public sealed class PruebasAgregarIntervalo(BaseDatosFixture baseDatos)
         Resultado<Guid> resultado = await AgregarAsync(empresa.Id, Guid.CreateVersion7(), new TimeOnly(9, 0), new TimeOnly(14, 0));
 
         resultado.Codigo.Should().Be(CodigoError.NoEncontrado);
+    }
+
+    private async Task<IReadOnlyList<HuecoDisponible>> DisponibilidadAsync(ConsultarDisponibilidadComando comando)
+    {
+        await using AsyncServiceScope ambito = baseDatos.AmbitoDeUsuario(null);
+        Resultado<IReadOnlyList<HuecoDisponible>> resultado = await ambito.ServiceProvider.GetRequiredService<ConsultarDisponibilidad>()
+            .EjecutarAsync(comando, CancellationToken.None);
+        return resultado.Valor ?? [];
     }
 
     private async Task<Resultado<Guid>> AgregarAsync(Guid empresaId, Guid profesionalId, TimeOnly inicio, TimeOnly fin)

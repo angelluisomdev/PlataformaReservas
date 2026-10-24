@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PlataformaReservas.Aplicacion.CasosUso.Reservas;
 using PlataformaReservas.Aplicacion.Compartido;
+using PlataformaReservas.Aplicacion.Disponibilidad;
 using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.Dominio.Enumeraciones;
 using PlataformaReservas.Dominio.Eventos;
@@ -92,6 +93,34 @@ public sealed class PruebasCancelarReservaEmpresa(BaseDatosFixture baseDatos)
 
         resultado.Codigo.Should().Be(CodigoError.EstadoNoValido);
         (await LeerReservaAsync(completada.Id)).Estado.Should().Be(EstadoReserva.Completada);
+    }
+
+    [Fact]
+    public async Task El_hueco_que_cancela_la_empresa_se_vuelve_a_ofrecer_y_se_puede_volver_a_reservar()
+    {
+        EscenarioReserva escenario = await EscenarioReserva.CrearAsync(baseDatos);
+        Resultado<Guid> primera = await ReservarAsync(escenario);
+        primera.EsExito.Should().BeTrue();
+
+        (await CancelarAsync(escenario.Empresa.Id, primera.Valor)).EsExito.Should().BeTrue();
+
+        await using (AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope())
+        {
+            IReadOnlyList<HuecoDisponible> huecos = await ambito.ServiceProvider.GetRequiredService<IMotorDisponibilidad>()
+                .ObtenerHuecosAsync(
+                    escenario.Empresa.Id, escenario.Servicio.Id, escenario.Profesional.Id, EscenarioReserva.Lunes, CancellationToken.None);
+            huecos.Should().Contain(h => h.ProfesionalId == escenario.Profesional.Id && h.InicioUtc == EscenarioReserva.NueveLunesUtc);
+        }
+
+        Resultado<Guid> segunda = await ReservarAsync(escenario);
+        segunda.EsExito.Should().BeTrue();
+        (await LeerReservaAsync(segunda.Valor)).Estado.Should().Be(EstadoReserva.Confirmada);
+    }
+
+    private async Task<Resultado<Guid>> ReservarAsync(EscenarioReserva escenario)
+    {
+        await using AsyncServiceScope ambito = baseDatos.AmbitoDeUsuario(escenario.Cliente.Id);
+        return await ambito.ServiceProvider.GetRequiredService<CrearReserva>().EjecutarAsync(escenario.Comando(), CancellationToken.None);
     }
 
     private async Task<Resultado> CancelarAsync(Guid empresaId, Guid reservaId)
