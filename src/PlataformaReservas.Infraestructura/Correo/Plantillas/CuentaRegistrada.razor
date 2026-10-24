@@ -1,0 +1,9 @@
+<LayoutCorreo Titulo="Te damos la bienvenida">
+    <p>Hola, @Datos.Nombre. Tu cuenta se ha creado correctamente.</p>
+    <p>Ya puedes buscar establecimientos y reservar tus citas.</p>
+</LayoutCorreo>
+
+@code {
+    [Parameter, EditorRequired]
+    public DatosCuentaNotificacionDto Datos { get; set; } = null!;
+}

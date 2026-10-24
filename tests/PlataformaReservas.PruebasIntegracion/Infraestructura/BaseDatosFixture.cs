@@ -25,6 +25,10 @@ public sealed class BaseDatosFixture : IAsyncLifetime
 
     public RemitenteCaptura Remitente { get; } = new();
 
+    public CorreoCaptura Correo { get; } = new();
+
+    public const string UrlBase = "https://reservas.example";
+
     public string CadenaConexion => _contenedor.GetConnectionString();
 
     public async Task InitializeAsync()
@@ -62,14 +66,17 @@ public sealed class BaseDatosFixture : IAsyncLifetime
                 ["ConnectionStrings:PlataformaReservas"] = CadenaConexion,
                 ["Cifrado:ClaveDatos"] = ClaveAleatoria(),
                 ["Cifrado:ClaveBusqueda"] = ClaveAleatoria(),
+                ["Correo:UrlBase"] = UrlBase,
             })
             .Build();
 
         ServiceCollection servicios = new();
         servicios.AddLogging();
+        servicios.AddSingleton(configuracion);
         servicios.AgregarInfraestructura(configuracion);
         servicios.AgregarAplicacion();
         servicios.AddSingleton<IEmailSender<Usuario>>(Remitente);
+        servicios.AddSingleton<IServicioEmail>(Correo);
         servicios.AddSingleton<IRelojSistema, RelojFijo>();
         servicios.AddScoped<ContextoEmpresaAjustable>();
         servicios.AddScoped<IContextoEmpresa>(sp => sp.GetRequiredService<ContextoEmpresaAjustable>());

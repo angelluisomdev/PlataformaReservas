@@ -1,0 +1,15 @@
+<LayoutCorreo Titulo="Tu cita queda anulada">
+    <p>Hola, @Datos.NombreCliente. <strong>@Datos.Establecimiento</strong> ha cerrado y ha dado de baja su establecimiento, así que tu cita queda anulada.</p>
+    <table style="border-collapse:collapse;">
+        <tr><td style="padding:4px 12px 4px 0;">Establecimiento</td><td>@Datos.Establecimiento</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;">Servicio</td><td>@Datos.Servicio</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;">Profesional</td><td>@Datos.Profesional</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;">Fecha</td><td>@FormatoCorreo.Fecha(Datos.InicioUtc)</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;">Hora</td><td>@FormatoCorreo.Hora(Datos.InicioUtc)</td></tr>
+    </table>
+</LayoutCorreo>
+
+@code {
+    [Parameter, EditorRequired]
+    public DatosReservaNotificacionDto Datos { get; set; } = null!;
+}

@@ -1,0 +1,37 @@
+<LayoutCorreo Titulo="Tu establecimiento está registrado">
+    <p>Hola, @Datos.NombrePropietario. Has registrado <strong>@Datos.Nombre</strong>.</p>
+    <p>Su ficha pública estará en <a href="@EnlaceFicha">@EnlaceFicha</a>.</p>
+    @if (Datos.EsPublicable)
+    {
+        <p>Ya es visible en el buscador.</p>
+    }
+    else
+    {
+        <p>Todavía no es visible. Para publicarlo falta:</p>
+        <ul>
+            @if (!Datos.TieneServicioActivo)
+            {
+                <li><a href="@($"{UrlBase}/app/services")">Crear un servicio</a></li>
+            }
+            @if (!Datos.TieneProfesionalActivo)
+            {
+                <li><a href="@($"{UrlBase}/app/staff")">Crear un profesional</a></li>
+            }
+            @if (!Datos.TieneAsociacion)
+            {
+                <li><a href="@($"{UrlBase}/app/staff")">Asociar un profesional a un servicio</a></li>
+            }
+            <li><a href="@($"{UrlBase}/app/schedules")">Definir el horario de un profesional que preste un servicio</a></li>
+        </ul>
+    }
+</LayoutCorreo>
+
+@code {
+    [Parameter, EditorRequired]
+    public DatosEmpresaNotificacionDto Datos { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public string UrlBase { get; set; } = "";
+
+    private string EnlaceFicha => $"{UrlBase}/businesses/{Datos.Slug}";
+}

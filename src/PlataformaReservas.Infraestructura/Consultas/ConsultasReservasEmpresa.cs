@@ -22,19 +22,13 @@ public sealed class ConsultasReservasEmpresa(ContextoDatos db, IContextoEmpresa 
     {
         Guid empresaId = contexto.EmpresaActualId;
         bool activa = await db.Empresas.Where(e => e.Id == empresaId).Select(e => e.Activa).SingleAsync(ct);
-        bool tieneServicioActivo = await db.Servicios.AnyAsync(s => s.EmpresaId == empresaId && s.Activo, ct);
-        bool tieneProfesionalActivo = await db.Profesionales.AnyAsync(p => p.EmpresaId == empresaId && p.Activo, ct);
-        bool tieneAsociacion = await db.Profesionales.AnyAsync(p =>
-            p.EmpresaId == empresaId && p.Activo
-            && EF.Property<List<ProfesionalServicio>>(p, "_servicios").Any(ps =>
-                db.Servicios.Any(s => s.Id == ps.ServicioId && s.EmpresaId == empresaId && s.Activo)), ct);
-        bool esPublicable = await db.Empresas.Where(e => e.Id == empresaId).AnyAsync(CondicionPublicable.Aplica(db), ct);
+        CondicionPublicable.Requisitos requisitos = await CondicionPublicable.RequisitosAsync(db, empresaId, ct);
 
         List<FilaReserva> hoy = await Propias(hoyDesdeUtc, hoyHastaUtc, null, null).ToListAsync(ct);
         List<FilaReserva> proximas = await Propias(hoyHastaUtc, proximasHastaUtc, null, EstadoReserva.Confirmada).ToListAsync(ct);
 
         return PanelEmpresaDto.ConvertirADto(
-            activa, tieneServicioActivo, tieneProfesionalActivo, tieneAsociacion, esPublicable,
+            activa, requisitos.TieneServicioActivo, requisitos.TieneProfesionalActivo, requisitos.TieneAsociacion, requisitos.EsPublicable,
             hoy.Select(f => ADto(f, ahoraUtc)), proximas.Select(f => ADto(f, ahoraUtc)));
     }
 

@@ -27,8 +27,16 @@ public sealed partial class ProcesadorEventos(ColaEventos cola, IServiceScopeFac
             Type tipoManejador = typeof(IManejadorEvento<>).MakeGenericType(evento.GetType());
             foreach (object? manejador in ambito.ServiceProvider.GetServices(tipoManejador))
             {
-                await (Task)tipoManejador.GetMethod(nameof(IManejadorEvento<IEventoDominio>.ManejarAsync))!
-                    .Invoke(manejador, [evento, ct])!;
+                // Un manejador que falla no impide los demas del mismo evento (RN-141).
+                try
+                {
+                    await (Task)tipoManejador.GetMethod(nameof(IManejadorEvento<IEventoDominio>.ManejarAsync))!
+                        .Invoke(manejador, [evento, ct])!;
+                }
+                catch (Exception error) when (error is not OperationCanceledException || !ct.IsCancellationRequested)
+                {
+                    RegistrarFalloManejador(registro, error, evento.GetType().Name, manejador!.GetType().Name);
+                }
             }
         }
         catch (Exception error) when (error is not OperationCanceledException || !ct.IsCancellationRequested)
@@ -39,4 +47,7 @@ public sealed partial class ProcesadorEventos(ColaEventos cola, IServiceScopeFac
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Fallo al procesar el evento {TipoEvento}")]
     private static partial void RegistrarFallo(ILogger registro, Exception error, string tipoEvento);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Fallo al procesar el evento {TipoEvento} en {Manejador}")]
+    private static partial void RegistrarFalloManejador(ILogger registro, Exception error, string tipoEvento, string manejador);
 }

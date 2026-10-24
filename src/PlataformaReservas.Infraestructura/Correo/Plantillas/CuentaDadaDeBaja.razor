@@ -1,0 +1,9 @@
+<LayoutCorreo Titulo="Tu cuenta se ha dado de baja">
+    <p>Hola, @Datos.Nombre. Tu cuenta se ha dado de baja y ya no podrás iniciar sesión con ella.</p>
+    <p>Se han cancelado @Datos.ReservasCanceladas reserva(s) futura(s), y cada establecimiento afectado ha recibido un aviso.</p>
+</LayoutCorreo>
+
+@code {
+    [Parameter, EditorRequired]
+    public DatosCuentaNotificacionDto Datos { get; set; } = null!;
+}

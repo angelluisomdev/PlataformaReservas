@@ -1,0 +1,13 @@
+<LayoutCorreo Titulo="Restablece tu contraseña">
+    <p>Hola, @Nombre. Hemos recibido una solicitud para restablecer tu contraseña.</p>
+    <p><a href="@Enlace">Restablecer la contraseña</a></p>
+    <p>El enlace solo sirve una vez y caduca. Si no lo has pedido tú, ignora este correo.</p>
+</LayoutCorreo>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Nombre { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string Enlace { get; set; } = "";
+}

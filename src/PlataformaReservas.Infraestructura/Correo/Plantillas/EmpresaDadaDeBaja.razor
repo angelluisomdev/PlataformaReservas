@@ -1,0 +1,15 @@
+<LayoutCorreo Titulo="Tu establecimiento se ha dado de baja">
+    <p>Hola, @Datos.NombrePropietario. <strong>@Datos.Nombre</strong> se ha dado de baja y ya no aparece en el catálogo.</p>
+    <p>Se han cancelado @Datos.ReservasCanceladas reserva(s) futura(s) y cada cliente afectado ha recibido un aviso.</p>
+    <p>Puedes reactivarlo cuando quieras desde <a href="@EnlaceReactivar">la configuración del establecimiento</a>. Las reservas canceladas no se restauran.</p>
+</LayoutCorreo>
+
+@code {
+    [Parameter, EditorRequired]
+    public DatosEmpresaNotificacionDto Datos { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public string UrlBase { get; set; } = "";
+
+    private string EnlaceReactivar => $"{UrlBase}/app/settings";
+}

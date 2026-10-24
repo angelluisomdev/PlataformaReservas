@@ -1,12 +1,14 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore.Storage;
+using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Dominio.Compartido;
+using PlataformaReservas.Dominio.Eventos;
 using PlataformaReservas.Dominio.ValueObjects;
 using PlataformaReservas.Infraestructura.Persistencia;
 
 namespace PlataformaReservas.Infraestructura.Identidad;
 
-public sealed class RegistroCliente(UserManager<Usuario> usuarios, ContextoDatos db)
+public sealed class RegistroCliente(UserManager<Usuario> usuarios, ContextoDatos db, IPublicadorEventos publicador)
 {
     public async Task<(IdentityResult Resultado, Usuario? Usuario)> RegistrarAsync(
         string email, string nombreCompleto, string? telefono, string clave, DateTime ahoraUtc)
@@ -36,6 +38,7 @@ public sealed class RegistroCliente(UserManager<Usuario> usuarios, ContextoDatos
         if (resultado.Succeeded)
         {
             await transaccion.CommitAsync();
+            await publicador.PublicarAsync([new CuentaRegistrada(usuario.Id, ahoraUtc)], CancellationToken.None);
         }
 
         return (resultado, usuario);

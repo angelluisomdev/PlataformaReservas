@@ -3,8 +3,11 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using PlataformaReservas.Aplicacion.Abstracciones;
+using PlataformaReservas.Aplicacion.Dtos.Notificaciones;
+using PlataformaReservas.Aplicacion.Notificaciones;
 using PlataformaReservas.Dominio.Enumeraciones;
 using PlataformaReservas.Dominio.Eventos;
+using PlataformaReservas.Infraestructura.Correo;
 using PlataformaReservas.Infraestructura.Eventos;
 
 namespace PlataformaReservas.PruebasIntegracion.Eventos;
@@ -59,6 +62,44 @@ public sealed class PruebasProcesadorEventos
         await montaje.Procesador.ProcesarAsync(siguiente, CancellationToken.None);
 
         montaje.Registro.Errores.Should().ContainSingle().Which.Should().Contain(nameof(ReservaCancelada));
+        montaje.Manejados.Should().ContainSingle().Which.Should().Be(siguiente);
+    }
+
+    [Fact]
+    public async Task Un_manejador_que_lanza_no_impide_que_se_ejecute_el_siguiente_manejador_del_mismo_evento()
+    {
+        await using Montaje montaje = Montaje.Crear(s =>
+        {
+            s.AddScoped<IManejadorEvento<ReservaCancelada>, ManejadorQueFalla>();
+            s.AddScoped<IManejadorEvento<ReservaCancelada>, ManejadorCaptura<ReservaCancelada>>();
+        });
+        ReservaCancelada evento = new(Guid.CreateVersion7(), OrigenCancelacion.Cliente, Ahora);
+
+        await montaje.Procesador.ProcesarAsync(evento, CancellationToken.None);
+
+        montaje.Manejados.Should().ContainSingle().Which.Should().Be(evento);
+        montaje.Registro.Errores.Should().ContainSingle().Which.Should().Contain(nameof(ManejadorQueFalla));
+    }
+
+    [Fact]
+    public async Task Con_el_correo_caido_el_manejador_real_registra_el_fallo_y_el_procesador_sigue_con_el_siguiente_evento()
+    {
+        await using Montaje montaje = Montaje.Crear(s =>
+        {
+            s.AddScoped<IConsultasNotificacion, ConsultasConDatos>();
+            s.AddScoped<IRenderizadorPlantillas, RenderizadorConAsunto>();
+            s.AddScoped<IServicioEmail, CorreoQueFalla>();
+            s.AddScoped<IManejadorEvento<ReservaConfirmada>, EnviarCorreosReservaConfirmada>();
+            s.AddScoped<IManejadorEvento<EmpresaRegistrada>, ManejadorCaptura<EmpresaRegistrada>>();
+        });
+        EmpresaRegistrada siguiente = new(Guid.CreateVersion7(), Ahora);
+
+        Func<Task> conCorreoCaido = () => montaje.Procesador.ProcesarAsync(
+            new ReservaConfirmada(Guid.CreateVersion7(), Ahora), CancellationToken.None);
+        await conCorreoCaido.Should().NotThrowAsync();
+        await montaje.Procesador.ProcesarAsync(siguiente, CancellationToken.None);
+
+        montaje.Registro.Errores.Should().ContainSingle().Which.Should().Contain(nameof(EnviarCorreosReservaConfirmada));
         montaje.Manejados.Should().ContainSingle().Which.Should().Be(siguiente);
     }
 
@@ -185,6 +226,61 @@ public sealed class PruebasProcesadorEventos
         public Task ManejarAsync(ReservaCancelada evento, CancellationToken ct)
         {
             throw new InvalidOperationException("El manejador falla a proposito.");
+        }
+    }
+
+    private sealed class ConsultasConDatos : IConsultasNotificacion
+    {
+        public Task<DatosReservaNotificacionDto?> ObtenerDatosReservaAsync(Guid reservaId, CancellationToken ct)
+        {
+            return Task.FromResult<DatosReservaNotificacionDto?>(new DatosReservaNotificacionDto(
+                reservaId, "Barberia Centro", "Calle Mayor 1, 37001 Salamanca", "contacto@barberia.es", "Corte", "Ana Garcia", Ahora, 45,
+                18.50m, "Lucia Fernandez", "611222333", "lucia@ejemplo.es"));
+        }
+
+        public Task<DatosEmpresaNotificacionDto?> ObtenerDatosEmpresaAsync(Guid empresaId, DateTime instanteEvento, CancellationToken ct)
+        {
+            return Task.FromResult<DatosEmpresaNotificacionDto?>(null);
+        }
+
+        public Task<DatosCuentaNotificacionDto?> ObtenerDatosCuentaAsync(Guid usuarioId, DateTime instanteEvento, CancellationToken ct)
+        {
+            return Task.FromResult<DatosCuentaNotificacionDto?>(null);
+        }
+    }
+
+    private sealed class RenderizadorConAsunto : IRenderizadorPlantillas
+    {
+        public Task<MensajeCorreo> ReservaConfirmadaClienteAsync(DatosReservaNotificacionDto datos) => Mensaje(datos.EmailCliente);
+
+        public Task<MensajeCorreo> ReservaConfirmadaNegocioAsync(DatosReservaNotificacionDto datos) => Mensaje(datos.EmailEstablecimiento);
+
+        public Task<MensajeCorreo> ReservaCanceladaPorClienteAsync(DatosReservaNotificacionDto datos) => throw new NotSupportedException();
+
+        public Task<MensajeCorreo> ReservaCanceladaPorEmpresaAsync(DatosReservaNotificacionDto datos) => throw new NotSupportedException();
+
+        public Task<MensajeCorreo> ReservaCanceladaPorBajaEmpresaAsync(DatosReservaNotificacionDto datos) => throw new NotSupportedException();
+
+        public Task<MensajeCorreo> ReservaCanceladaPorBajaCuentaAsync(DatosReservaNotificacionDto datos) => throw new NotSupportedException();
+
+        public Task<MensajeCorreo> EmpresaRegistradaAsync(DatosEmpresaNotificacionDto datos) => throw new NotSupportedException();
+
+        public Task<MensajeCorreo> EmpresaDadaDeBajaAsync(DatosEmpresaNotificacionDto datos) => throw new NotSupportedException();
+
+        public Task<MensajeCorreo> CuentaRegistradaAsync(DatosCuentaNotificacionDto datos) => throw new NotSupportedException();
+
+        public Task<MensajeCorreo> CuentaDadaDeBajaAsync(DatosCuentaNotificacionDto datos) => throw new NotSupportedException();
+
+        public Task<MensajeCorreo> RestablecimientoClaveAsync(string correo, string nombre, string enlace) => throw new NotSupportedException();
+
+        private static Task<MensajeCorreo> Mensaje(string para) => Task.FromResult(new MensajeCorreo(para, "Asunto", "<p>Cuerpo</p>"));
+    }
+
+    private sealed class CorreoQueFalla : IServicioEmail
+    {
+        public Task EnviarAsync(MensajeCorreo mensaje, CancellationToken ct)
+        {
+            throw new CorreoNoEnviadoException("SocketException");
         }
     }
 

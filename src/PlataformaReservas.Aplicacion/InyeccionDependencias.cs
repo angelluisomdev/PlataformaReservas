@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Aplicacion.CasosUso.Cuenta;
 using PlataformaReservas.Aplicacion.CasosUso.Empresas;
 using PlataformaReservas.Aplicacion.CasosUso.Horarios;
@@ -6,6 +7,8 @@ using PlataformaReservas.Aplicacion.CasosUso.Profesionales;
 using PlataformaReservas.Aplicacion.CasosUso.Reservas;
 using PlataformaReservas.Aplicacion.CasosUso.Servicios;
 using PlataformaReservas.Aplicacion.Disponibilidad;
+using PlataformaReservas.Aplicacion.Notificaciones;
+using PlataformaReservas.Dominio.Eventos;
 
 namespace PlataformaReservas.Aplicacion;
 
@@ -47,6 +50,12 @@ public static class InyeccionDependencias
         servicios.AddScoped<ConsultarDetalleReserva>();
         servicios.AddScoped<ConsultarReservasEmpresa>();
         servicios.AddScoped<ConsultarPanelEmpresa>();
+        servicios.AddScoped<IManejadorEvento<ReservaConfirmada>, EnviarCorreosReservaConfirmada>();
+        servicios.AddScoped<IManejadorEvento<ReservaCancelada>, EnviarCorreoReservaCancelada>();
+        servicios.AddScoped<IManejadorEvento<EmpresaRegistrada>, EnviarCorreoEmpresaRegistrada>();
+        servicios.AddScoped<IManejadorEvento<EmpresaDadaDeBaja>, EnviarCorreoEmpresaDadaDeBaja>();
+        servicios.AddScoped<IManejadorEvento<CuentaRegistrada>, EnviarCorreoCuentaRegistrada>();
+        servicios.AddScoped<IManejadorEvento<CuentaDadaDeBaja>, EnviarCorreoCuentaDadaDeBaja>();
 
         servicios.AddScoped<EstablecerTelefono>();
         servicios.AddScoped<ConsultarPerfil>();

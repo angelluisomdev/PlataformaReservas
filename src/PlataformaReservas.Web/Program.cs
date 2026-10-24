@@ -15,7 +15,6 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();
-builder.Services.AddSingleton<IEmailSender<Usuario>, IdentityNoOpEmailSender>();
 builder.Services.AddScoped<AuthenticationStateProvider, RevalidadorIdentidad>();
 
 builder.Services.AgregarInfraestructura(builder.Configuration);

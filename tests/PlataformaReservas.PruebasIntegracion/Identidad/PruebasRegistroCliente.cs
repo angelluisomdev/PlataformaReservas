@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
+using PlataformaReservas.Dominio.Eventos;
 using PlataformaReservas.Infraestructura.Identidad;
 using PlataformaReservas.PruebasIntegracion.Infraestructura;
 using static PlataformaReservas.PruebasIntegracion.Infraestructura.UsuariosPrueba;
@@ -75,6 +76,35 @@ public sealed class PruebasRegistroCliente(BaseDatosFixture baseDatos)
         UserManager<Usuario> usuarios = ambito.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
         resultado.Succeeded.Should().BeTrue();
         (await usuarios.FindByEmailAsync(correo))!.Telefono.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Tras_crear_la_cuenta_publica_CuentaRegistrada_con_su_identificador()
+    {
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        RegistroCliente registro = ambito.ServiceProvider.GetRequiredService<RegistroCliente>();
+
+        (IdentityResult resultado, Usuario? usuario) = await registro.RegistrarAsync(CorreoUnico(), "Ana Garcia", null, Clave, Ahora);
+
+        resultado.Succeeded.Should().BeTrue();
+        ambito.ServiceProvider.GetRequiredService<PublicadorCaptura>().Publicados
+            .Should().ContainSingle().Which.Should().Be(new CuentaRegistrada(usuario!.Id, Ahora));
+    }
+
+    [Fact]
+    public async Task Un_registro_fallido_no_publica_nada()
+    {
+        string correo = CorreoUnico();
+        await RegistrarAsync(correo);
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        RegistroCliente registro = ambito.ServiceProvider.GetRequiredService<RegistroCliente>();
+
+        (IdentityResult duplicado, _) = await registro.RegistrarAsync(correo, "Ana Garcia", null, Clave, Ahora);
+        (IdentityResult invalido, _) = await registro.RegistrarAsync(CorreoUnico(), "Ana Garcia", "600 abc 000", Clave, Ahora);
+
+        duplicado.Succeeded.Should().BeFalse();
+        invalido.Succeeded.Should().BeFalse();
+        ambito.ServiceProvider.GetRequiredService<PublicadorCaptura>().Publicados.Should().BeEmpty();
     }
 
     private async Task<(IdentityResult Resultado, Usuario? Usuario)> RegistrarAsync(

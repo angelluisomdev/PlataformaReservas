@@ -10,8 +10,10 @@ using PlataformaReservas.Aplicacion;
 using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Aplicacion.CasosUso.Reservas;
 using PlataformaReservas.Aplicacion.Disponibilidad;
+using PlataformaReservas.Dominio.Eventos;
 using PlataformaReservas.Dominio.Repositorios;
 using PlataformaReservas.Infraestructura;
+using PlataformaReservas.Infraestructura.Correo;
 using PlataformaReservas.Infraestructura.Eventos;
 using PlataformaReservas.Infraestructura.Identidad;
 using PlataformaReservas.PruebasIntegracion.Infraestructura;
@@ -147,6 +149,71 @@ public sealed class PruebasInyeccionDependencias(BaseDatosFixture baseDatos)
             .Which.Lifetime.Should().Be(ServiceLifetime.Singleton);
         proveedor.GetRequiredService<IPublicadorEventos>().Should().BeSameAs(proveedor.GetRequiredService<ColaEventos>());
         servicios.Should().Contain(d => d.ServiceType == typeof(IHostedService) && d.ImplementationType == typeof(ProcesadorEventos));
+    }
+
+    [Theory]
+    [InlineData(null, typeof(ServicioEmailRegistro))]
+    [InlineData("false", typeof(ServicioEmailRegistro))]
+    [InlineData("true", typeof(ServicioEmailSmtp))]
+    public void El_servicio_de_correo_solo_envia_de_verdad_si_esta_habilitado(string? habilitado, Type esperado)
+    {
+        ServiceCollection servicios = new();
+        servicios.AgregarInfraestructura(new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Correo:Habilitado"] = habilitado })
+            .Build());
+
+        ServiceDescriptor correo = servicios.Should().ContainSingle(d => d.ServiceType == typeof(IServicioEmail)).Subject;
+        correo.ImplementationType.Should().Be(esperado);
+        correo.Lifetime.Should().Be(ServiceLifetime.Scoped);
+        servicios.Should().ContainSingle(d => d.ServiceType == typeof(IRenderizadorPlantillas))
+            .Which.Lifetime.Should().Be(ServiceLifetime.Scoped);
+        servicios.Should().ContainSingle(d => d.ServiceType == typeof(IConsultasNotificacion))
+            .Which.Lifetime.Should().Be(ServiceLifetime.Scoped);
+        ServiceDescriptor remitente = servicios.Should().ContainSingle(d => d.ServiceType == typeof(IEmailSender<Usuario>)).Subject;
+        remitente.ImplementationType.Should().Be<RemitenteIdentity>();
+        remitente.Lifetime.Should().Be(ServiceLifetime.Scoped);
+    }
+
+    [Fact]
+    public void Cada_evento_de_dominio_tiene_su_manejador_de_correo_scoped()
+    {
+        ServiceCollection servicios = new();
+        servicios.AgregarAplicacion();
+
+        Type[] eventos =
+        [
+            typeof(ReservaConfirmada), typeof(ReservaCancelada), typeof(EmpresaRegistrada), typeof(EmpresaDadaDeBaja),
+            typeof(CuentaRegistrada), typeof(CuentaDadaDeBaja),
+        ];
+
+        eventos.Should().AllSatisfy(evento => servicios
+            .Should().ContainSingle(d => d.ServiceType == typeof(IManejadorEvento<>).MakeGenericType(evento))
+            .Which.Lifetime.Should().Be(ServiceLifetime.Scoped));
+    }
+
+    [Theory]
+    [InlineData("appsettings.json")]
+    [InlineData("appsettings.Development.json")]
+    public void La_configuracion_del_repositorio_no_habilita_el_envio_de_correo(string fichero)
+    {
+        string ruta = Path.Combine(RaizRepositorio(), "src", "PlataformaReservas.Web", fichero);
+
+        IConfiguration configuracion = new ConfigurationBuilder().AddJsonFile(ruta, optional: false).Build();
+
+        configuracion.GetSection("Correo").Exists().Should().BeTrue();
+        configuracion.GetValue<bool>("Correo:Habilitado").Should().BeFalse();
+        configuracion["Correo:Contrasena"].Should().BeNullOrEmpty();
+    }
+
+    private static string RaizRepositorio()
+    {
+        DirectoryInfo? directorio = new(AppContext.BaseDirectory);
+        while (directorio is not null && !File.Exists(Path.Combine(directorio.FullName, "Directory.Packages.props")))
+        {
+            directorio = directorio.Parent;
+        }
+
+        return directorio?.FullName ?? throw new InvalidOperationException("No se encuentra la raiz del repositorio.");
     }
 
     private static ClaimsPrincipal Principal(params Claim[] claims)

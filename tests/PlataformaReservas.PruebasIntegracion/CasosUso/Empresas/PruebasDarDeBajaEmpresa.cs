@@ -132,6 +132,40 @@ public sealed class PruebasDarDeBajaEmpresa(BaseDatosFixture baseDatos)
     }
 
     [Fact]
+    public async Task Con_300_reservas_futuras_publica_301_eventos_sin_enviar_ningun_correo_dentro_de_la_operacion()
+    {
+        Empresa empresa = await EscenarioEmpresa.CrearEmpresaAsync(baseDatos);
+        Usuario usuario = await UsuariosPrueba.CrearAsync(baseDatos, UsuariosPrueba.CorreoUnico());
+        Servicio servicio = DominioPrueba.Servicio(empresa.Id);
+        Profesional profesional = DominioPrueba.Profesional(empresa.Id);
+        Reserva[] futuras =
+        [
+            .. Enumerable.Range(1, 300).Select(h => Nueva(empresa.Id, usuario.Id, profesional.Id, servicio, DominioPrueba.Ahora.AddHours(h))),
+        ];
+        await EscenarioEmpresa.GuardarAsync(baseDatos, [servicio, profesional, .. futuras]);
+
+        int correosAntes = baseDatos.Correo.Enviados.Count;
+        bool fallabaAntes = baseDatos.Correo.Fallar;
+        baseDatos.Correo.Fallar = true;
+        await using AsyncServiceScope ambito = baseDatos.AmbitoDeEmpresa(empresa.Id);
+        Resultado<int> resultado;
+        try
+        {
+            resultado = await ambito.ServiceProvider.GetRequiredService<DarDeBajaEmpresa>().EjecutarAsync(CancellationToken.None);
+        }
+        finally
+        {
+            baseDatos.Correo.Fallar = fallabaAntes;
+        }
+
+        resultado.EsExito.Should().BeTrue("un correo que falla no puede afectar a la baja, porque dentro de la operacion no se envia ninguno");
+        baseDatos.Correo.Enviados.Count.Should().Be(correosAntes);
+        resultado.Valor.Should().Be(300);
+        ambito.ServiceProvider.GetRequiredService<PublicadorCaptura>().Publicados.Should().HaveCount(301)
+            .And.ContainSingle(e => e is EmpresaDadaDeBaja);
+    }
+
+    [Fact]
     public async Task Con_un_publicador_que_falla_la_baja_y_las_cancelaciones_quedan_confirmadas()
     {
         Empresa empresa = await EscenarioEmpresa.CrearEmpresaAsync(baseDatos);

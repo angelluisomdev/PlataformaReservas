@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Dominio.Repositorios;
 using PlataformaReservas.Infraestructura.Consultas;
+using PlataformaReservas.Infraestructura.Correo;
 using PlataformaReservas.Infraestructura.Eventos;
 using PlataformaReservas.Infraestructura.Identidad;
 using PlataformaReservas.Infraestructura.Persistencia;
@@ -28,6 +29,7 @@ public static class InyeccionDependencias
 
         servicios.AgregarIdentidad(configuracion);
         servicios.AgregarPuertosAplicacion();
+        servicios.AgregarCorreo(configuracion);
         servicios.AgregarRepositorios();
 
         return servicios;
@@ -52,6 +54,22 @@ public static class InyeccionDependencias
         servicios.AddSingleton<ColaEventos>();
         servicios.AddSingleton<IPublicadorEventos>(sp => sp.GetRequiredService<ColaEventos>());
         servicios.AddHostedService<ProcesadorEventos>();
+    }
+
+    private static void AgregarCorreo(this IServiceCollection servicios, IConfiguration configuracion)
+    {
+        if (configuracion.GetValue<bool>("Correo:Habilitado"))
+        {
+            servicios.AddScoped<IServicioEmail, ServicioEmailSmtp>();
+        }
+        else
+        {
+            servicios.AddScoped<IServicioEmail, ServicioEmailRegistro>();
+        }
+
+        servicios.AddScoped<IRenderizadorPlantillas, RenderizadorPlantillas>();
+        servicios.AddScoped<IConsultasNotificacion, ConsultasNotificacion>();
+        servicios.AddScoped<IEmailSender<Usuario>, RemitenteIdentity>();
     }
 
     private static void AgregarRepositorios(this IServiceCollection servicios)
