@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Aplicacion.Compartido;
+using PlataformaReservas.Aplicacion.Disponibilidad;
 using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.Dominio.Enumeraciones;
 using PlataformaReservas.Dominio.ValueObjects;
@@ -14,7 +15,7 @@ namespace PlataformaReservas.Infraestructura.Persistencia.DatosIniciales;
 
 public static partial class SembradorDatos
 {
-    public const string CorreoClienteDemostracion = "cliente@demo.example";
+    public const string CorreoClienteDemostracion = CatalogoDemostracion.CorreoClientePrincipal;
 
     private static readonly string[] _categorias =
     [
@@ -28,13 +29,8 @@ public static partial class SembradorDatos
         "Entrenamiento personal",
     ];
 
-    private static readonly EmpresaDemostracion[] _empresasDemostracion =
-    [
-        new("Barbería Centro", "demo-barberia-centro", "barberia", "Calle Mayor 10", "37001", "Salamanca",
-            "propietario.barberia@demo.example", "Carlos Martin", [("Corte de pelo", 30, 15m), ("Corte y barba", 45, 22m)], "Ana Garcia"),
-        new("Estética Norte", "demo-estetica-norte", "estetica", "Avenida de Portugal 25", "37005", "Salamanca",
-            "propietaria.estetica@demo.example", "Laura Sanz", [("Limpieza facial", 60, 40m), ("Manicura", 45, 20m)], "Marta Ruiz"),
-    ];
+    private static readonly TimeSpan[] _horasReserva =
+        [new(9, 30, 0), new(11, 30, 0), new(16, 30, 0), new(18, 30, 0)];
 
     public static async Task MigrarYSembrarAsync(this IServiceProvider servicios, CancellationToken ct)
     {
@@ -82,18 +78,16 @@ public static partial class SembradorDatos
             RegistrarSinClave(registro);
         }
 
-        foreach (EmpresaDemostracion demostracion in _empresasDemostracion)
+        List<ClienteSembrado> clientes = string.IsNullOrEmpty(clave) ? [] : await SembrarClientesAsync(servicios, clave, ahora);
+        int turno = 0;
+        foreach (EmpresaDemostracion demostracion in CatalogoDemostracion.Empresas)
         {
             Guid empresaId = await SembrarEmpresaAsync(db, demostracion, ahora, ct);
             if (!string.IsNullOrEmpty(clave))
             {
                 await SembrarPropietarioAsync(servicios, db, demostracion, empresaId, clave, ahora, ct);
+                turno = await SembrarReservasAsync(db, empresaId, clientes, turno, ahora, ct);
             }
-        }
-
-        if (!string.IsNullOrEmpty(clave))
-        {
-            await SembrarClienteAsync(servicios, clave, ahora);
         }
     }
 
@@ -109,26 +103,42 @@ public static partial class SembradorDatos
         Slug categoria = Slug.Desde(demostracion.Categoria);
         Guid categoriaId = await db.Categorias.Where(c => c.Slug == categoria).Select(c => c.Id).SingleAsync(ct);
         Empresa empresa = Empresa.Crear(
-            Guid.CreateVersion7(), new NombreEmpresa(demostracion.Nombre), slug, categoriaId, null,
-            new Email($"contacto.{demostracion.Slug}@demo.example"), new Telefono("923000000"),
+            Guid.CreateVersion7(), new NombreEmpresa(demostracion.Nombre), slug, categoriaId,
+            demostracion.Descripcion is null ? null : new DescripcionEmpresa(demostracion.Descripcion),
+            new Email($"contacto.{demostracion.Slug}@demo.example"), new Telefono(demostracion.Telefono),
             new Direccion(demostracion.Direccion), new CodigoPostal(demostracion.CodigoPostal), new Ciudad(demostracion.Ciudad), ahora);
-        Profesional profesional = Profesional.Crear(Guid.CreateVersion7(), empresa.Id, new NombrePersona(demostracion.Profesional), ahora);
         db.Empresas.Add(empresa);
+
+        List<Guid> servicios = [];
         foreach ((string nombre, int minutos, decimal precio) in demostracion.Servicios)
         {
             Servicio servicio = Servicio.Crear(
                 Guid.CreateVersion7(), empresa.Id, new NombreServicio(nombre), new Duracion(minutos), new Precio(precio), ahora);
             db.Servicios.Add(servicio);
-            profesional.AsociarServicio(servicio.Id);
+            servicios.Add(servicio.Id);
         }
 
-        foreach (DayOfWeek dia in new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday })
+        for (int p = 0; p < demostracion.Profesionales.Count; p++)
         {
-            profesional.AgregarIntervalo(Guid.CreateVersion7(), dia, new IntervaloHorario(new TimeOnly(9, 0), new TimeOnly(14, 0)));
-            profesional.AgregarIntervalo(Guid.CreateVersion7(), dia, new IntervaloHorario(new TimeOnly(16, 0), new TimeOnly(20, 0)));
+            Profesional profesional = Profesional.Crear(
+                Guid.CreateVersion7(), empresa.Id, new NombrePersona(demostracion.Profesionales[p]), ahora);
+            for (int s = 0; s < servicios.Count; s++)
+            {
+                if (servicios.Count == 1 || s != p % servicios.Count)
+                {
+                    profesional.AsociarServicio(servicios[s]);
+                }
+            }
+
+            foreach (DayOfWeek dia in new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday })
+            {
+                profesional.AgregarIntervalo(Guid.CreateVersion7(), dia, new IntervaloHorario(new TimeOnly(9, 0), new TimeOnly(14, 0)));
+                profesional.AgregarIntervalo(Guid.CreateVersion7(), dia, new IntervaloHorario(new TimeOnly(16, 0), new TimeOnly(20, 0)));
+            }
+
+            db.Profesionales.Add(profesional);
         }
 
-        db.Profesionales.Add(profesional);
         empresa.LimpiarEventos();
         await db.SaveChangesAsync(ct);
         return empresa.Id;
@@ -165,40 +175,122 @@ public static partial class SembradorDatos
         await db.SaveChangesAsync(ct);
     }
 
-    private static async Task SembrarClienteAsync(IServiceProvider servicios, string clave, DateTime ahora)
+    private static async Task<List<ClienteSembrado>> SembrarClientesAsync(IServiceProvider servicios, string clave, DateTime ahora)
     {
         UserManager<Usuario> usuarios = servicios.GetRequiredService<UserManager<Usuario>>();
-        if (await usuarios.FindByEmailAsync(CorreoClienteDemostracion) is not null)
+        List<ClienteSembrado> sembrados = [];
+        foreach (ClienteDemostracion demostracion in CatalogoDemostracion.Clientes)
         {
-            return;
+            NombrePersona nombre = new(demostracion.Nombre);
+            Telefono telefono = new(demostracion.Telefono);
+            Usuario? cliente = await usuarios.FindByEmailAsync(demostracion.Correo);
+            if (cliente is null)
+            {
+                cliente = Usuario.Crear(demostracion.Correo, nombre, telefono, ahora);
+                IdentityResult resultado = await usuarios.CreateAsync(cliente, clave);
+                if (resultado.Succeeded)
+                {
+                    resultado = await usuarios.AddToRoleAsync(cliente, RolesIdentidad.Cliente);
+                }
+
+                if (!resultado.Succeeded)
+                {
+                    throw new InvalidOperationException(
+                        $"No se pudo sembrar el cliente de demostracion: {string.Join(", ", resultado.Errors.Select(e => e.Code))}");
+                }
+            }
+
+            sembrados.Add(new ClienteSembrado(cliente.Id, nombre, telefono));
         }
 
-        Usuario cliente = Usuario.Crear(CorreoClienteDemostracion, new NombrePersona("Lucia Fernandez"), new Telefono("600111222"), ahora);
-        IdentityResult resultado = await usuarios.CreateAsync(cliente, clave);
-        if (resultado.Succeeded)
+        return sembrados;
+    }
+
+    // Solo para empresas sin reservas: asi es idempotente aunque la empresa naciera en un arranque sin clave.
+    // Cada profesional usa dias distintos y horas separadas 2 h, y ningun servicio pasa de 60 min: no hay solapes.
+    private static async Task<int> SembrarReservasAsync(
+        ContextoDatos db, Guid empresaId, List<ClienteSembrado> clientes, int turno, DateTime ahora, CancellationToken ct)
+    {
+        if (clientes.Count == 0 || await db.Reservas.AnyAsync(r => r.EmpresaId == empresaId, ct))
         {
-            resultado = await usuarios.AddToRoleAsync(cliente, RolesIdentidad.Cliente);
+            return turno;
         }
 
-        if (!resultado.Succeeded)
+        List<Servicio> servicios = await db.Servicios.Where(s => s.EmpresaId == empresaId).ToListAsync(ct);
+        List<Profesional> profesionales = await db.Profesionales.Where(p => p.EmpresaId == empresaId).ToListAsync(ct);
+        DateOnly hoy = DateOnly.FromDateTime(MotorDisponibilidad.ALocal(ahora));
+        List<DateOnly> pasados = DiasLaborables(hoy, -1);
+        List<DateOnly> futuros = DiasLaborables(hoy, 1);
+
+        for (int p = 0; p < profesionales.Count; p++)
         {
-            throw new InvalidOperationException(
-                $"No se pudo sembrar el cliente de demostracion: {string.Join(", ", resultado.Errors.Select(e => e.Code))}");
+            Profesional profesional = profesionales[p];
+            List<Servicio> presta = servicios.Where(s => profesional.ServiciosQuePresta.Contains(s.Id)).ToList();
+            for (int r = 0; r < 3; r++)
+            {
+                Reserva reserva = CrearReserva(empresaId, profesional, presta[(p + r) % presta.Count], clientes[turno++ % clientes.Count],
+                    pasados[(p + (3 * r)) % pasados.Count], _horasReserva[r % _horasReserva.Length], ahora);
+                if (r < 2)
+                {
+                    reserva.Completar(ahora);
+                }
+                else
+                {
+                    reserva.CancelarPorEmpresa(ahora, OrigenCancelacion.Empresa);
+                }
+
+                Agregar(db, reserva);
+            }
+
+            for (int r = 0; r < 4; r++)
+            {
+                Reserva reserva = CrearReserva(empresaId, profesional, presta[(p + r + 1) % presta.Count], clientes[turno++ % clientes.Count],
+                    futuros[(p + (2 * r)) % futuros.Count], _horasReserva[(p + r) % _horasReserva.Length], ahora);
+                if (r == 3)
+                {
+                    reserva.CancelarPorCliente(ahora, OrigenCancelacion.Cliente);
+                }
+
+                Agregar(db, reserva);
+            }
         }
+
+        await db.SaveChangesAsync(ct);
+        return turno;
+    }
+
+    private static Reserva CrearReserva(
+        Guid empresaId, Profesional profesional, Servicio servicio, ClienteSembrado cliente, DateOnly dia, TimeSpan hora, DateTime ahora)
+    {
+        DateTime inicioUtc = MotorDisponibilidad.DiaLocalEnUtc(dia).DesdeUtc + hora;
+        return Reserva.Crear(
+            Guid.CreateVersion7(), empresaId, cliente.Id, profesional.Id, servicio, inicioUtc, cliente.Nombre, cliente.Telefono, null, ahora);
+    }
+
+    private static void Agregar(ContextoDatos db, Reserva reserva)
+    {
+        reserva.LimpiarEventos();
+        db.Reservas.Add(reserva);
+    }
+
+    // Se saltan los dias del cambio de hora: alli "inicio del dia + hora local" no da la hora local correcta.
+    private static List<DateOnly> DiasLaborables(DateOnly hoy, int sentido)
+    {
+        List<DateOnly> dias = [];
+        for (DateOnly dia = hoy.AddDays(sentido); dias.Count < 10; dia = dia.AddDays(sentido))
+        {
+            (DateTime desde, DateTime hasta) = MotorDisponibilidad.DiaLocalEnUtc(dia);
+            if (dia.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday) && hasta - desde == TimeSpan.FromDays(1))
+            {
+                dias.Add(dia);
+            }
+        }
+
+        return dias;
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "DatosDemostracion:Clave no esta configurada: se siembran las empresas sin usuarios")]
     private static partial void RegistrarSinClave(ILogger registro);
 
-    private sealed record EmpresaDemostracion(
-        string Nombre,
-        string Slug,
-        string Categoria,
-        string Direccion,
-        string CodigoPostal,
-        string Ciudad,
-        string CorreoPropietario,
-        string NombrePropietario,
-        (string Nombre, int Minutos, decimal Precio)[] Servicios,
-        string Profesional);
+    private sealed record ClienteSembrado(Guid Id, NombrePersona Nombre, Telefono Telefono);
 }

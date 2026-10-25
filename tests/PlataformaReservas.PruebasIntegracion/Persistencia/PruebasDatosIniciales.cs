@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Aplicacion.Compartido;
+using PlataformaReservas.Dominio.Enumeraciones;
 using PlataformaReservas.Dominio.ValueObjects;
 using PlataformaReservas.Infraestructura.Identidad;
 using PlataformaReservas.Infraestructura.Persistencia;
@@ -58,6 +59,8 @@ public sealed class PruebasDatosIniciales(BaseDatosFixture baseDatos)
         await SembrarDemostracionAsync(new Dictionary<string, string?> { ["DatosDemostracion:Habilitado"] = "true" });
         (await EmpresasDemostracionAsync()).Should().HaveCount(2);
         (await UsuarioAsync(SembradorDatos.CorreoClienteDemostracion)).Should().BeNull("sin clave no se crea ningun usuario");
+        (await TodasLasEmpresasDemostracionAsync()).Should().Be(CatalogoDemostracion.Empresas.Count, "se siembra el catalogo entero");
+        (await EstadosReservasDemostracionAsync()).Should().BeEmpty("sin clave no hay clientes ni reservas");
 
         await using (AsyncServiceScope previo = baseDatos.ServiciosIdentidad.CreateAsyncScope())
         {
@@ -78,18 +81,28 @@ public sealed class PruebasDatosIniciales(BaseDatosFixture baseDatos)
         }
 
         (await UsuarioAsync(SembradorDatos.CorreoClienteDemostracion)).Should().NotBeNull("el arranque siembra la demostracion");
+        List<EstadoReserva> reservas = await EstadosReservasDemostracionAsync();
+        reservas.Should().Contain([EstadoReserva.Confirmada, EstadoReserva.Completada, EstadoReserva.Cancelada],
+            "con clave se siembran reservas pasadas y futuras aunque las empresas nacieran sin clave");
         await SembrarDemostracionAsync(conClave);
 
         (await EmpresasDemostracionAsync()).Should().HaveCount(2);
+        (await TodasLasEmpresasDemostracionAsync()).Should().Be(CatalogoDemostracion.Empresas.Count, "un segundo arranque no duplica empresas");
+        (await EstadosReservasDemostracionAsync()).Should().HaveCount(reservas.Count, "un segundo arranque no duplica reservas");
+        foreach (ClienteDemostracion demostracion in CatalogoDemostracion.Clientes)
+        {
+            (await UsuarioAsync(demostracion.Correo)).Should().NotBeNull("{0} es un cliente de demostracion", demostracion.Correo);
+        }
+
         Slug[] slugs = [.. SlugsDemostracion.Select(Slug.Desde)];
         int miembros = await EscenarioEmpresa.LeerAsync(baseDatos, db => db.MiembrosEmpresa
             .CountAsync(m => db.Empresas.Any(e => e.Id == m.EmpresaId && slugs.Contains(e.Slug))));
         miembros.Should().Be(2);
         await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
         IConsultasCatalogoPublico catalogo = ambito.ServiceProvider.GetRequiredService<IConsultasCatalogoPublico>();
-        foreach (string slug in SlugsDemostracion)
+        foreach (EmpresaDemostracion empresa in CatalogoDemostracion.Empresas)
         {
-            (await catalogo.ObtenerFichaAsync(slug, CancellationToken.None)).Should().NotBeNull("{0} tiene que ser publicable", slug);
+            (await catalogo.ObtenerFichaAsync(empresa.Slug, CancellationToken.None)).Should().NotBeNull("{0} tiene que ser publicable", empresa.Slug);
         }
 
         Usuario cliente = (await UsuarioAsync(SembradorDatos.CorreoClienteDemostracion))!;
@@ -129,6 +142,21 @@ public sealed class PruebasDatosIniciales(BaseDatosFixture baseDatos)
     {
         Slug[] slugs = [.. SlugsDemostracion.Select(Slug.Desde)];
         return EscenarioEmpresa.LeerAsync(baseDatos, db => db.Empresas.Where(e => slugs.Contains(e.Slug)).Select(e => e.Slug).ToListAsync());
+    }
+
+    private Task<int> TodasLasEmpresasDemostracionAsync()
+    {
+        Slug[] slugs = [.. CatalogoDemostracion.Empresas.Select(e => Slug.Desde(e.Slug))];
+        return EscenarioEmpresa.LeerAsync(baseDatos, db => db.Empresas.CountAsync(e => slugs.Contains(e.Slug)));
+    }
+
+    private Task<List<EstadoReserva>> EstadosReservasDemostracionAsync()
+    {
+        Slug[] slugs = [.. CatalogoDemostracion.Empresas.Select(e => Slug.Desde(e.Slug))];
+        return EscenarioEmpresa.LeerAsync(baseDatos, db => db.Reservas
+            .Where(r => db.Empresas.Any(e => e.Id == r.EmpresaId && slugs.Contains(e.Slug)))
+            .Select(r => r.Estado)
+            .ToListAsync());
     }
 
     private async Task<Usuario?> UsuarioAsync(string correo)
