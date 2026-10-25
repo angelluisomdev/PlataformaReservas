@@ -4,12 +4,15 @@ using PlataformaReservas.Aplicacion;
 using PlataformaReservas.Infraestructura;
 using PlataformaReservas.Infraestructura.Identidad;
 using PlataformaReservas.Infraestructura.Persistencia.DatosIniciales;
+using PlataformaReservas.Web;
 using PlataformaReservas.Web.Components;
 using PlataformaReservas.Web.Cuenta;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Host.UseSerilog((contexto, registro) => registro.ReadFrom.Configuration(contexto.Configuration));
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
@@ -17,6 +20,7 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, RevalidadorIdentidad>();
 
+builder.Services.AgregarLimitacionFrecuencia();
 builder.Services.AgregarInfraestructura(builder.Configuration);
 builder.Services.AgregarAplicacion();
 
@@ -29,23 +33,23 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("BaseDat
     await app.Services.MigrarYSembrarAsync(CancellationToken.None);
 }
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+app.UsarCabecerasSeguridad();
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode(opciones => opciones.ContentSecurityFrameAncestorsPolicy = null);
 app.MapAdditionalIdentityEndpoints();
 
 app.Run();

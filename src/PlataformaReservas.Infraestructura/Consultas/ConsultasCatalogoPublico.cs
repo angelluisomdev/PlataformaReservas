@@ -63,14 +63,8 @@ public sealed class ConsultasCatalogoPublico(ContextoDatos db) : IConsultasCatal
 
     public async Task<FichaEmpresaDto?> ObtenerFichaAsync(string slug, CancellationToken ct)
     {
-        Slug? buscado = SlugExacto(slug);
-        if (buscado is null)
-        {
-            return null;
-        }
-
-        Empresa? empresa = await Visibles().FirstOrDefaultAsync(e => e.Slug == buscado, ct);
-        if (empresa is null)
+        (Empresa Empresa, List<Servicio> Servicios)? visible = await VisibleConServiciosAsync(slug, ct);
+        if (visible is not { Empresa: Empresa empresa, Servicios: List<Servicio> servicios })
         {
             return null;
         }
@@ -79,9 +73,6 @@ public sealed class ConsultasCatalogoPublico(ContextoDatos db) : IConsultasCatal
             .Where(c => c.Id == empresa.CategoriaId)
             .Select(c => c.Nombre)
             .FirstAsync(ct);
-        List<Servicio> servicios = await db.Servicios
-            .Where(s => s.EmpresaId == empresa.Id && s.Activo)
-            .ToListAsync(ct);
         List<Profesional> profesionales = await db.Profesionales
             .Include(p => p.Horarios)
             .Where(p => p.EmpresaId == empresa.Id && p.Activo)
@@ -90,6 +81,20 @@ public sealed class ConsultasCatalogoPublico(ContextoDatos db) : IConsultasCatal
     }
 
     public async Task<DatosReservaDto?> ObtenerDatosReservaAsync(string slug, CancellationToken ct)
+    {
+        (Empresa Empresa, List<Servicio> Servicios)? visible = await VisibleConServiciosAsync(slug, ct);
+        if (visible is not { Empresa: Empresa empresa, Servicios: List<Servicio> servicios })
+        {
+            return null;
+        }
+
+        List<Profesional> profesionales = await db.Profesionales
+            .Where(p => p.EmpresaId == empresa.Id && p.Activo)
+            .ToListAsync(ct);
+        return DatosReservaDto.ConvertirADto(empresa, servicios, profesionales);
+    }
+
+    private async Task<(Empresa Empresa, List<Servicio> Servicios)?> VisibleConServiciosAsync(string slug, CancellationToken ct)
     {
         Slug? buscado = SlugExacto(slug);
         if (buscado is null)
@@ -106,10 +111,7 @@ public sealed class ConsultasCatalogoPublico(ContextoDatos db) : IConsultasCatal
         List<Servicio> servicios = await db.Servicios
             .Where(s => s.EmpresaId == empresa.Id && s.Activo)
             .ToListAsync(ct);
-        List<Profesional> profesionales = await db.Profesionales
-            .Where(p => p.EmpresaId == empresa.Id && p.Activo)
-            .ToListAsync(ct);
-        return DatosReservaDto.ConvertirADto(empresa, servicios, profesionales);
+        return (empresa, servicios);
     }
 
     private IQueryable<Empresa> Visibles()

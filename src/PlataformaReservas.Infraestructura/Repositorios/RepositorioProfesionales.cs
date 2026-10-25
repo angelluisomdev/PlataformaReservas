@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.Dominio.Repositorios;
@@ -6,7 +7,8 @@ using PlataformaReservas.Infraestructura.Persistencia;
 
 namespace PlataformaReservas.Infraestructura.Repositorios;
 
-public sealed class RepositorioProfesionales(ContextoDatos db, IContextoEmpresa contexto) : IRepositorioProfesionales
+public sealed class RepositorioProfesionales(
+    ContextoDatos db, IContextoEmpresa contexto, ILogger<RepositorioProfesionales> registro) : IRepositorioProfesionales
 {
     public Task<Profesional?> ObtenerPorIdAsync(Guid id, CancellationToken ct)
     {
@@ -43,6 +45,7 @@ public sealed class RepositorioProfesionales(ContextoDatos db, IContextoEmpresa 
     {
         if (profesional.EmpresaId != contexto.EmpresaActualId)
         {
+            EventosSeguridad.AccesoEntreEmpresas(registro, contexto.EmpresaActualId, profesional.EmpresaId);
             throw new InvalidOperationException("No se puede agregar un recurso de otra empresa.");
         }
 

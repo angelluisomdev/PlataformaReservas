@@ -20,6 +20,7 @@ public sealed partial class SolicitudRestablecimientoClave(
     // Por eso el enlace no sale del Host de la peticion (manipulable) y un fallo de envio no se propaga.
     public async Task SolicitarAsync(string correo)
     {
+        RegistrarSolicitud(registro);
         Usuario? usuario = await usuarios.FindByEmailAsync(correo);
         if (usuario is null || !await confirmacion.IsConfirmedAsync(usuarios, usuario))
         {
@@ -45,6 +46,9 @@ public sealed partial class SolicitudRestablecimientoClave(
             RegistrarFalloEnvio(registro, error.GetType().Name);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Solicitud de restablecimiento de contrasena recibida")]
+    private static partial void RegistrarSolicitud(ILogger registro);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "No se pudo enviar el correo de restablecimiento ({TipoFallo})")]
     private static partial void RegistrarFalloEnvio(ILogger registro, string tipoFallo);

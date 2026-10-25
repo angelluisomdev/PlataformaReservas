@@ -19,7 +19,7 @@ public sealed class PruebasDetalleReservaClienteDto
 
         dto.Should().Be(new DetalleReservaClienteDto(
             reserva.Id, "Barberia Centro", "Corte", "Ana Garcia", Ahora.AddHours(2), Ahora.AddHours(2).AddMinutes(45),
-            45, 18.50m, "Llegare puntual", EstadoReserva.Confirmada, true));
+            45, 18.50m, "Llegare puntual", EstadoReserva.Confirmada, true, null));
     }
 
     [Fact]
@@ -27,7 +27,11 @@ public sealed class PruebasDetalleReservaClienteDto
     {
         Reserva reserva = CrearReserva(Ahora, null);
 
-        DetalleReservaClienteDto.ConvertirADto(reserva, "E", "S", "P", Ahora).Cancelable.Should().BeFalse();
+        DetalleReservaClienteDto dto = DetalleReservaClienteDto.ConvertirADto(reserva, "E", "S", "P", Ahora);
+
+        dto.Cancelable.Should().BeFalse();
+        dto.MotivoNoCancelable.Should().Be(
+            "La reserva ya ha comenzado y no se puede cancelar desde aquí. Contacta con el establecimiento.");
     }
 
     [Fact]
@@ -41,6 +45,19 @@ public sealed class PruebasDetalleReservaClienteDto
         dto.Cancelable.Should().BeFalse();
         dto.Estado.Should().Be(EstadoReserva.Cancelada);
         dto.Observaciones.Should().BeNull();
+        dto.MotivoNoCancelable.Should().Be("Esta reserva está cancelada y ya no se puede cancelar.");
+    }
+
+    [Fact]
+    public void Una_reserva_completada_no_es_cancelable_y_explica_el_motivo()
+    {
+        Reserva reserva = CrearReserva(Ahora.AddHours(-2), null);
+        reserva.Completar(Ahora);
+
+        DetalleReservaClienteDto dto = DetalleReservaClienteDto.ConvertirADto(reserva, "E", "S", "P", Ahora);
+
+        dto.Cancelable.Should().BeFalse();
+        dto.MotivoNoCancelable.Should().Be("Esta reserva está completada y ya no se puede cancelar.");
     }
 
     private static Reserva CrearReserva(DateTime inicio, Observaciones? observaciones)

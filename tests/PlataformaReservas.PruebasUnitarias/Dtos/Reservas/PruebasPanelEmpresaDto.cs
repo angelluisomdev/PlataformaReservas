@@ -9,7 +9,7 @@ public sealed class PruebasPanelEmpresaDto
     private static readonly DateTime Ahora = new(2026, 10, 1, 8, 0, 0, DateTimeKind.Utc);
 
     [Fact]
-    public void ConvertirADto_copia_los_indicadores_y_ordena_las_dos_listas_por_inicio()
+    public void ConvertirADto_copia_los_indicadores_y_las_dos_listas_en_el_orden_recibido()
     {
         ReservaEmpresaDto hoyTarde = Reserva(Ahora.AddHours(5));
         ReservaEmpresaDto hoyPronto = Reserva(Ahora.AddHours(1));
@@ -23,8 +23,8 @@ public sealed class PruebasPanelEmpresaDto
         dto.TieneProfesionalActivo.Should().BeFalse();
         dto.TieneAsociacion.Should().BeFalse();
         dto.EsPublicable.Should().BeFalse();
-        dto.Hoy.Should().Equal(hoyPronto, hoyTarde);
-        dto.Proximas.Should().Equal(manana, pasado);
+        dto.Hoy.Should().Equal(hoyTarde, hoyPronto);
+        dto.Proximas.Should().Equal(pasado, manana);
     }
 
     [Theory]

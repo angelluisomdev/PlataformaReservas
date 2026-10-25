@@ -105,6 +105,9 @@ public static class InyeccionDependencias
                 opciones.SignIn.RequireConfirmedAccount = true;
                 opciones.User.RequireUniqueEmail = true;
                 opciones.Password.RequiredLength = 8;
+                opciones.Lockout.MaxFailedAccessAttempts = 5;
+                opciones.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+                opciones.Lockout.AllowedForNewUsers = true;
                 opciones.Stores.ProtectPersonalData = true;
             })
             .AddRoles<IdentityRole<Guid>>()
@@ -114,7 +117,9 @@ public static class InyeccionDependencias
             .AddUserConfirmation<ConfirmacionUsuarioActivo>()
             .AddDefaultTokenProviders();
 
+        servicios.AddScoped<InicioSesion>();
         servicios.AddScoped<SolicitudRestablecimientoClave>();
+        servicios.AddScoped<RestablecimientoClave>();
         servicios.AddScoped<RegistroCliente>();
         servicios.AddScoped<IServicioCuentas, ServicioCuentas>();
 

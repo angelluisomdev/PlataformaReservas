@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.Dominio.ValueObjects;
 using PlataformaReservas.Infraestructura.Identidad;
@@ -22,8 +23,8 @@ public sealed class PruebasAislamientoEmpresas(BaseDatosFixture baseDatos)
 
         await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
         ContextoDatos db = ambito.ServiceProvider.GetRequiredService<ContextoDatos>();
-        RepositorioServicios desdeA = new(db, new ContextoEmpresaFijo(a.Id));
-        RepositorioServicios desdeB = new(db, new ContextoEmpresaFijo(b.Id));
+        RepositorioServicios desdeA = new(db, new ContextoEmpresaFijo(a.Id), NullLogger<RepositorioServicios>.Instance);
+        RepositorioServicios desdeB = new(db, new ContextoEmpresaFijo(b.Id), NullLogger<RepositorioServicios>.Instance);
 
         (await desdeA.ObtenerPorIdAsync(servicio.Id, CancellationToken.None)).Should().BeNull();
         (await desdeA.ObtenerParaModificarAsync(servicio.Id, CancellationToken.None)).Should().BeNull();
@@ -39,8 +40,8 @@ public sealed class PruebasAislamientoEmpresas(BaseDatosFixture baseDatos)
 
         await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
         ContextoDatos db = ambito.ServiceProvider.GetRequiredService<ContextoDatos>();
-        RepositorioProfesionales desdeA = new(db, new ContextoEmpresaFijo(a.Id));
-        RepositorioProfesionales desdeB = new(db, new ContextoEmpresaFijo(b.Id));
+        RepositorioProfesionales desdeA = new(db, new ContextoEmpresaFijo(a.Id), NullLogger<RepositorioProfesionales>.Instance);
+        RepositorioProfesionales desdeB = new(db, new ContextoEmpresaFijo(b.Id), NullLogger<RepositorioProfesionales>.Instance);
 
         (await desdeA.ObtenerPorIdAsync(profesional.Id, CancellationToken.None)).Should().BeNull();
         (await desdeA.ObtenerParaModificarAsync(profesional.Id, CancellationToken.None)).Should().BeNull();
@@ -62,8 +63,8 @@ public sealed class PruebasAislamientoEmpresas(BaseDatosFixture baseDatos)
 
         await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
         ContextoDatos db = ambito.ServiceProvider.GetRequiredService<ContextoDatos>();
-        RepositorioProfesionales desdeA = new(db, new ContextoEmpresaFijo(a.Id));
-        RepositorioProfesionales desdeB = new(db, new ContextoEmpresaFijo(b.Id));
+        RepositorioProfesionales desdeA = new(db, new ContextoEmpresaFijo(a.Id), NullLogger<RepositorioProfesionales>.Instance);
+        RepositorioProfesionales desdeB = new(db, new ContextoEmpresaFijo(b.Id), NullLogger<RepositorioProfesionales>.Instance);
 
         (await desdeA.ObtenerPorIdAsync(ajeno.Id, CancellationToken.None)).Should().BeNull();
         (await desdeA.ObtenerParaModificarAsync(ajeno.Id, CancellationToken.None)).Should().BeNull();
@@ -89,8 +90,8 @@ public sealed class PruebasAislamientoEmpresas(BaseDatosFixture baseDatos)
 
         await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
         ContextoDatos db = ambito.ServiceProvider.GetRequiredService<ContextoDatos>();
-        RepositorioProfesionales desdeA = new(db, new ContextoEmpresaFijo(a.Id));
-        RepositorioProfesionales desdeB = new(db, new ContextoEmpresaFijo(b.Id));
+        RepositorioProfesionales desdeA = new(db, new ContextoEmpresaFijo(a.Id), NullLogger<RepositorioProfesionales>.Instance);
+        RepositorioProfesionales desdeB = new(db, new ContextoEmpresaFijo(b.Id), NullLogger<RepositorioProfesionales>.Instance);
 
         (await desdeA.ObtenerPorIdAsync(ajeno.Id, CancellationToken.None)).Should().BeNull();
         (await desdeA.ObtenerParaModificarAsync(ajeno.Id, CancellationToken.None)).Should().BeNull();

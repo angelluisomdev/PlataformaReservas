@@ -1,12 +1,13 @@
 ﻿@inherits LayoutComponentBase
+@using PlataformaReservas.Infraestructura.Identidad
 
 <nav>
     <AuthorizeView>
         <Authorized>
-            <AuthorizeView Policy="EsPropietario" Context="propietario">
+            <AuthorizeView Policy="@RolesIdentidad.PoliticaPropietario" Context="propietario">
                 <a href="app">Mi establecimiento</a>
             </AuthorizeView>
-            <AuthorizeView Policy="EsCliente" Context="cliente">
+            <AuthorizeView Policy="@RolesIdentidad.PoliticaCliente" Context="cliente">
                 <a href="my-account/bookings">Mis reservas</a>
                 <a href="my-account/profile">Mi perfil</a>
             </AuthorizeView>

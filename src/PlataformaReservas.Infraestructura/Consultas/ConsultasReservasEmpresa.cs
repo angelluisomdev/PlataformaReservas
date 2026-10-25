@@ -35,7 +35,7 @@ public sealed class ConsultasReservasEmpresa(ContextoDatos db, IContextoEmpresa 
     private IQueryable<FilaReserva> Propias(DateTime desdeUtc, DateTime hastaUtc, Guid? profesionalId, EstadoReserva? estado)
     {
         Guid empresaId = contexto.EmpresaActualId;
-        return from r in db.Reservas.AsNoTracking()
+        return from r in db.Reservas
                where r.EmpresaId == empresaId
                      && r.Franja.InicioUtc >= desdeUtc && r.Franja.InicioUtc < hastaUtc
                      && (profesionalId == null || r.ProfesionalId == profesionalId)

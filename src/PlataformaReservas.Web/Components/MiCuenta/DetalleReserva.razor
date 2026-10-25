@@ -45,13 +45,9 @@
                 <button type="button" class="peligro" @onclick="() => confirmando = true">Cancelar reserva</button>
             }
         }
-        else if (detalle.Estado == EstadoReserva.Confirmada)
-        {
-            <p class="aviso">La reserva ya ha comenzado y no se puede cancelar desde aquí. Contacta con el establecimiento.</p>
-        }
         else
         {
-            <p class="aviso">Esta reserva está @NombreEstado(detalle.Estado).ToLowerInvariant() y ya no se puede cancelar.</p>
+            <p class="aviso">@detalle.MotivoNoCancelable</p>
         }
     }
 </section>

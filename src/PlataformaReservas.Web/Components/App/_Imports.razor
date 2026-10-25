@@ -15,5 +15,5 @@
 @using PlataformaReservas.Aplicacion.Dtos.Reservas
 @using PlataformaReservas.Aplicacion.Dtos.Servicios
 @using PlataformaReservas.Dominio.Enumeraciones
-@using PlataformaReservas.Dominio.ValueObjects
-@attribute [Authorize(Policy = "EsPropietario")]
+@using PlataformaReservas.Infraestructura.Identidad
+@attribute [Authorize(Policy = RolesIdentidad.PoliticaPropietario)]

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Logging;
 using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Aplicacion.Compartido;
 using PlataformaReservas.Dominio.Entidades;
@@ -8,7 +9,7 @@ using PlataformaReservas.Infraestructura.Errores;
 
 namespace PlataformaReservas.Infraestructura.Persistencia;
 
-public sealed class UnidadTrabajo(ContextoDatos db) : IUnidadTrabajo
+public sealed partial class UnidadTrabajo(ContextoDatos db, ILogger<UnidadTrabajo> registro) : IUnidadTrabajo
 {
     public async Task<ITransaccion> IniciarTransaccionAsync(CancellationToken ct)
     {
@@ -24,6 +25,7 @@ public sealed class UnidadTrabajo(ContextoDatos db) : IUnidadTrabajo
         }
         catch (Exception error) when (TraductorErroresPostgres.EsHuecoOcupado(error, insertaReservas))
         {
+            RegistrarHuecoOcupado(registro);
             DesengancharReservasRechazadas();
             throw new HuecoOcupadoException(error);
         }
@@ -37,6 +39,9 @@ public sealed class UnidadTrabajo(ContextoDatos db) : IUnidadTrabajo
             entrada.State = EntityState.Detached;
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Reserva rechazada por la base de datos: el hueco ya estaba ocupado")]
+    private static partial void RegistrarHuecoOcupado(ILogger registro);
 
     private sealed class Transaccion(IDbContextTransaction transaccion) : ITransaccion
     {

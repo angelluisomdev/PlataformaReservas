@@ -34,6 +34,23 @@ public sealed class PruebasSolicitudRestablecimientoClave(BaseDatosFixture baseD
     }
 
     [Fact]
+    public async Task Cada_solicitud_registra_el_mismo_evento_sin_el_correo_exista_o_no_la_cuenta()
+    {
+        string existente = CorreoUnico();
+        await CrearAsync(baseDatos, existente);
+        RegistroCaptura<SolicitudRestablecimientoClave> conCuenta = new();
+        RegistroCaptura<SolicitudRestablecimientoClave> sinCuenta = new();
+
+        await SolicitarRegistrandoAsync(existente, conCuenta);
+        await SolicitarRegistrandoAsync(CorreoUnico(), sinCuenta);
+
+        conCuenta.Entradas.Should().Equal(sinCuenta.Entradas);
+        (LogLevel nivel, string linea) = conCuenta.Entradas.Should().ContainSingle().Subject;
+        nivel.Should().Be(LogLevel.Information);
+        linea.Should().NotContain("@");
+    }
+
+    [Fact]
     public async Task Una_cuenta_inactiva_no_genera_enlace_de_restablecimiento()
     {
         string correo = CorreoUnico();
@@ -92,13 +109,13 @@ public sealed class PruebasSolicitudRestablecimientoClave(BaseDatosFixture baseD
         string correo = CorreoUnico();
         await CrearAsync(baseDatos, correo);
         CorreoCaptura capturado = new();
-        RegistroCaptura registro = new();
+        RegistroCaptura<SolicitudRestablecimientoClave> registro = new();
 
         Func<Task> solicitar = () => SolicitarConRemitenteRealAsync(correo, capturado, registro, urlBase);
 
         await solicitar.Should().NotThrowAsync();
         capturado.Enviados.Should().BeEmpty();
-        registro.Errores.Should().ContainSingle().Which.Should().Contain("UrlBase");
+        registro.LineasDe(LogLevel.Error).Should().ContainSingle().Which.Should().Contain("UrlBase");
     }
 
     [Fact]
@@ -130,14 +147,14 @@ public sealed class PruebasSolicitudRestablecimientoClave(BaseDatosFixture baseD
         string inexistente = CorreoUnico();
         await CrearAsync(baseDatos, existente);
         CorreoCaptura caido = new() { Fallar = true };
-        RegistroCaptura registro = new();
+        RegistroCaptura<SolicitudRestablecimientoClave> registro = new();
 
         Func<Task> conCuenta = () => SolicitarConRemitenteRealAsync(existente, caido, registro);
         Func<Task> sinCuenta = () => SolicitarConRemitenteRealAsync(inexistente, caido, registro);
 
         await conCuenta.Should().NotThrowAsync();
         await sinCuenta.Should().NotThrowAsync();
-        string error = registro.Errores.Should().ContainSingle().Subject;
+        string error = registro.LineasDe(LogLevel.Error).Should().ContainSingle().Subject;
         error.Should().Contain(nameof(InvalidOperationException)).And.NotContain(existente).And.NotContain("@");
     }
 
@@ -178,8 +195,22 @@ public sealed class PruebasSolicitudRestablecimientoClave(BaseDatosFixture baseD
         await solicitud.SolicitarAsync(correo);
     }
 
+    private async Task SolicitarRegistrandoAsync(string correo, RegistroCaptura<SolicitudRestablecimientoClave> registro)
+    {
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        IServiceProvider servicios = ambito.ServiceProvider;
+        SolicitudRestablecimientoClave solicitud = new(
+            servicios.GetRequiredService<UserManager<Usuario>>(),
+            servicios.GetRequiredService<IUserConfirmation<Usuario>>(),
+            servicios.GetRequiredService<IEmailSender<Usuario>>(),
+            servicios.GetRequiredService<IConfiguration>(),
+            registro);
+
+        await solicitud.SolicitarAsync(correo);
+    }
+
     private async Task SolicitarConRemitenteRealAsync(
-        string correo, IServicioEmail servicioCorreo, RegistroCaptura? registro = null, string? urlBase = BaseDatosFixture.UrlBase)
+        string correo, IServicioEmail servicioCorreo, RegistroCaptura<SolicitudRestablecimientoClave>? registro = null, string? urlBase = BaseDatosFixture.UrlBase)
     {
         await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
         IServiceProvider servicios = ambito.ServiceProvider;
@@ -191,27 +222,8 @@ public sealed class PruebasSolicitudRestablecimientoClave(BaseDatosFixture baseD
             servicios.GetRequiredService<IUserConfirmation<Usuario>>(),
             new RemitenteIdentity(servicioCorreo, servicios.GetRequiredService<IRenderizadorPlantillas>()),
             configuracion,
-            registro ?? new RegistroCaptura());
+            registro ?? new RegistroCaptura<SolicitudRestablecimientoClave>());
 
         await solicitud.SolicitarAsync(correo);
-    }
-
-    private sealed class RegistroCaptura : ILogger<SolicitudRestablecimientoClave>
-    {
-        public List<string> Errores { get; } = [];
-
-        public IDisposable? BeginScope<TState>(TState state)
-            where TState : notnull => null;
-
-        public bool IsEnabled(LogLevel logLevel) => true;
-
-        public void Log<TState>(
-            LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
-        {
-            if (logLevel == LogLevel.Error)
-            {
-                Errores.Add(formatter(state, exception) + exception);
-            }
-        }
     }
 }

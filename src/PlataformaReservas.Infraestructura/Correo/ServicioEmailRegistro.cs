@@ -8,15 +8,9 @@ public sealed partial class ServicioEmailRegistro(ILogger<ServicioEmailRegistro>
     public Task EnviarAsync(MensajeCorreo mensaje, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(mensaje);
-        string destinatario = Enmascarar(mensaje.Para);
+        string destinatario = EnmascaradoCorreo.Enmascarar(mensaje.Para);
         RegistrarCorreo(registro, destinatario, mensaje.Asunto);
         return Task.CompletedTask;
-    }
-
-    internal static string Enmascarar(string correo)
-    {
-        int arroba = correo.IndexOf('@', StringComparison.Ordinal);
-        return arroba <= 0 ? "***" : $"{correo[0]}***{correo[arroba..]}";
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Correo no enviado (envio deshabilitado) a {Destinatario}: {Asunto}")]

@@ -86,7 +86,7 @@ public sealed class PruebasRegistroCliente(BaseDatosFixture baseDatos)
         await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
         RegistroCliente registro = ambito.ServiceProvider.GetRequiredService<RegistroCliente>();
 
-        (IdentityResult resultado, Usuario? usuario) = await registro.RegistrarAsync(CorreoUnico(), "Ana Garcia", null, Clave, Ahora);
+        (IdentityResult resultado, Usuario? usuario) = await registro.RegistrarAsync(CorreoUnico(), "Ana Garcia", null, Clave, Ahora, CancellationToken.None);
 
         resultado.Succeeded.Should().BeTrue();
         ambito.ServiceProvider.GetRequiredService<PublicadorCaptura>().Publicados
@@ -109,7 +109,7 @@ public sealed class PruebasRegistroCliente(BaseDatosFixture baseDatos)
             ambito.ServiceProvider.GetRequiredService<ContextoDatos>(),
             publicador);
 
-        (IdentityResult resultado, _) = await registro.RegistrarAsync(correo, "Ana Garcia", null, Clave, Ahora);
+        (IdentityResult resultado, _) = await registro.RegistrarAsync(correo, "Ana Garcia", null, Clave, Ahora, CancellationToken.None);
 
         resultado.Succeeded.Should().BeTrue();
         legibleAlPublicar.Should().BeTrue("el evento se publica despues del commit, cuando el alta ya es visible para otros");
@@ -123,8 +123,8 @@ public sealed class PruebasRegistroCliente(BaseDatosFixture baseDatos)
         await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
         RegistroCliente registro = ambito.ServiceProvider.GetRequiredService<RegistroCliente>();
 
-        (IdentityResult duplicado, _) = await registro.RegistrarAsync(correo, "Ana Garcia", null, Clave, Ahora);
-        (IdentityResult invalido, _) = await registro.RegistrarAsync(CorreoUnico(), "Ana Garcia", "600 abc 000", Clave, Ahora);
+        (IdentityResult duplicado, _) = await registro.RegistrarAsync(correo, "Ana Garcia", null, Clave, Ahora, CancellationToken.None);
+        (IdentityResult invalido, _) = await registro.RegistrarAsync(CorreoUnico(), "Ana Garcia", "600 abc 000", Clave, Ahora, CancellationToken.None);
 
         duplicado.Succeeded.Should().BeFalse();
         invalido.Succeeded.Should().BeFalse();
@@ -145,6 +145,6 @@ public sealed class PruebasRegistroCliente(BaseDatosFixture baseDatos)
         await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
         RegistroCliente registro = ambito.ServiceProvider.GetRequiredService<RegistroCliente>();
 
-        return await registro.RegistrarAsync(correo, nombre, telefono, Clave, Ahora);
+        return await registro.RegistrarAsync(correo, nombre, telefono, Clave, Ahora, CancellationToken.None);
     }
 }

@@ -24,7 +24,7 @@ public sealed record PanelEmpresaDto(
             tieneProfesionalActivo,
             tieneAsociacion,
             esPublicable,
-            hoy.OrderBy(r => r.InicioUtc).ToList(),
-            proximas.OrderBy(r => r.InicioUtc).ToList());
+            hoy.ToList(),
+            proximas.ToList());
     }
 }

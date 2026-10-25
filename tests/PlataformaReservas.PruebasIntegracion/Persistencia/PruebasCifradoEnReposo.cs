@@ -84,7 +84,7 @@ public sealed class PruebasCifradoEnReposo(BaseDatosFixture baseDatos)
         SignInResult sesion = await servicios.GetRequiredService<SignInManager<Usuario>>()
             .CheckPasswordSignInAsync(cliente!, UsuariosPrueba.Clave, lockoutOnFailure: true);
         (IdentityResult duplicado, _) = await servicios.GetRequiredService<RegistroCliente>()
-            .RegistrarAsync(sistema.CorreoCliente, NombreCliente, null, UsuariosPrueba.Clave, DominioPrueba.Ahora);
+            .RegistrarAsync(sistema.CorreoCliente, NombreCliente, null, UsuariosPrueba.Clave, DominioPrueba.Ahora, CancellationToken.None);
         await servicios.GetRequiredService<SolicitudRestablecimientoClave>().SolicitarAsync(sistema.CorreoPropietario);
 
         cliente!.NombreCompleto.Should().Be(NombreCliente);
@@ -112,7 +112,7 @@ public sealed class PruebasCifradoEnReposo(BaseDatosFixture baseDatos)
         await using (AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope())
         {
             (IdentityResult alta, Usuario? cliente) = await ambito.ServiceProvider.GetRequiredService<RegistroCliente>()
-                .RegistrarAsync(correoCliente, NombreCliente, TelefonoCliente, UsuariosPrueba.Clave, DominioPrueba.Ahora);
+                .RegistrarAsync(correoCliente, NombreCliente, TelefonoCliente, UsuariosPrueba.Clave, DominioPrueba.Ahora, CancellationToken.None);
             alta.Succeeded.Should().BeTrue();
             clienteId = cliente!.Id;
             Resultado<Guid> propietario = await ambito.ServiceProvider.GetRequiredService<IServicioCuentas>().CrearPropietarioAsync(

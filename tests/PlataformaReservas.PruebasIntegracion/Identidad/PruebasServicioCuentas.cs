@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Aplicacion.Compartido;
 using PlataformaReservas.Dominio.Compartido;
@@ -9,6 +10,7 @@ using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.Dominio.Enumeraciones;
 using PlataformaReservas.Dominio.ValueObjects;
 using PlataformaReservas.Infraestructura.Identidad;
+using PlataformaReservas.Infraestructura.Persistencia;
 using PlataformaReservas.PruebasIntegracion.Infraestructura;
 using static PlataformaReservas.PruebasIntegracion.Infraestructura.UsuariosPrueba;
 
@@ -170,6 +172,55 @@ public sealed class PruebasServicioCuentas(BaseDatosFixture baseDatos)
     }
 
     [Fact]
+    public async Task Dar_de_baja_registra_el_evento_con_el_identificador_y_sin_el_correo()
+    {
+        string correo = CorreoUnico();
+        Usuario usuario = await CrearAsync(baseDatos, correo);
+        RegistroCaptura<ServicioCuentas> registro = new();
+
+        await using (AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope())
+        {
+            await Cuentas(ambito.ServiceProvider, registro).DarDeBajaAsync(usuario.Id, CancellationToken.None);
+        }
+
+        (LogLevel nivel, string linea) = registro.Entradas.Should().ContainSingle().Subject;
+        nivel.Should().Be(LogLevel.Information);
+        linea.Should().Contain(usuario.Id.ToString()).And.NotContain("@");
+    }
+
+    [Fact]
+    public async Task Renovar_el_sello_de_los_miembros_registra_el_evento_de_la_empresa()
+    {
+        Empresa empresa = await EscenarioEmpresa.CrearEmpresaAsync(baseDatos);
+        RegistroCaptura<ServicioCuentas> registro = new();
+
+        await using (AsyncServiceScope ambito = baseDatos.AmbitoDeEmpresa(empresa.Id))
+        {
+            await Cuentas(ambito.ServiceProvider, registro).RenovarSelloMiembrosAsync(empresa.Id, CancellationToken.None);
+        }
+
+        (LogLevel nivel, string linea) = registro.Entradas.Should().ContainSingle().Subject;
+        nivel.Should().Be(LogLevel.Information);
+        linea.Should().Contain(empresa.Id.ToString());
+    }
+
+    [Fact]
+    public async Task Renovar_el_sello_de_otra_empresa_registra_un_aviso_con_las_dos_empresas()
+    {
+        Empresa propia = await EscenarioEmpresa.CrearEmpresaAsync(baseDatos);
+        Empresa ajena = await EscenarioEmpresa.CrearEmpresaAsync(baseDatos);
+        RegistroCaptura<ServicioCuentas> registro = new();
+
+        await using AsyncServiceScope ambito = baseDatos.AmbitoDeEmpresa(propia.Id);
+        Func<Task> renovar = () => Cuentas(ambito.ServiceProvider, registro).RenovarSelloMiembrosAsync(ajena.Id, CancellationToken.None);
+
+        await renovar.Should().ThrowAsync<InvalidOperationException>();
+        (LogLevel nivel, string linea) = registro.Entradas.Should().ContainSingle().Subject;
+        nivel.Should().Be(LogLevel.Warning);
+        linea.Should().Contain(propia.Id.ToString()).And.Contain(ajena.Id.ToString());
+    }
+
+    [Fact]
     public async Task El_contacto_devuelve_el_nombre_y_el_telefono_descifrados()
     {
         Usuario usuario = await CrearAsync(baseDatos, CorreoUnico(), "Lucia Fernandez", "611222333");
@@ -225,6 +276,15 @@ public sealed class PruebasServicioCuentas(BaseDatosFixture baseDatos)
             .EstablecerTelefonoAsync(Guid.CreateVersion7(), new Telefono("644555666"), CancellationToken.None);
 
         await establecer.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    private static ServicioCuentas Cuentas(IServiceProvider servicios, RegistroCaptura<ServicioCuentas> registro)
+    {
+        return new ServicioCuentas(
+            servicios.GetRequiredService<UserManager<Usuario>>(),
+            servicios.GetRequiredService<ContextoDatos>(),
+            servicios.GetRequiredService<IContextoEmpresa>(),
+            registro);
     }
 
     private async Task DarDeBajaAsync(Guid usuarioId)

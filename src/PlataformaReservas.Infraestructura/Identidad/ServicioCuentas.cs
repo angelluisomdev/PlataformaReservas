@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Aplicacion.Compartido;
 using PlataformaReservas.Dominio.Compartido;
@@ -8,7 +9,8 @@ using PlataformaReservas.Infraestructura.Persistencia;
 
 namespace PlataformaReservas.Infraestructura.Identidad;
 
-public sealed class ServicioCuentas(UserManager<Usuario> usuarios, ContextoDatos db, IContextoEmpresa contexto) : IServicioCuentas
+public sealed partial class ServicioCuentas(
+    UserManager<Usuario> usuarios, ContextoDatos db, IContextoEmpresa contexto, ILogger<ServicioCuentas> registro) : IServicioCuentas
 {
     public async Task<Resultado<Guid>> CrearPropietarioAsync(
         Email email, NombrePersona nombreCompleto, Telefono? telefono, string clave, DateTime ahoraUtc, CancellationToken ct)
@@ -43,6 +45,7 @@ public sealed class ServicioCuentas(UserManager<Usuario> usuarios, ContextoDatos
     {
         if (empresaId != contexto.EmpresaActualId)
         {
+            EventosSeguridad.AccesoEntreEmpresas(registro, contexto.EmpresaActualId, empresaId);
             throw new InvalidOperationException("No se puede renovar el sello de los miembros de otra empresa.");
         }
 
@@ -59,6 +62,8 @@ public sealed class ServicioCuentas(UserManager<Usuario> usuarios, ContextoDatos
                 await usuarios.UpdateSecurityStampAsync(usuario);
             }
         }
+
+        RegistrarSesionesEmpresaInvalidadas(registro, empresaId);
     }
 
     public async Task<(NombrePersona Nombre, Telefono? Telefono)?> ObtenerContactoAsync(Guid usuarioId, CancellationToken ct)
@@ -96,6 +101,7 @@ public sealed class ServicioCuentas(UserManager<Usuario> usuarios, ContextoDatos
         Usuario usuario = await ObtenerDeLaSesionAsync(usuarioId);
         usuario.DarDeBaja();
         ComprobarGuardado(await usuarios.UpdateSecurityStampAsync(usuario), "la baja");
+        RegistrarBajaCuenta(registro, usuarioId);
     }
 
     private async Task<Usuario> ObtenerDeLaSesionAsync(Guid usuarioId)
@@ -103,6 +109,12 @@ public sealed class ServicioCuentas(UserManager<Usuario> usuarios, ContextoDatos
         return await usuarios.FindByIdAsync(usuarioId.ToString())
             ?? throw new InvalidOperationException("El usuario de la sesion no existe.");
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Cuenta {UsuarioId} dada de baja")]
+    private static partial void RegistrarBajaCuenta(ILogger registro, Guid usuarioId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Sesiones de los miembros de la empresa {EmpresaId} invalidadas")]
+    private static partial void RegistrarSesionesEmpresaInvalidadas(ILogger registro, Guid empresaId);
 
     private static void ComprobarGuardado(IdentityResult resultado, string que)
     {

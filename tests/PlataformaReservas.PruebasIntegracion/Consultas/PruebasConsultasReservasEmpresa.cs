@@ -200,6 +200,22 @@ public sealed class PruebasConsultasReservasEmpresa(BaseDatosFixture baseDatos)
     }
 
     [Fact]
+    public async Task El_panel_ordena_hoy_y_las_proximas_por_inicio()
+    {
+        EscenarioReserva escenario = await EscenarioReserva.CrearAsync(baseDatos);
+        Reserva hoyTarde = escenario.Reserva(Ahora.AddHours(3));
+        Reserva hoyPronto = escenario.Reserva(Ahora.AddHours(1));
+        Reserva proximaLejana = escenario.Reserva(Hasta.AddDays(3));
+        Reserva proximaCercana = escenario.Reserva(Hasta.AddDays(1));
+        await EscenarioEmpresa.GuardarAsync(baseDatos, hoyTarde, proximaLejana, hoyPronto, proximaCercana);
+
+        PanelEmpresaDto panel = await PanelAsync(escenario.Empresa.Id);
+
+        panel.Hoy.Select(r => r.Id).Should().Equal(hoyPronto.Id, hoyTarde.Id);
+        panel.Proximas.Select(r => r.Id).Should().Equal(proximaCercana.Id, proximaLejana.Id);
+    }
+
+    [Fact]
     public async Task El_panel_de_una_empresa_inactiva_sigue_devolviendo_sus_reservas()
     {
         EscenarioReserva escenario = await EscenarioReserva.CrearAsync(baseDatos);

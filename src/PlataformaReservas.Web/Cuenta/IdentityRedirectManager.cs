@@ -18,14 +18,7 @@ internal sealed class IdentityRedirectManager(NavigationManager navigationManage
 
     public void RedirectTo(string? uri)
     {
-        uri ??= "";
-
-        if (!Uri.IsWellFormedUriString(uri, UriKind.Relative))
-        {
-            uri = navigationManager.ToBaseRelativePath(uri);
-        }
-
-        navigationManager.NavigateTo(uri);
+        navigationManager.NavigateTo(DestinoLocal((uri ?? "").Trim()));
     }
 
     public void RedirectTo(string uri, Dictionary<string, object?> queryParameters)
@@ -39,6 +32,35 @@ internal sealed class IdentityRedirectManager(NavigationManager navigationManage
     {
         context.Response.Cookies.Append(StatusCookieName, message, StatusCookieBuilder.Build(context));
         RedirectTo(uri);
+    }
+
+    // H-02: el navegador trata "//host" y "/\host" como otro dominio; solo se redirige dentro de la aplicacion.
+    // Una URI absoluta propia se reduce a su ruta y se valida igual: "https://host///evil.com" daria "//evil.com".
+    private string DestinoLocal(string uri)
+    {
+        if (uri.Any(char.IsControl))
+        {
+            return "/";
+        }
+
+        if (!uri.StartsWith('/') && Uri.TryCreate(uri, UriKind.Absolute, out Uri? absoluta))
+        {
+            if (!new Uri(navigationManager.BaseUri).IsBaseOf(absoluta))
+            {
+                return "/";
+            }
+
+            uri = absoluta.PathAndQuery + absoluta.Fragment;
+        }
+
+        return EsRutaLocal(uri) ? uri : "/";
+    }
+
+    private static bool EsRutaLocal(string ruta)
+    {
+        return !ruta.StartsWith("//", StringComparison.Ordinal)
+            && !ruta.StartsWith("/\\", StringComparison.Ordinal)
+            && !ruta.StartsWith('\\');
     }
 
     private string CurrentPath => navigationManager.ToAbsoluteUri(navigationManager.Uri).GetLeftPart(UriPartial.Path);

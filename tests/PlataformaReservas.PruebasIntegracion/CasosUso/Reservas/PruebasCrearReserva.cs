@@ -60,6 +60,14 @@ public sealed class PruebasCrearReserva(BaseDatosFixture baseDatos)
     }
 
     [Fact]
+    public async Task Una_empresa_inexistente_da_validacion()
+    {
+        EscenarioReserva escenario = await EscenarioReserva.CrearAsync(baseDatos);
+
+        await DebeDarValidacionSinCrearNadaAsync(escenario, escenario.Comando() with { EmpresaId = Guid.CreateVersion7() });
+    }
+
+    [Fact]
     public async Task Un_servicio_inexistente_da_validacion()
     {
         EscenarioReserva escenario = await EscenarioReserva.CrearAsync(baseDatos);

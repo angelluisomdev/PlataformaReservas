@@ -1,10 +1,12 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using PlataformaReservas.Dominio.Entidades;
 using PlataformaReservas.Dominio.Repositorios;
 using PlataformaReservas.Dominio.ValueObjects;
 using PlataformaReservas.Infraestructura.Persistencia;
+using PlataformaReservas.Infraestructura.Repositorios;
 using PlataformaReservas.PruebasIntegracion.Infraestructura;
 
 namespace PlataformaReservas.PruebasIntegracion.Repositorios;
@@ -39,6 +41,25 @@ public sealed class PruebasRepositorioServicios(BaseDatosFixture baseDatos)
         Action agregar = () => repositorio.Agregar(DominioPrueba.Servicio(ajena.Id));
 
         agregar.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task Agregar_uno_de_otra_empresa_registra_un_aviso_con_las_dos_empresas()
+    {
+        Empresa propia = await EscenarioEmpresa.CrearEmpresaAsync(baseDatos);
+        Empresa ajena = await EscenarioEmpresa.CrearEmpresaAsync(baseDatos);
+        RegistroCaptura<RepositorioServicios> registro = new();
+
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        RepositorioServicios repositorio = new(
+            ambito.ServiceProvider.GetRequiredService<ContextoDatos>(), new ContextoEmpresaFijo(propia.Id), registro);
+
+        Action agregar = () => repositorio.Agregar(DominioPrueba.Servicio(ajena.Id));
+
+        agregar.Should().Throw<InvalidOperationException>();
+        (LogLevel nivel, string linea) = registro.Entradas.Should().ContainSingle().Subject;
+        nivel.Should().Be(LogLevel.Warning);
+        linea.Should().Contain(propia.Id.ToString()).And.Contain(ajena.Id.ToString());
     }
 
     [Fact]

@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using PlataformaReservas.Aplicacion.Abstracciones;
 using PlataformaReservas.Aplicacion.Compartido;
 using PlataformaReservas.Dominio.Entidades;
@@ -59,6 +60,38 @@ public sealed class PruebasUnidadTrabajo(BaseDatosFixture baseDatos)
         await guardar.Should().ThrowAsync<HuecoOcupadoException>();
         (await EscenarioEmpresa.LeerAsync(baseDatos, db => db.Reservas.CountAsync(r => r.ProfesionalId == escenario.Profesional.Id)))
             .Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Un_hueco_ocupado_registra_un_aviso_sin_datos_del_cliente()
+    {
+        EscenarioReserva escenario = await EscenarioReserva.CrearAsync(baseDatos);
+        Reserva primera = escenario.Reserva(EscenarioReserva.NueveLunesUtc);
+        Reserva solapada = escenario.Reserva(EscenarioReserva.NueveLunesUtc.AddMinutes(30));
+        RegistroCaptura<UnidadTrabajo> registro = new();
+
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        ContextoDatos db = ambito.ServiceProvider.GetRequiredService<ContextoDatos>();
+        db.AddRange(primera, solapada);
+        Func<Task> guardar = () => new UnidadTrabajo(db, registro).GuardarCambiosAsync(CancellationToken.None);
+
+        await guardar.Should().ThrowAsync<HuecoOcupadoException>();
+        (LogLevel nivel, string linea) = registro.Entradas.Should().ContainSingle().Subject;
+        nivel.Should().Be(LogLevel.Warning);
+        linea.Should().NotContain(primera.NombreCliente.Valor);
+    }
+
+    [Fact]
+    public async Task Un_guardado_correcto_no_registra_nada()
+    {
+        RegistroCaptura<UnidadTrabajo> registro = new();
+
+        await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
+        ContextoDatos db = ambito.ServiceProvider.GetRequiredService<ContextoDatos>();
+        db.Add(DominioPrueba.Categoria(DominioPrueba.Sufijo()));
+        await new UnidadTrabajo(db, registro).GuardarCambiosAsync(CancellationToken.None);
+
+        registro.Entradas.Should().BeEmpty();
     }
 
     [Fact]

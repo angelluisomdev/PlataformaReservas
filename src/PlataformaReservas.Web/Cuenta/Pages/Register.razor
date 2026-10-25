@@ -3,8 +3,12 @@
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Identity
+@using PlataformaReservas.Aplicacion.Abstracciones
+@using PlataformaReservas.Dominio.ValueObjects
+@using TelefonoValidado = PlataformaReservas.Dominio.ValueObjects.Telefono
 
 @inject RegistroCliente Registro
+@inject IRelojSistema Reloj
 @inject SignInManager<Usuario> SignInManager
 @inject ILogger<Register> Logger
 @inject IdentityRedirectManager RedirectManager
@@ -52,6 +56,9 @@
 @code {
     private IEnumerable<IdentityError>? identityErrors;
 
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = default!;
 
@@ -69,7 +76,7 @@
     {
         var telefono = string.IsNullOrWhiteSpace(Input.Telefono) ? null : Input.Telefono;
         var (result, user) = await Registro.RegistrarAsync(
-            Input.Email, Input.NombreCompleto, telefono, Input.Password, DateTime.UtcNow);
+            Input.Email, Input.NombreCompleto, telefono, Input.Password, Reloj.AhoraUtc, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
         {
@@ -86,14 +93,14 @@
     private sealed class InputModel
     {
         [Required(ErrorMessage = "El nombre completo es obligatorio.")]
-        [StringLength(120, ErrorMessage = "El nombre completo no puede superar {1} caracteres.")]
+        [StringLength(NombrePersona.LongitudMaxima, ErrorMessage = "El nombre completo no puede superar {1} caracteres.")]
         public string NombreCompleto { get; set; } = "";
 
         [Required(ErrorMessage = "El correo electrónico es obligatorio.")]
         [EmailAddress(ErrorMessage = "El correo electrónico no es válido.")]
         public string Email { get; set; } = "";
 
-        [StringLength(20, ErrorMessage = "El teléfono no puede superar {1} caracteres.")]
+        [StringLength(TelefonoValidado.LongitudMaxima, ErrorMessage = "El teléfono no puede superar {1} caracteres.")]
         public string? Telefono { get; set; }
 
         [Required(ErrorMessage = "La contraseña es obligatoria.")]

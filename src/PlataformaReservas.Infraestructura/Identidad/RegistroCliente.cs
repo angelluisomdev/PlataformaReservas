@@ -11,7 +11,7 @@ namespace PlataformaReservas.Infraestructura.Identidad;
 public sealed class RegistroCliente(UserManager<Usuario> usuarios, ContextoDatos db, IPublicadorEventos publicador)
 {
     public async Task<(IdentityResult Resultado, Usuario? Usuario)> RegistrarAsync(
-        string email, string nombreCompleto, string? telefono, string clave, DateTime ahoraUtc)
+        string email, string nombreCompleto, string? telefono, string clave, DateTime ahoraUtc, CancellationToken ct)
     {
         Usuario usuario;
         try
@@ -27,7 +27,7 @@ public sealed class RegistroCliente(UserManager<Usuario> usuarios, ContextoDatos
             return (IdentityResult.Failed(new IdentityError { Code = "DatosNoValidos", Description = error.Message }), null);
         }
 
-        await using IDbContextTransaction transaccion = await db.Database.BeginTransactionAsync();
+        await using IDbContextTransaction transaccion = await db.Database.BeginTransactionAsync(ct);
 
         IdentityResult resultado = await usuarios.CreateAsync(usuario, clave);
         if (resultado.Succeeded)
@@ -37,8 +37,8 @@ public sealed class RegistroCliente(UserManager<Usuario> usuarios, ContextoDatos
 
         if (resultado.Succeeded)
         {
-            await transaccion.CommitAsync();
-            await publicador.PublicarAsync([new CuentaRegistrada(usuario.Id, ahoraUtc)], CancellationToken.None);
+            await transaccion.CommitAsync(ct);
+            await publicador.PublicarAsync([new CuentaRegistrada(usuario.Id, ahoraUtc)], ct);
         }
 
         return (resultado, usuario);

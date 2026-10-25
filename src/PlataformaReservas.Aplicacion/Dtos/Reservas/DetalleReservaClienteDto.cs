@@ -15,7 +15,8 @@ public sealed record DetalleReservaClienteDto(
     decimal PrecioAplicado,
     string? Observaciones,
     EstadoReserva Estado,
-    bool Cancelable)
+    bool Cancelable,
+    string? MotivoNoCancelable)
 {
     public static DetalleReservaClienteDto ConvertirADto(
         Reserva reserva, string establecimiento, string servicio, string profesional, DateTime ahoraUtc)
@@ -37,6 +38,7 @@ public sealed record DetalleReservaClienteDto(
         EstadoReserva estado,
         DateTime ahoraUtc)
     {
+        bool cancelable = Reserva.EsCancelablePorCliente(estado, franja, ahoraUtc);
         return new DetalleReservaClienteDto(
             id,
             establecimiento,
@@ -48,6 +50,14 @@ public sealed record DetalleReservaClienteDto(
             precio.Importe,
             observaciones?.Valor,
             estado,
-            Reserva.EsCancelablePorCliente(estado, franja, ahoraUtc));
+            cancelable,
+            cancelable ? null : MotivoNoCancelablePor(estado));
     }
+
+    private static string MotivoNoCancelablePor(EstadoReserva estado) => estado switch
+    {
+        EstadoReserva.Confirmada => "La reserva ya ha comenzado y no se puede cancelar desde aquí. Contacta con el establecimiento.",
+        EstadoReserva.Cancelada => "Esta reserva está cancelada y ya no se puede cancelar.",
+        _ => "Esta reserva está completada y ya no se puede cancelar.",
+    };
 }

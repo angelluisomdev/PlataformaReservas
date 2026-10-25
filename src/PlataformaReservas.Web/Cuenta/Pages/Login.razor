@@ -5,8 +5,7 @@
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
 
-@inject SignInManager<Usuario> SignInManager
-@inject ILogger<Login> Logger
+@inject InicioSesion InicioSesion
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
@@ -77,11 +76,10 @@
 
     public async Task LoginUser()
     {
-        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
 
-        if (result.Succeeded)
+        if (await InicioSesion.IniciarAsync(Input.Email, Input.Password, Input.RememberMe, ip))
         {
-            Logger.LogInformation("Inicio de sesion correcto.");
             RedirectManager.RedirectTo(ReturnUrl);
         }
         else
