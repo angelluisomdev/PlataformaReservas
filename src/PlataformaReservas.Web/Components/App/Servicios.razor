@@ -9,7 +9,10 @@
 
 <PageTitle>Servicios</PageTitle>
 
-<h1>Servicios</h1>
+<div class="cabecera-pagina">
+    <h1>Servicios</h1>
+    <button type="button" class="principal" @onclick="Nuevo">+ Nuevo servicio</button>
+</div>
 
 @if (mensaje is not null)
 {
@@ -20,92 +23,113 @@
 {
     <p>Cargando…</p>
 }
+else if (servicios.Count == 0)
+{
+    <p class="vacio-lista">Todavía no hay servicios.</p>
+}
 else
 {
-    @if (servicios.Count == 0)
-    {
-        <p>Todavía no hay servicios.</p>
-    }
-    else
-    {
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Nombre</th>
-                    <th>Duración</th>
-                    <th>Precio</th>
-                    <th>Estado</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (ServicioDto servicio in servicios)
-                {
-                    <tr>
-                        <td>@servicio.Nombre</td>
-                        <td>@servicio.DuracionMinutos min</td>
-                        <td>@servicio.Precio.ToString("0.00") €</td>
-                        <td>@(servicio.Activo ? "Activo" : "Desactivado")</td>
-                        <td>
-                            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Editar(servicio)">Editar</button>
-                            @if (servicio.Activo)
-                            {
-                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => DesactivarAsync(servicio.Id)">Desactivar</button>
-                            }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    }
-
-    <h2>@(editandoId is null ? "Nuevo servicio" : "Editar servicio")</h2>
-    <EditForm Model="formulario" OnValidSubmit="GuardarAsync" FormName="servicio">
-        <div class="mb-3">
-            <label for="nombre" class="form-label">Nombre</label>
-            <InputText id="nombre" @bind-Value="formulario.Nombre" class="form-control" />
-        </div>
-        <div class="mb-3">
-            <label for="descripcion" class="form-label">Descripción (opcional)</label>
-            <InputTextArea id="descripcion" @bind-Value="formulario.Descripcion" class="form-control" />
-        </div>
-        <div class="mb-3">
-            <label for="duracion" class="form-label">Duración (minutos)</label>
-            <InputNumber id="duracion" @bind-Value="formulario.DuracionMinutos" class="form-control" />
-        </div>
-        <div class="mb-3">
-            <label for="precio" class="form-label">Precio (€)</label>
-            <InputNumber id="precio" @bind-Value="formulario.Precio" class="form-control" />
-        </div>
-
-        <h3>Políticas de reserva</h3>
-        <p>Deja un campo vacío para <strong>heredar</strong> el valor de la empresa. Vacío no significa "sin límite".</p>
-        <div class="mb-3">
-            <label for="intervalo" class="form-label">Intervalo entre huecos (minutos, de @IntervaloHuecos.Minimo a @IntervaloHuecos.Maximo)</label>
-            <InputNumber id="intervalo" @bind-Value="formulario.IntervaloHuecosMinutos" class="form-control" />
-        </div>
-        <div class="mb-3">
-            <label for="antelacion-minima" class="form-label">Antelación mínima (minutos, de @AntelacionMinimaReserva.Minimo a @AntelacionMinimaReserva.Maximo)</label>
-            <InputNumber id="antelacion-minima" @bind-Value="formulario.AntelacionMinimaMinutos" class="form-control" />
-        </div>
-        <div class="mb-3">
-            <label for="antelacion-maxima" class="form-label">Antelación máxima (días, de @AntelacionMaximaReserva.Minimo a @AntelacionMaximaReserva.Maximo)</label>
-            <InputNumber id="antelacion-maxima" @bind-Value="formulario.AntelacionMaximaDias" class="form-control" />
-        </div>
-
-        <button type="submit" class="btn btn-primary">@(editandoId is null ? "Crear servicio" : "Guardar cambios")</button>
-        @if (editandoId is not null)
+    <ul class="listado">
+        @foreach (ServicioDto servicio in servicios)
         {
-            <button type="button" class="btn btn-secondary" @onclick="Nuevo">Cancelar</button>
+            <li class="listado-fila @(servicio.Activo ? null : "inactivo")">
+                <div class="listado-datos">
+                    <strong>@servicio.Nombre</strong>
+                    <span class="meta">@servicio.DuracionMinutos min · @servicio.Precio.ToString("0.00") €</span>
+                    @if (!servicio.Activo)
+                    {
+                        <span class="etiqueta">Desactivado</span>
+                    }
+                </div>
+                <div class="listado-acciones">
+                    <button type="button" class="btn btn-sm btn-secondary" aria-label="Editar @servicio.Nombre" @onclick="() => Editar(servicio)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                        </svg>
+                        <span class="texto-boton">Editar</span>
+                    </button>
+                    @if (servicio.Activo)
+                    {
+                        <button type="button" class="btn btn-sm btn-outline-danger" aria-label="Desactivar @servicio.Nombre" @onclick="() => aDesactivar = servicio">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                                <circle cx="12" cy="12" r="9" /><path d="m5.7 5.7 12.6 12.6" />
+                            </svg>
+                            <span class="texto-boton">Desactivar</span>
+                        </button>
+                    }
+                </div>
+            </li>
         }
-    </EditForm>
+    </ul>
 }
+
+<Dialogo Titulo="@(editandoId is null ? "Nuevo servicio" : "Editar servicio")" Abierto="dialogoAbierto" Amplio="true" AlCerrar="Cerrar">
+    <ChildContent>
+        @if (errorDialogo is not null)
+        {
+            <div class="alert alert-danger" role="alert">@errorDialogo</div>
+        }
+        <EditForm id="formulario-servicio" Model="formulario" OnValidSubmit="GuardarAsync" FormName="servicio">
+            <div class="mb-3">
+                <label for="nombre" class="form-label">Nombre</label>
+                <InputText id="nombre" @bind-Value="formulario.Nombre" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label for="descripcion" class="form-label">Descripción (opcional)</label>
+                <InputTextArea id="descripcion" @bind-Value="formulario.Descripcion" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label for="duracion" class="form-label">Duración (minutos)</label>
+                <InputNumber id="duracion" @bind-Value="formulario.DuracionMinutos" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label for="precio" class="form-label">Precio (€)</label>
+                <InputNumber id="precio" @bind-Value="formulario.Precio" class="form-control" />
+            </div>
+
+            <h3>Políticas de reserva</h3>
+            <p>Deja un campo vacío para <strong>heredar</strong> el valor de la empresa. Vacío no significa "sin límite".</p>
+            <div class="mb-3">
+                <label for="intervalo" class="form-label">Intervalo entre huecos (minutos, de @IntervaloHuecos.Minimo a @IntervaloHuecos.Maximo)</label>
+                <InputNumber id="intervalo" @bind-Value="formulario.IntervaloHuecosMinutos" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label for="antelacion-minima" class="form-label">Antelación mínima (minutos, de @AntelacionMinimaReserva.Minimo a @AntelacionMinimaReserva.Maximo)</label>
+                <InputNumber id="antelacion-minima" @bind-Value="formulario.AntelacionMinimaMinutos" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label for="antelacion-maxima" class="form-label">Antelación máxima (días, de @AntelacionMaximaReserva.Minimo a @AntelacionMaximaReserva.Maximo)</label>
+                <InputNumber id="antelacion-maxima" @bind-Value="formulario.AntelacionMaximaDias" class="form-control" />
+            </div>
+        </EditForm>
+    </ChildContent>
+    <Pie>
+        <button type="button" class="btn btn-secondary" disabled="@enviando" @onclick="Cerrar">Cancelar</button>
+        <button type="submit" form="formulario-servicio" class="btn btn-primary" disabled="@enviando">
+            @(editandoId is null ? "Crear servicio" : "Guardar cambios")
+        </button>
+    </Pie>
+</Dialogo>
+
+<Dialogo Titulo="Desactivar servicio" Abierto="aDesactivar is not null" AlCerrar="() => aDesactivar = null">
+    <ChildContent>
+        <p>¿Desactivar el servicio <strong>@aDesactivar?.Nombre</strong>? No se podrá reservar.</p>
+    </ChildContent>
+    <Pie>
+        <button type="button" class="btn btn-secondary" disabled="@enviando" @onclick="() => aDesactivar = null">Cancelar</button>
+        <button type="button" class="btn btn-danger" disabled="@enviando" @onclick="ConfirmarDesactivarAsync">Sí, desactivar</button>
+    </Pie>
+</Dialogo>
 
 @code {
     private IReadOnlyList<ServicioDto>? servicios;
     private Formulario formulario = new();
     private Guid? editandoId;
     private string? mensaje;
+    private bool dialogoAbierto;
+    private string? errorDialogo;
+    private ServicioDto? aDesactivar;
+    private bool enviando;
 
     protected override async Task OnInitializedAsync()
     {
@@ -122,53 +146,96 @@ else
     {
         editandoId = servicio.Id;
         formulario = Formulario.Desde(servicio);
-        mensaje = null;
+        Abrir();
     }
 
     private void Nuevo()
     {
         editandoId = null;
         formulario = new();
+        Abrir();
+    }
+
+    private void Abrir()
+    {
+        mensaje = null;
+        errorDialogo = null;
+        dialogoAbierto = true;
+    }
+
+    private void Cerrar()
+    {
+        dialogoAbierto = false;
+        editandoId = null;
+        formulario = new();
     }
 
     private async Task GuardarAsync()
     {
-        if (editandoId is null)
+        enviando = true;
+        try
         {
-            Resultado<Guid> creado = await Crear.EjecutarAsync(
-                new CrearServicioComando(
-                    formulario.Nombre, formulario.Descripcion, formulario.DuracionMinutos, formulario.Precio,
-                    formulario.IntervaloHuecosMinutos, formulario.AntelacionMinimaMinutos, formulario.AntelacionMaximaDias),
-                CancellationToken.None);
-            mensaje = creado.EsExito ? "Servicio creado." : creado.Mensaje;
-            if (!creado.EsExito)
+            string exito;
+            if (editandoId is null)
             {
-                return;
-            }
-        }
-        else
-        {
-            Resultado actualizado = await Actualizar.EjecutarAsync(
-                new ActualizarServicioComando(
-                    editandoId.Value, formulario.Nombre, formulario.Descripcion, formulario.DuracionMinutos, formulario.Precio,
-                    formulario.IntervaloHuecosMinutos, formulario.AntelacionMinimaMinutos, formulario.AntelacionMaximaDias),
-                CancellationToken.None);
-            mensaje = actualizado.EsExito ? "Servicio actualizado." : actualizado.Mensaje;
-            if (!actualizado.EsExito)
-            {
-                return;
-            }
-        }
+                Resultado<Guid> creado = await Crear.EjecutarAsync(
+                    new CrearServicioComando(
+                        formulario.Nombre, formulario.Descripcion, formulario.DuracionMinutos, formulario.Precio,
+                        formulario.IntervaloHuecosMinutos, formulario.AntelacionMinimaMinutos, formulario.AntelacionMaximaDias),
+                    CancellationToken.None);
+                if (!creado.EsExito)
+                {
+                    errorDialogo = creado.Mensaje;
+                    return;
+                }
 
-        Nuevo();
-        await CargarAsync();
+                exito = "Servicio creado.";
+            }
+            else
+            {
+                Resultado actualizado = await Actualizar.EjecutarAsync(
+                    new ActualizarServicioComando(
+                        editandoId.Value, formulario.Nombre, formulario.Descripcion, formulario.DuracionMinutos, formulario.Precio,
+                        formulario.IntervaloHuecosMinutos, formulario.AntelacionMinimaMinutos, formulario.AntelacionMaximaDias),
+                    CancellationToken.None);
+                if (!actualizado.EsExito)
+                {
+                    errorDialogo = actualizado.Mensaje;
+                    return;
+                }
+
+                exito = "Servicio actualizado.";
+            }
+
+            Cerrar();
+            mensaje = exito;
+            await CargarAsync();
+        }
+        finally
+        {
+            enviando = false;
+        }
     }
 
-    private async Task DesactivarAsync(Guid id)
+    private async Task ConfirmarDesactivarAsync()
     {
-        Resultado resultado = await Desactivar.EjecutarAsync(new DesactivarServicioComando(id), CancellationToken.None);
-        mensaje = resultado.EsExito ? "Servicio desactivado." : resultado.Mensaje;
-        await CargarAsync();
+        if (aDesactivar is null)
+        {
+            return;
+        }
+
+        enviando = true;
+        try
+        {
+            Resultado resultado = await Desactivar.EjecutarAsync(new DesactivarServicioComando(aDesactivar.Id), CancellationToken.None);
+            mensaje = resultado.EsExito ? "Servicio desactivado." : resultado.Mensaje;
+            aDesactivar = null;
+            await CargarAsync();
+        }
+        finally
+        {
+            enviando = false;
+        }
     }
 
     private sealed class Formulario

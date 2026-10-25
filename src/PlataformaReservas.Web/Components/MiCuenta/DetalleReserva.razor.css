@@ -1,44 +1,13 @@
 .mi-cuenta {
     max-width: 48rem;
     margin: 0 auto;
-    padding: 1.5rem 1rem;
 }
 
-.resumen {
-    display: grid;
-    grid-template-columns: max-content 1fr;
-    gap: 0.25rem 1rem;
-}
-
-.resumen dt {
+.mi-cuenta > p:first-child a {
     font-weight: 600;
-}
-
-.resumen dd {
-    margin: 0;
+    text-decoration: none;
 }
 
 button {
-    margin-top: 1rem;
-    margin-right: 0.5rem;
-    padding: 0.5rem 1rem;
-    border-radius: 0.375rem;
-    cursor: pointer;
-}
-
-.peligro {
-    border: none;
-    background: #b42318;
-    color: #fff;
-}
-
-button:disabled {
-    opacity: 0.6;
-    cursor: default;
-}
-
-.aviso {
-    padding: 0.75rem 1rem;
-    border-radius: 0.375rem;
-    background: #fff4e5;
+    margin-top: 0.5rem;
 }

@@ -1,0 +1,109 @@
+.dialogo-fondo {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 1rem;
+    background: rgb(15 23 42 / 0.55);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    animation: aparecer-fondo 160ms ease-out;
+}
+
+.dialogo {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 34rem;
+    max-height: calc(100dvh - 2rem);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio-l);
+    background: var(--superficie);
+    box-shadow: var(--sombra-l);
+    color: var(--texto);
+    animation: aparecer-dialogo 200ms ease-out;
+}
+
+.dialogo:focus {
+    outline: none;
+}
+
+.dialogo.amplio {
+    max-width: 42rem;
+}
+
+@media (min-width: 640px) {
+    .dialogo-fondo {
+        align-items: center;
+    }
+
+    .dialogo {
+        max-height: 90dvh;
+    }
+}
+
+.dialogo-cabecera {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1rem 1rem 1.5rem;
+    border-bottom: 1px solid var(--borde);
+}
+
+.dialogo-cabecera h2 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.dialogo-cerrar {
+    flex: none;
+    width: 2.5rem;
+    min-height: 2.5rem;
+    padding: 0;
+    border-color: transparent;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--texto-atenuado);
+}
+
+.dialogo-cerrar svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.dialogo-cuerpo {
+    padding: 1.25rem 1.5rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.dialogo-pie {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--borde);
+    background: var(--superficie-alterna);
+    border-radius: 0 0 var(--radio-l) var(--radio-l);
+}
+
+.dialogo-pie ::deep button {
+    margin: 0;
+}
+
+@keyframes aparecer-fondo {
+    from {
+        opacity: 0;
+    }
+}
+
+@keyframes aparecer-dialogo {
+    from {
+        opacity: 0;
+        transform: translateY(1rem) scale(0.98);
+    }
+}

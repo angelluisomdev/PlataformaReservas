@@ -1,0 +1,36 @@
+.vacio {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 30rem;
+    margin: clamp(1rem, 4vw, 3rem) auto 0;
+    text-align: center;
+}
+
+svg {
+    width: 7.5rem;
+    height: 7.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.fondo {
+    fill: var(--principal-suave);
+}
+
+.trazo {
+    stroke: var(--principal);
+}
+
+.detalle {
+    stroke: var(--acento);
+}
+
+h3 {
+    margin: 0 0 0.5rem;
+    font-size: clamp(1.6rem, 1.3rem + 1.2vw, 2.1rem);
+}
+
+p {
+    margin-bottom: 1.75rem;
+    color: var(--texto-atenuado);
+}

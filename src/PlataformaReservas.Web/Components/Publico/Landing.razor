@@ -7,29 +7,81 @@
 <PageTitle>Reserva tu cita en establecimientos de tu ciudad</PageTitle>
 
 <section class="hero">
-    <h1>Reserva tu cita en establecimientos de tu ciudad</h1>
-    <p class="propuesta">
-        Peluquerías, centros de estética, fisioterapeutas, academias y mucho más.
-        Consulta la disponibilidad real y reserva en un minuto, sin llamadas ni esperas.
-    </p>
+    <div class="hero-interior">
+        <div class="hero-texto">
+            <h1>Reserva tu cita en establecimientos de tu ciudad</h1>
+            <p class="propuesta">
+                Fisioterapeutas, academias, entrenamiento personal y mucho más.
+                Consulta la disponibilidad real y reserva en un minuto, sin llamadas ni esperas.
+            </p>
 
-    <form class="buscador" method="get" action="businesses">
-        <div class="campo">
-            <label for="ciudad">Ciudad</label>
-            <input id="ciudad" name="city" type="text" placeholder="Por ejemplo, Málaga" />
-        </div>
-        <div class="campo">
-            <label for="categoria">Categoría</label>
-            <select id="categoria" name="category">
-                <option value="">Todas</option>
+            <form class="buscador" method="get" action="businesses">
+                <div class="campo">
+                    <label for="ciudad">Ciudad</label>
+                    <input id="ciudad" name="city" type="text" placeholder="Por ejemplo, Málaga" />
+                </div>
+                <div class="campo">
+                    <label for="categoria">Categoría</label>
+                    <select id="categoria" name="category">
+                        <option value="">Todas</option>
+                        @foreach (CategoriaDto categoria in categorias)
+                        {
+                            <option value="@categoria.Slug">@categoria.Nombre</option>
+                        }
+                    </select>
+                </div>
+                <button type="submit">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+                        <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+                    </svg>
+                    Buscar
+                </button>
+            </form>
+
+            <nav class="populares" aria-label="Categorías">
+                <span>Categorías:</span>
                 @foreach (CategoriaDto categoria in categorias)
                 {
-                    <option value="@categoria.Slug">@categoria.Nombre</option>
+                    <a class="pildora" href="businesses?category=@categoria.Slug">@categoria.Nombre</a>
                 }
-            </select>
+            </nav>
+
+            <ul class="ventajas">
+                <li>Disponibilidad real</li>
+                <li>Sin llamadas</li>
+                <li>Cancela desde tu área</li>
+            </ul>
         </div>
-        <button type="submit">Buscar</button>
-    </form>
+
+        <div class="maqueta" aria-hidden="true">
+            <div class="maqueta-tarjeta">
+                <div class="maqueta-cabecera">
+                    <span class="punto"></span>
+                    <strong>Tu reserva</strong>
+                </div>
+                <div class="maqueta-dias">
+                    <span>Lun<b>13</b></span>
+                    <span class="activo">Mar<b>14</b></span>
+                    <span>Mié<b>15</b></span>
+                    <span>Jue<b>16</b></span>
+                    <span>Vie<b>17</b></span>
+                </div>
+                <div class="maqueta-horas">
+                    <span>10:00</span>
+                    <span class="ocupada">10:30</span>
+                    <span class="elegida">11:00</span>
+                    <span>11:30</span>
+                    <span>12:00</span>
+                    <span>12:30</span>
+                </div>
+                <div class="maqueta-boton">Confirmar reserva</div>
+            </div>
+            <div class="maqueta-confirmada">
+                <span>✓</span>
+                <div><strong>Cita confirmada</strong><small>Martes 14 · 11:00</small></div>
+            </div>
+        </div>
+    </div>
 </section>
 
 <section class="como-funciona">
@@ -50,40 +102,35 @@
     </ol>
 </section>
 
-<section class="categorias">
-    <h2>Categorías</h2>
-    <ul class="rejilla">
-        @foreach (CategoriaDto categoria in categorias)
-        {
-            <li><a href="businesses?category=@categoria.Slug">@categoria.Nombre</a></li>
-        }
-    </ul>
-</section>
-
 <section class="preguntas">
     <h2>Preguntas frecuentes</h2>
-    <dl>
-        <dt>¿Tengo que pagar por reservar?</dt>
-        <dd>No. La plataforma no gestiona pagos: solo reserva la cita.</dd>
-
-        <dt>¿Necesito una cuenta?</dt>
-        <dd>Puedes buscar establecimientos y ver su disponibilidad sin registrarte. Para confirmar una reserva sí necesitas una cuenta.</dd>
-
-        <dt>¿Puedo cancelar una cita?</dt>
-        <dd>Sí, desde tu área personal, siempre que la cita no haya empezado.</dd>
-
-        <dt>Tengo un negocio, ¿cómo aparezco en la plataforma?</dt>
-        <dd>Registra tu establecimiento, añade tus servicios, profesionales y horarios, y aparecerás en las búsquedas.</dd>
-    </dl>
+    <div class="acordeon">
+        <details>
+            <summary>¿Tengo que pagar por reservar?</summary>
+            <p>No. La plataforma no gestiona pagos: solo reserva la cita.</p>
+        </details>
+        <details>
+            <summary>¿Necesito una cuenta?</summary>
+            <p>Puedes buscar establecimientos y ver su disponibilidad sin registrarte. Para confirmar una reserva sí necesitas una cuenta.</p>
+        </details>
+        <details>
+            <summary>¿Puedo cancelar una cita?</summary>
+            <p>Sí, desde tu área personal, siempre que la cita no haya empezado.</p>
+        </details>
+        <details>
+            <summary>Tengo un negocio, ¿cómo aparezco en la plataforma?</summary>
+            <p>Registra tu establecimiento, añade tus servicios, profesionales y horarios, y aparecerás en las búsquedas.</p>
+        </details>
+    </div>
 </section>
 
 <section class="llamadas">
-    <div class="llamada">
+    <div class="llamada cliente">
         <h2>¿Buscas una cita?</h2>
         <p>Crea tu cuenta y reserva en los establecimientos de tu ciudad.</p>
         <a class="boton" href="register">Crear cuenta</a>
     </div>
-    <div class="llamada">
+    <div class="llamada negocio">
         <h2>¿Tienes un establecimiento?</h2>
         <p>Publica tu agenda y recibe reservas sin atender el teléfono.</p>
         <a class="boton" href="for-business/register">Registrar mi negocio</a>

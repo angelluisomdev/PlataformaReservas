@@ -1,0 +1,73 @@
+@if (Abierto)
+{
+    <div class="dialogo-fondo">
+        <div @ref="dialogo" class="dialogo @(Amplio ? "amplio" : null)" role="dialog" aria-modal="true"
+             aria-labelledby="@idTitulo" tabindex="-1" @onkeydown="TeclaAsync">
+            <header class="dialogo-cabecera">
+                <h2 id="@idTitulo">@Titulo</h2>
+                <button type="button" class="dialogo-cerrar" aria-label="Cerrar" @onclick="AlCerrar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                        <path d="M6 6l12 12M18 6 6 18" />
+                    </svg>
+                </button>
+            </header>
+            <div class="dialogo-cuerpo">
+                @ChildContent
+            </div>
+            @if (Pie is not null)
+            {
+                <footer class="dialogo-pie">
+                    @Pie
+                </footer>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private readonly string idTitulo = $"dialogo-{Guid.NewGuid():N}";
+    private ElementReference dialogo;
+    private bool estabaAbierto;
+    private bool enfocar;
+
+    [Parameter, EditorRequired]
+    public string Titulo { get; set; } = "";
+
+    [Parameter]
+    public bool Abierto { get; set; }
+
+    [Parameter]
+    public bool Amplio { get; set; }
+
+    [Parameter]
+    public EventCallback AlCerrar { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? Pie { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        enfocar = Abierto && !estabaAbierto;
+        estabaAbierto = Abierto;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (enfocar)
+        {
+            enfocar = false;
+            await dialogo.FocusAsync();
+        }
+    }
+
+    private async Task TeclaAsync(KeyboardEventArgs evento)
+    {
+        if (evento.Key == "Escape")
+        {
+            await AlCerrar.InvokeAsync();
+        }
+    }
+}

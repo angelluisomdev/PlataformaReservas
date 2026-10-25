@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using PlataformaReservas.Infraestructura.Correo;
@@ -6,13 +7,15 @@ namespace PlataformaReservas.Infraestructura.Identidad;
 
 public sealed partial class InicioSesion(SignInManager<Usuario> sesiones, ILogger<InicioSesion> registro)
 {
-    public async Task<bool> IniciarAsync(string correo, string clave, bool recordar, string? ip)
+    public async Task<ClaimsPrincipal?> IniciarAsync(string correo, string clave, bool recordar, string? ip)
     {
         SignInResult resultado = await sesiones.PasswordSignInAsync(correo, clave, recordar, lockoutOnFailure: true);
         if (resultado.Succeeded)
         {
             RegistrarAcierto(registro);
-            return true;
+            Usuario usuario = await sesiones.UserManager.FindByNameAsync(correo)
+                ?? throw new InvalidOperationException("El usuario que acaba de iniciar sesion no existe.");
+            return await sesiones.CreateUserPrincipalAsync(usuario);
         }
 
         string enmascarado = EnmascaradoCorreo.Enmascarar(correo);
@@ -25,7 +28,7 @@ public sealed partial class InicioSesion(SignInManager<Usuario> sesiones, ILogge
             RegistrarFallo(registro, enmascarado, ip);
         }
 
-        return false;
+        return null;
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Inicio de sesion correcto")]

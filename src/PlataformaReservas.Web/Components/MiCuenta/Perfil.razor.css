@@ -1,66 +1,25 @@
 .mi-cuenta {
     max-width: 48rem;
     margin: 0 auto;
-    padding: 1.5rem 1rem;
-}
-
-.resumen {
-    display: grid;
-    grid-template-columns: max-content 1fr;
-    gap: 0.25rem 1rem;
-}
-
-.resumen dt {
-    font-weight: 600;
-}
-
-.resumen dd {
-    margin: 0;
-}
-
-label {
-    display: block;
-    margin-top: 1rem;
 }
 
 input {
-    width: 100%;
     max-width: 30rem;
 }
 
-button {
+h2 {
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--borde);
+    color: var(--peligro);
+    font-size: 1.2rem;
+}
+
+.confirmada h2 {
+    padding-top: 0;
+    border-top: 0;
+    color: var(--exito);
+}
+
+.confirmada form {
     margin-top: 1rem;
-    margin-right: 0.5rem;
-    padding: 0.5rem 1rem;
-    border-radius: 0.375rem;
-    cursor: pointer;
-}
-
-.principal {
-    border: none;
-    background: #1b6ec2;
-    color: #fff;
-}
-
-.peligro {
-    border: none;
-    background: #b42318;
-    color: #fff;
-}
-
-button:disabled {
-    opacity: 0.6;
-    cursor: default;
-}
-
-.aviso {
-    padding: 0.75rem 1rem;
-    border-radius: 0.375rem;
-    background: #fff4e5;
-}
-
-.confirmada {
-    padding: 1rem;
-    border-radius: 0.375rem;
-    background: #e8f5e9;
 }

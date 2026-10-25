@@ -11,7 +11,10 @@
 
 <PageTitle>Profesionales</PageTitle>
 
-<h1>Profesionales</h1>
+<div class="cabecera-pagina">
+    <h1>Profesionales</h1>
+    <button type="button" class="principal" @onclick="Nuevo">+ Nuevo profesional</button>
+</div>
 
 @if (mensaje is not null)
 {
@@ -22,80 +25,124 @@
 {
     <p>Cargando…</p>
 }
+else if (profesionales.Count == 0)
+{
+    <p class="vacio-lista">Todavía no hay profesionales.</p>
+}
 else
 {
-    @if (profesionales.Count == 0)
-    {
-        <p>Todavía no hay profesionales.</p>
-    }
+    <ul class="listado">
+        @foreach (ProfesionalDto profesional in profesionales)
+        {
+            <li class="listado-fila @(profesional.Activo ? null : "inactivo")">
+                <div class="listado-datos">
+                    <strong>@profesional.NombreCompleto</strong>
+                    <span class="meta">@(profesional.Email ?? "Sin correo") · @(profesional.Telefono ?? "Sin teléfono")</span>
+                    <span class="etiquetas">
+                        @if (!profesional.Activo)
+                        {
+                            <span class="etiqueta">Desactivado</span>
+                        }
+                        @foreach (ServicioDto servicio in servicios.Where(s => profesional.Servicios.Contains(s.Id)))
+                        {
+                            <span class="etiqueta servicio">@servicio.Nombre</span>
+                        }
+                    </span>
+                </div>
+                <div class="listado-acciones">
+                    <button type="button" class="btn btn-sm btn-secondary" aria-label="Editar @profesional.NombreCompleto" @onclick="() => Editar(profesional)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                        </svg>
+                        <span class="texto-boton">Editar</span>
+                    </button>
+                    @if (profesional.Activo)
+                    {
+                        <button type="button" class="btn btn-sm btn-outline-danger" aria-label="Desactivar @profesional.NombreCompleto" @onclick="() => aDesactivar = profesional">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                                <circle cx="12" cy="12" r="9" /><path d="m5.7 5.7 12.6 12.6" />
+                            </svg>
+                            <span class="texto-boton">Desactivar</span>
+                        </button>
+                    }
+                </div>
+            </li>
+        }
+    </ul>
+}
 
-    @foreach (ProfesionalDto profesional in profesionales)
-    {
-        <section class="border rounded p-3 mb-3">
-            <h2>@profesional.NombreCompleto @(profesional.Activo ? "" : "(desactivado)")</h2>
-            <p>
-                @(profesional.Email ?? "Sin correo") · @(profesional.Telefono ?? "Sin teléfono")
-            </p>
+<Dialogo Titulo="@(editandoId is null ? "Nuevo profesional" : "Editar profesional")" Abierto="dialogoAbierto" AlCerrar="Cerrar">
+    <ChildContent>
+        @if (errorDialogo is not null)
+        {
+            <div class="alert alert-danger" role="alert">@errorDialogo</div>
+        }
+        <EditForm id="formulario-profesional" Model="formulario" OnValidSubmit="GuardarAsync" FormName="profesional">
+            <div class="mb-3">
+                <label for="nombre" class="form-label">Nombre completo</label>
+                <InputText id="nombre" @bind-Value="formulario.NombreCompleto" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">Correo (opcional)</label>
+                <InputText id="email" @bind-Value="formulario.Email" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label for="telefono" class="form-label">Teléfono (opcional)</label>
+                <InputText id="telefono" @bind-Value="formulario.Telefono" class="form-control" />
+            </div>
 
             <h3>Servicios que presta</h3>
-            @if (servicios.Count == 0)
+            @if (servicios is null || servicios.Count == 0)
             {
                 <p>Primero crea algún servicio en <a href="app/services">Servicios</a>.</p>
             }
             else
             {
-                <ul class="list-unstyled">
+                <ul class="casillas">
                     @foreach (ServicioDto servicio in servicios)
                     {
-                        bool presta = profesional.Servicios.Contains(servicio.Id);
                         <li>
                             <label>
-                                <input type="checkbox" checked="@presta"
-                                       @onchange="() => CambiarAsociacionAsync(profesional.Id, servicio.Id, presta)" />
+                                <input type="checkbox" checked="@formulario.Servicios.Contains(servicio.Id)"
+                                       @onchange="() => CambiarServicio(servicio.Id)" />
                                 @servicio.Nombre @(servicio.Activo ? "" : "(desactivado)")
                             </label>
                         </li>
                     }
                 </ul>
             }
+        </EditForm>
+    </ChildContent>
+    <Pie>
+        <button type="button" class="btn btn-secondary" disabled="@enviando" @onclick="Cerrar">Cancelar</button>
+        <button type="submit" form="formulario-profesional" class="btn btn-primary" disabled="@enviando">
+            @(editandoId is null ? "Crear profesional" : "Guardar cambios")
+        </button>
+    </Pie>
+</Dialogo>
 
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Editar(profesional)">Editar</button>
-            @if (profesional.Activo)
-            {
-                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => DesactivarAsync(profesional.Id)">Desactivar</button>
-            }
-        </section>
-    }
-
-    <h2>@(editandoId is null ? "Nuevo profesional" : "Editar profesional")</h2>
-    <EditForm Model="formulario" OnValidSubmit="GuardarAsync" FormName="profesional">
-        <div class="mb-3">
-            <label for="nombre" class="form-label">Nombre completo</label>
-            <InputText id="nombre" @bind-Value="formulario.NombreCompleto" class="form-control" />
-        </div>
-        <div class="mb-3">
-            <label for="email" class="form-label">Correo (opcional)</label>
-            <InputText id="email" @bind-Value="formulario.Email" class="form-control" />
-        </div>
-        <div class="mb-3">
-            <label for="telefono" class="form-label">Teléfono (opcional)</label>
-            <InputText id="telefono" @bind-Value="formulario.Telefono" class="form-control" />
-        </div>
-
-        <button type="submit" class="btn btn-primary">@(editandoId is null ? "Crear profesional" : "Guardar cambios")</button>
-        @if (editandoId is not null)
-        {
-            <button type="button" class="btn btn-secondary" @onclick="Nuevo">Cancelar</button>
-        }
-    </EditForm>
-}
+<Dialogo Titulo="Desactivar profesional" Abierto="aDesactivar is not null" AlCerrar="() => aDesactivar = null">
+    <ChildContent>
+        <p>¿Desactivar a <strong>@aDesactivar?.NombreCompleto</strong>? Dejará de aparecer en las reservas nuevas.</p>
+    </ChildContent>
+    <Pie>
+        <button type="button" class="btn btn-secondary" disabled="@enviando" @onclick="() => aDesactivar = null">Cancelar</button>
+        <button type="button" class="btn btn-danger" disabled="@enviando" @onclick="ConfirmarDesactivarAsync">Sí, desactivar</button>
+    </Pie>
+</Dialogo>
 
 @code {
     private IReadOnlyList<ProfesionalDto>? profesionales;
     private IReadOnlyList<ServicioDto>? servicios;
     private Formulario formulario = new();
     private Guid? editandoId;
+    private HashSet<Guid> serviciosPrevios = [];
+    private bool esAlta;
     private string? mensaje;
+    private bool dialogoAbierto;
+    private string? errorDialogo;
+    private ProfesionalDto? aDesactivar;
+    private bool enviando;
 
     protected override async Task OnInitializedAsync()
     {
@@ -113,64 +160,144 @@ else
     private void Editar(ProfesionalDto profesional)
     {
         editandoId = profesional.Id;
+        esAlta = false;
+        serviciosPrevios = [.. profesional.Servicios];
         formulario = new Formulario
         {
             NombreCompleto = profesional.NombreCompleto,
             Email = profesional.Email,
             Telefono = profesional.Telefono,
+            Servicios = [.. profesional.Servicios],
         };
-        mensaje = null;
+        Abrir();
     }
 
     private void Nuevo()
     {
         editandoId = null;
+        esAlta = true;
+        serviciosPrevios = [];
         formulario = new();
+        Abrir();
+    }
+
+    private void Abrir()
+    {
+        mensaje = null;
+        errorDialogo = null;
+        dialogoAbierto = true;
+    }
+
+    private void Cerrar()
+    {
+        dialogoAbierto = false;
+        editandoId = null;
+        serviciosPrevios = [];
+        formulario = new();
+    }
+
+    private void CambiarServicio(Guid servicioId)
+    {
+        if (!formulario.Servicios.Remove(servicioId))
+        {
+            formulario.Servicios.Add(servicioId);
+        }
     }
 
     private async Task GuardarAsync()
     {
-        if (editandoId is null)
+        enviando = true;
+        try
         {
-            Resultado<Guid> creado = await Crear.EjecutarAsync(
-                new CrearProfesionalComando(formulario.NombreCompleto, formulario.Email, formulario.Telefono),
-                CancellationToken.None);
-            mensaje = creado.EsExito ? "Profesional creado." : creado.Mensaje;
-            if (!creado.EsExito)
+            if (editandoId is null)
             {
+                Resultado<Guid> creado = await Crear.EjecutarAsync(
+                    new CrearProfesionalComando(formulario.NombreCompleto, formulario.Email, formulario.Telefono),
+                    CancellationToken.None);
+                if (!creado.EsExito)
+                {
+                    errorDialogo = creado.Mensaje;
+                    return;
+                }
+
+                editandoId = creado.Valor;
+            }
+            else
+            {
+                Resultado actualizado = await Actualizar.EjecutarAsync(
+                    new ActualizarProfesionalComando(editandoId.Value, formulario.NombreCompleto, formulario.Email, formulario.Telefono),
+                    CancellationToken.None);
+                if (!actualizado.EsExito)
+                {
+                    errorDialogo = actualizado.Mensaje;
+                    return;
+                }
+            }
+
+            if (!await AplicarServiciosAsync(editandoId.Value))
+            {
+                await CargarAsync();
                 return;
             }
+
+            Cerrar();
+            mensaje = esAlta ? "Profesional creado." : "Profesional actualizado.";
+            await CargarAsync();
         }
-        else
+        finally
         {
-            Resultado actualizado = await Actualizar.EjecutarAsync(
-                new ActualizarProfesionalComando(editandoId.Value, formulario.NombreCompleto, formulario.Email, formulario.Telefono),
-                CancellationToken.None);
-            mensaje = actualizado.EsExito ? "Profesional actualizado." : actualizado.Mensaje;
-            if (!actualizado.EsExito)
+            enviando = false;
+        }
+    }
+
+    private async Task<bool> AplicarServiciosAsync(Guid profesionalId)
+    {
+        foreach (Guid servicioId in formulario.Servicios.Except(serviciosPrevios).ToList())
+        {
+            Resultado resultado = await Asociar.EjecutarAsync(new AsociarServicioComando(profesionalId, servicioId), CancellationToken.None);
+            if (!resultado.EsExito)
             {
-                return;
+                errorDialogo = resultado.Mensaje;
+                return false;
             }
+
+            serviciosPrevios.Add(servicioId);
         }
 
-        Nuevo();
-        await CargarAsync();
+        foreach (Guid servicioId in serviciosPrevios.Except(formulario.Servicios).ToList())
+        {
+            Resultado resultado = await Desasociar.EjecutarAsync(new DesasociarServicioComando(profesionalId, servicioId), CancellationToken.None);
+            if (!resultado.EsExito)
+            {
+                errorDialogo = resultado.Mensaje;
+                return false;
+            }
+
+            serviciosPrevios.Remove(servicioId);
+        }
+
+        return true;
     }
 
-    private async Task DesactivarAsync(Guid id)
+    private async Task ConfirmarDesactivarAsync()
     {
-        Resultado resultado = await Desactivar.EjecutarAsync(new DesactivarProfesionalComando(id), CancellationToken.None);
-        mensaje = resultado.EsExito ? "Profesional desactivado." : resultado.Mensaje;
-        await CargarAsync();
-    }
+        if (aDesactivar is null)
+        {
+            return;
+        }
 
-    private async Task CambiarAsociacionAsync(Guid profesionalId, Guid servicioId, bool prestaba)
-    {
-        Resultado resultado = prestaba
-            ? await Desasociar.EjecutarAsync(new DesasociarServicioComando(profesionalId, servicioId), CancellationToken.None)
-            : await Asociar.EjecutarAsync(new AsociarServicioComando(profesionalId, servicioId), CancellationToken.None);
-        mensaje = resultado.EsExito ? null : resultado.Mensaje;
-        await CargarAsync();
+        enviando = true;
+        try
+        {
+            Resultado resultado = await Desactivar.EjecutarAsync(new DesactivarProfesionalComando(aDesactivar.Id), CancellationToken.None);
+            mensaje = resultado.EsExito ? "Profesional desactivado." : resultado.Mensaje;
+            aDesactivar = null;
+            await CargarAsync();
+        }
+        finally
+        {
+            enviando = false;
+        }
     }
 
     private sealed class Formulario
@@ -180,5 +307,7 @@ else
         public string? Email { get; set; }
 
         public string? Telefono { get; set; }
+
+        public HashSet<Guid> Servicios { get; set; } = [];
     }
 }

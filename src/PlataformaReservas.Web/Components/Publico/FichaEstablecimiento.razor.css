@@ -1,66 +1,178 @@
 .ficha {
-    margin: 0 auto;
-    max-width: 64rem;
-    padding: 2rem 1rem;
+    padding-bottom: 5rem;
 }
 
-.categoria,
-.meta,
-.direccion {
-    color: #4a5a66;
-    font-size: 0.9rem;
-    margin: 0 0 0.5rem;
+header {
+    position: relative;
+    margin-bottom: 2rem;
+    padding: clamp(1.5rem, 1rem + 3vw, 2.75rem);
+    overflow: hidden;
+    border-radius: calc(var(--radio-l) + 4px);
+    background:
+        radial-gradient(30rem 18rem at 100% 0%, color-mix(in srgb, var(--acento) 30%, transparent), transparent 65%),
+        linear-gradient(135deg, #0f766e, #134e4a);
+    box-shadow: var(--sombra-m);
+    color: #ffffff;
+}
+
+.categoria {
+    display: inline-block;
+    margin-bottom: 0.9rem;
+    padding: 0.2rem 0.75rem;
+    border-radius: var(--radio-pildora);
+    background: rgb(255 255 255 / 0.16);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 h1 {
-    font-size: 2rem;
-    margin: 0 0 0.5rem;
+    margin-bottom: 0.5rem;
+    font-size: clamp(2rem, 1.4rem + 2.6vw, 3rem);
+}
+
+.direccion {
+    margin-bottom: 0;
+    color: rgb(255 255 255 / 0.85);
 }
 
 .boton {
-    background: #1f5f8b;
-    border-radius: 0.25rem;
-    color: #fff;
-    display: inline-block;
-    margin: 0.5rem 0 1rem;
-    padding: 0.55rem 1.25rem;
-    text-decoration: none;
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    left: 1rem;
+    z-index: 30;
+    min-height: 3.25rem;
+    font-size: 1.05rem;
+    box-shadow: var(--sombra-l);
+}
+
+@media (min-width: 640px) {
+    .ficha {
+        padding-bottom: 0;
+    }
+
+    .boton {
+        position: static;
+        margin-top: 1.5rem;
+        padding-inline: 2rem;
+    }
 }
 
 .descripcion {
+    max-width: 48rem;
+    color: var(--texto-atenuado);
+    font-size: 1.075rem;
     white-space: pre-line;
+}
+
+section {
+    margin-top: 2.5rem;
+}
+
+section h2 {
+    margin: 0 0 1rem;
 }
 
 .servicios {
     display: grid;
-    gap: 1rem;
     grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
-    list-style: none;
+    gap: 1rem;
+    margin: 0;
     padding: 0;
+    list-style: none;
 }
 
 .servicios li {
-    border: 1px solid #c8d3dc;
-    border-radius: 0.5rem;
-    padding: 1rem;
+    padding: 1.15rem 1.25rem;
+    border: 1px solid var(--borde);
+    border-radius: var(--radio-l);
+    background: var(--superficie);
+    box-shadow: var(--sombra-s);
 }
 
 .servicios h3 {
+    margin: 0 0 0.35rem;
     font-size: 1.05rem;
-    margin: 0 0 0.25rem;
+}
+
+.meta {
+    display: inline-block;
+    margin-bottom: 0.5rem;
+    padding: 0.15rem 0.6rem;
+    border-radius: var(--radio-pildora);
+    background: var(--principal-suave);
+    color: var(--principal);
+    font-weight: 650;
+}
+
+.servicios p:last-child {
+    margin-bottom: 0;
+}
+
+.servicios p:not(.meta) {
+    color: var(--texto-atenuado);
+    font-size: 0.95rem;
+}
+
+.profesionales {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.profesionales li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 1rem 0.4rem 0.45rem;
+    border: 1px solid var(--borde);
+    border-radius: var(--radio-pildora);
+    background: var(--superficie);
+    font-weight: 600;
+}
+
+.profesionales li::before {
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--principal), var(--acento));
+    content: "";
 }
 
 .horario {
     display: grid;
-    gap: 0.25rem 1rem;
     grid-template-columns: max-content 1fr;
+    max-width: 32rem;
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--borde);
+    border-radius: var(--radio-l);
+    background: var(--superficie);
+}
+
+.horario dt,
+.horario dd {
+    padding: 0.65rem 1.1rem;
+    border-top: 1px solid var(--borde);
+}
+
+.horario dt:first-of-type,
+.horario dt:first-of-type + dd {
+    border-top: 0;
 }
 
 .horario dt {
-    font-weight: 600;
+    font-weight: 650;
     text-transform: capitalize;
 }
 
 .horario dd {
     margin: 0;
+    color: var(--texto-atenuado);
+    text-align: right;
 }

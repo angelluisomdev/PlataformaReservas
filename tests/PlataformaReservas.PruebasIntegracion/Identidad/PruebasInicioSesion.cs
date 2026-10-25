@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -22,6 +23,26 @@ public sealed class PruebasInicioSesion(BaseDatosFixture baseDatos)
         await CrearAsync(baseDatos, correo);
 
         (await IniciarAsync(correo, Clave)).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task La_identidad_devuelta_lleva_el_usuario_y_sus_roles()
+    {
+        string correo = CorreoUnico();
+        Usuario creado = await CrearAsync(baseDatos, correo);
+        await using (AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope())
+        {
+            UserManager<Usuario> usuarios = ambito.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
+            Usuario usuario = (await usuarios.FindByIdAsync(creado.Id.ToString()))!;
+            (await usuarios.AddToRoleAsync(usuario, RolesIdentidad.Cliente)).Succeeded.Should().BeTrue();
+        }
+
+        ClaimsPrincipal? identidad = await IniciarConIdentidadAsync(correo, Clave);
+
+        identidad.Should().NotBeNull();
+        identidad!.FindFirstValue(ClaimTypes.NameIdentifier).Should().Be(creado.Id.ToString());
+        identidad.IsInRole(RolesIdentidad.Cliente).Should().BeTrue();
+        identidad.IsInRole(RolesIdentidad.Propietario).Should().BeFalse();
     }
 
     [Fact]
@@ -148,6 +169,11 @@ public sealed class PruebasInicioSesion(BaseDatosFixture baseDatos)
     }
 
     private async Task<bool> IniciarAsync(string correo, string clave, RegistroCaptura<InicioSesion>? registro = null)
+    {
+        return await IniciarConIdentidadAsync(correo, clave, registro) is not null;
+    }
+
+    private async Task<ClaimsPrincipal?> IniciarConIdentidadAsync(string correo, string clave, RegistroCaptura<InicioSesion>? registro = null)
     {
         await using AsyncServiceScope ambito = baseDatos.ServiciosIdentidad.CreateAsyncScope();
         IServiceProvider servicios = ambito.ServiceProvider;

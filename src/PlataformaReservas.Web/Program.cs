@@ -18,6 +18,7 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();
+builder.Services.AddScoped<DestinoInicioSesion>();
 builder.Services.AddScoped<AuthenticationStateProvider, RevalidadorIdentidad>();
 
 builder.Services.AgregarLimitacionFrecuencia();

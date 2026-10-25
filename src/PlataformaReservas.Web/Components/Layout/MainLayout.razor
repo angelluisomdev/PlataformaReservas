@@ -1,31 +1,38 @@
 ﻿@inherits LayoutComponentBase
-@using PlataformaReservas.Infraestructura.Identidad
 
-<nav>
-    <AuthorizeView>
-        <Authorized>
-            <AuthorizeView Policy="@RolesIdentidad.PoliticaPropietario" Context="propietario">
-                <a href="app">Mi establecimiento</a>
-            </AuthorizeView>
-            <AuthorizeView Policy="@RolesIdentidad.PoliticaCliente" Context="cliente">
-                <a href="my-account/bookings">Mis reservas</a>
-                <a href="my-account/profile">Mi perfil</a>
-            </AuthorizeView>
-            <form action="Account/Logout" method="post">
-                <AntiforgeryToken />
-                <input type="hidden" name="ReturnUrl" value="" />
-                <button type="submit">Cerrar sesión</button>
-            </form>
-        </Authorized>
-        <NotAuthorized>
-            <a href="login">Iniciar sesión</a>
-            <a href="register">Registrarse</a>
-            <a href="for-business/register">Registrar mi negocio</a>
-        </NotAuthorized>
-    </AuthorizeView>
-</nav>
+<header class="cabecera">
+    <div class="cabecera-interior">
+        <a class="marca" href="">
+            <svg viewBox="0 0 32 32" aria-hidden="true">
+                <rect width="32" height="32" rx="9" fill="#0f766e" />
+                <rect x="7" y="9" width="18" height="16" rx="3" fill="none" stroke="#fff" stroke-width="2.2" />
+                <path d="M7 14h18M12 6.5v4M20 6.5v4" stroke="#fff" stroke-width="2.2" stroke-linecap="round" />
+                <circle cx="21.5" cy="21.5" r="5" fill="#7c3aed" stroke="#0f766e" stroke-width="1.6" />
+                <path d="m19.4 21.6 1.5 1.5 2.7-2.9" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span>Plataforma<strong>Reservas</strong></span>
+        </a>
 
-@Body
+        <nav class="nav-escritorio" aria-label="Principal">
+            <MenuNavegacion />
+        </nav>
+
+        <details class="menu-movil">
+            <summary aria-label="Menú">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                    <path d="M4 7h16M4 12h16M4 17h16" />
+                </svg>
+            </summary>
+            <nav aria-label="Principal">
+                <MenuNavegacion />
+            </nav>
+        </details>
+    </div>
+</header>
+
+<main class="contenido">
+    @Body
+</main>
 
 <div id="blazor-error-ui" data-nosnippet>
     Se ha producido un error inesperado.

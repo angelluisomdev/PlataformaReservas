@@ -1,5 +1,14 @@
 ﻿@page "/not-found"
 @layout MainLayout
 
-<h3>No encontrado</h3>
-<p>Lo que buscas no existe o ya no está disponible.</p>
+<div class="vacio">
+    <svg viewBox="0 0 120 120" fill="none" aria-hidden="true">
+        <circle cx="60" cy="60" r="56" class="fondo" />
+        <circle class="trazo" cx="54" cy="54" r="24" stroke-width="7" />
+        <path class="trazo" d="m72 72 18 18" stroke-width="8" stroke-linecap="round" />
+        <path class="detalle" d="M47 54h14" stroke-width="6" stroke-linecap="round" />
+    </svg>
+    <h3>No encontrado</h3>
+    <p>Lo que buscas no existe o ya no está disponible.</p>
+    <a class="boton" href="">Volver a la portada</a>
+</div>
