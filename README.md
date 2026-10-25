@@ -154,7 +154,7 @@ Las entidades registran **eventos de dominio** (reserva creada, cancelada, empre
 
 - **Identity** para contraseñas, sesiones y recuperación de cuenta. Autorización por roles (`Cliente`, `Propietario`) y por pertenencia a la empresa.
 - **Cifrado en reposo de los datos personales**: nombre, correo y teléfono de los usuarios, y las copias de nombre y teléfono de cada reserva, se guardan cifrados (AES-256-GCM). La búsqueda por correo usa un valor HMAC-SHA256. Una copia robada de la base de datos no expone datos personales en claro. Ver [Claves de cifrado](#claves-de-cifrado).
-- **Medidas de endurecimiento**: bloqueo tras intentos fallidos, registro de intentos fallidos, limitación de frecuencia en las rutas sensibles, cabeceras de seguridad con CSP, escapado en las plantillas de correo y análisis de dependencias vulnerables en la integración continua.
+- **Medidas de endurecimiento**: bloqueo tras intentos fallidos, registro de intentos fallidos, limitación de frecuencia en las rutas sensibles, cabeceras de seguridad con CSP, escapado en las plantillas de correo y análisis de dependencias vulnerables en la compilación.
 - **Sin secretos en Git**: contraseña de la base de datos en `.env`, cadena de conexión y claves de cifrado en User Secrets.
 
 ---

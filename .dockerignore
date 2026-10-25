@@ -1,0 +1,11 @@
+.env
+.env.*
+**/bin/
+**/obj/
+**/appsettings.*.local.json
+.git
+.claude
+.vscode
+docs
+tests
+*.md

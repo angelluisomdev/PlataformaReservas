@@ -1,8 +1,13 @@
 #
-#   docker compose up -d postgres     levantar
+#   docker compose up -d postgres     levantar solo la base de datos (desarrollo con dotnet run)
+#   docker compose up --build         levantar base de datos y aplicacion en http://localhost:8080
 #   docker compose ps                 comprobar que esta "healthy"
 #   docker compose down               parar, conservando los datos
 #   docker compose down -v            parar y BORRAR los datos
+#
+#   .env (no se versiona): POSTGRES_USER, POSTGRES_PASSWORD, CIFRADO_CLAVE_DATOS, CIFRADO_CLAVE_BUSQUEDA
+#   y, opcionales, POSTGRES_PUERTO y WEB_PUERTO. Las claves de cifrado son las mismas que las de
+#   User Secrets: web y desarrollo comparten datos-postgres (docs/arquitectura.md §11.4, R-9).
 
 services:
   postgres:
@@ -23,5 +28,24 @@ services:
       timeout: 5s
       retries: 10
 
+  web:
+    build: .
+    container_name: plataformareservas-web
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__PlataformaReservas: Host=postgres;Database=plataforma_reservas;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Cifrado__ClaveDatos: ${CIFRADO_CLAVE_DATOS:?Falta CIFRADO_CLAVE_DATOS en .env}
+      Cifrado__ClaveBusqueda: ${CIFRADO_CLAVE_BUSQUEDA:?Falta CIFRADO_CLAVE_BUSQUEDA en .env}
+      BaseDatos__MigrarAlArrancar: "true"
+      Correo__UrlBase: http://localhost:${WEB_PUERTO:-8080}
+    ports:
+      - "127.0.0.1:${WEB_PUERTO:-8080}:8080"
+    volumes:
+      - claves-web:/home/app/.aspnet/DataProtection-Keys
+
 volumes:
   datos-postgres:
+  claves-web:

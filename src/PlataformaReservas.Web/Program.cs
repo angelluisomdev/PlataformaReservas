@@ -24,7 +24,7 @@ var app = builder.Build();
 
 app.Services.ComprobarClavesCifrado();
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("BaseDatos:MigrarAlArrancar"))
 {
     await app.Services.MigrarYSembrarAsync(CancellationToken.None);
 }
