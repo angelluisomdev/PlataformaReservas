@@ -30,7 +30,7 @@ Principios que guían el diseño: MVP por encima de completitud, nada de sobrein
 
 ### Cliente
 
-- Registro, inicio de sesión y recuperación de contraseña por correo.
+- Registro, inicio de sesión y recuperación de contraseña por correo. Tras iniciar sesión, cada usuario va a su área: el propietario a su panel (`/app`) y el cliente a sus reservas (`/my-account/bookings`); si tiene los dos roles, gana el de propietario. Si venía de una página concreta (por ejemplo, a mitad de una reserva), vuelve a ella.
 - Flujo de reserva por pasos: servicio → profesional → día → hueco → confirmación.
 - Listado de reservas próximas e históricas, detalle y cancelación (hasta la hora de inicio).
 - Perfil y baja de cuenta, que cancela sus reservas futuras.
@@ -49,6 +49,10 @@ Un mismo usuario puede ser cliente y propietario a la vez. La empresa **no apare
 ### Notificaciones
 
 Las altas, reservas, cancelaciones y bajas envían correos a las partes afectadas: cliente, empresa o ambos. Si el servidor de correo falla, la operación no se pierde: el fallo queda registrado.
+
+### Interfaz
+
+Diseño propio, sin bibliotecas de componentes ni de estilos: un sistema de diseño en `wwwroot/app.css`, *responsive* (móvil, tableta y escritorio) y con modo oscuro automático. El área de empresa tiene su propia navegación, y Servicios y Profesionales se gestionan con un listado compacto y una ventana emergente para crear y editar. Todo funciona con la política de seguridad de contenidos activa: sin estilos ni *scripts* en línea.
 
 ### Fuera de alcance
 
@@ -126,7 +130,7 @@ Cuando el cliente elige servicio y día, el motor de disponibilidad:
 4. recorre su horario generando huecos según el intervalo configurado;
 5. elimina los que se solapan con reservas existentes o no respetan la antelación.
 
-El resultado son los huecos realmente libres, por profesional.
+El resultado son los huecos realmente libres, por profesional. Detalle en [docs/motor-disponibilidad.md](docs/motor-disponibilidad.md).
 
 ### 3. Creación de la reserva y concurrencia
 
@@ -138,7 +142,7 @@ La prevención de reservas duplicadas se apoya en tres capas:
 | Aplicación | Recomprobación de la disponibilidad dentro de la transacción | Da un mensaje de error claro |
 | Base de datos | Restricción `EXCLUDE USING gist` sobre profesional e intervalo | **La garantía**: rechaza el solapamiento aunque dos peticiones lleguen a la vez |
 
-Si la base de datos rechaza la inserción, el error se traduce a un error de dominio, la interfaz recarga los huecos del día y pide al usuario que elija otro.
+Si la base de datos rechaza la inserción, el error se traduce a un error de dominio, la interfaz recarga los huecos del día y pide al usuario que elija otro. Detalle en [docs/concurrencia.md](docs/concurrencia.md).
 
 ### 4. Aislamiento entre empresas
 
@@ -163,7 +167,7 @@ Las entidades registran **eventos de dominio** (reserva creada, cancelada, empre
 
 - **Unitarias**: reglas del dominio, value objects y motor de disponibilidad.
 - **De integración**: contra un **PostgreSQL real** levantado con Testcontainers y migrado con las migraciones del proyecto, para que la restricción `EXCLUDE` exista de verdad. Cubren persistencia, concurrencia, aislamiento entre empresas, autorización y cifrado.
-- **De arquitectura**: cuatro pruebas comprueban la forma del código. Ninguna entidad expone `set` públicos ni colecciones mutables, todas tienen constructor privado sin parámetros y el dominio no depende de la infraestructura.
+- **De arquitectura**: cinco pruebas comprueban la forma del código. Ninguna entidad expone `set` públicos ni colecciones mutables, todas tienen constructor privado sin parámetros, el dominio no depende de la infraestructura y ningún método público de una entidad recibe un primitivo (`string`, `int`, `decimal`) en lugar de un objeto de valor.
 
 Las reglas de negocio están numeradas (`RN-xx`) y cada prueba cita la regla que verifica.
 
@@ -231,6 +235,14 @@ En Git Bash, `openssl rand -base64 32` produce lo mismo. No uses nunca generador
 
 > **⚠ Perder las claves equivale a perder las cuentas.** Nadie podrá volver a iniciar sesión y los datos cifrados no se pueden recuperar. Haz una copia de seguridad de las dos claves **fuera de la máquina**, por ejemplo en un gestor de contraseñas. No las guardes en un fichero sincronizado ni las envíes por correo.
 
+Para hacer la copia, justo después de generarlas:
+
+```bash
+dotnet user-secrets list --project src/PlataformaReservas.Web
+```
+
+Copia los dos valores de `Cifrado:*` a una nota segura del gestor de contraseñas y limpia la terminal. El ciclo de vida completo de las claves (despliegue, pérdida y qué hacer si se filtran) está en [docs/arquitectura.md](docs/arquitectura.md) §8.5, "Gestión de la clave".
+
 ### 4. Compilar, probar y ejecutar
 
 ```bash
@@ -242,6 +254,78 @@ dotnet run --project src/PlataformaReservas.Web
 ```
 
 En desarrollo, la aplicación aplica las migraciones y siembra los datos iniciales al arrancar, así que `dotnet ef database update` solo hace falta si quieres migrar sin ejecutarla.
+
+### 5. Correo (opcional)
+
+**Por defecto no se envía ningún correo**: `Correo:Habilitado` vale `false` en `appsettings.json` y los correos solo se registran en el log. Así, olvidarse de configurarlo nunca envía nada por descuido.
+
+| Clave | Para qué | Dónde se pone |
+|---|---|---|
+| `Correo:Habilitado` | `true` para enviar de verdad | User Secrets o variable de entorno, **nunca** en un `appsettings*.json` versionado |
+| `Correo:Servidor`, `Correo:Puerto` | Servidor SMTP (587 por defecto) | User Secrets o variable de entorno |
+| `Correo:Usuario`, `Correo:Contrasena` | Credenciales del SMTP | **User Secrets o variable de entorno**: son secretos |
+| `Correo:Remitente`, `Correo:NombreRemitente` | Dirección y nombre del remitente | Tienen valor en `appsettings.json` |
+| `Correo:UrlBase` | Raíz de los enlaces de los correos, como el de restablecer la contraseña. Nunca se toma de la petición | `appsettings.Development.json` en desarrollo; la composición la fija sola |
+
+Para verlos en desarrollo sin que salgan a internet, usa una bandeja de pruebas como **Mailtrap** con los datos SMTP que te dé:
+
+```bash
+dotnet user-secrets set "Correo:Habilitado" "true" --project src/PlataformaReservas.Web
+dotnet user-secrets set "Correo:Servidor" "<servidor SMTP>" --project src/PlataformaReservas.Web
+dotnet user-secrets set "Correo:Usuario" "<usuario>" --project src/PlataformaReservas.Web
+dotnet user-secrets set "Correo:Contrasena" "<contraseña>" --project src/PlataformaReservas.Web
+```
+
+Ten en cuenta que:
+
+- **Un fallo de correo nunca deshace la operación.** Los correos se encolan **después** de confirmar y los envía un servicio en segundo plano; si el envío falla, se registra y la reserva sigue confirmada.
+- **La cola está en memoria.** Si la aplicación se para entre la confirmación y el envío, ese correo se pierde (RN-144). Es una limitación declarada del MVP.
+- **En producción hace falta un proveedor transaccional con SPF y DKIM**, o los correos acabarán en spam (R-8).
+
+Detalle del diseño en [docs/arquitectura.md](docs/arquitectura.md) §13.
+
+### 6. Todo en contenedores
+
+Para levantar la aplicación entera sin instalar .NET, solo con Docker:
+
+```bash
+docker compose up --build
+```
+
+El servicio `web` necesita, además de las variables de la base de datos, estas otras en el mismo `.env`:
+
+```text
+CIFRADO_CLAVE_DATOS=<el mismo valor que Cifrado:ClaveDatos de User Secrets>
+CIFRADO_CLAVE_BUSQUEDA=<el mismo valor que Cifrado:ClaveBusqueda de User Secrets>
+WEB_PUERTO=<opcional; 8080 por defecto>
+```
+
+> **⚠ Deben ser exactamente las mismas claves que las de User Secrets.** La aplicación en desarrollo y el contenedor `web` comparten el mismo volumen de datos (`datos-postgres`). Con claves distintas, lo que cifra uno no lo puede leer el otro y nadie puede iniciar sesión.
+
+La aplicación queda en `http://localhost:8080` (o en el puerto de `WEB_PUERTO`), publicada solo en `127.0.0.1`. Sirve HTTP: en un despliegue real, el TLS lo pone el proxy de delante.
+
+`docker compose down` la para conservando los datos. `docker compose down -v` **borra** la base de datos.
+
+---
+
+## Documentación
+
+| Documento | Qué contiene |
+|---|---|
+| [AGENTS.md](AGENTS.md) | Instrucciones para cualquier agente de IA que trabaje en el repositorio. Es el fichero canónico |
+| [CLAUDE.md](CLAUDE.md) | Lo específico de Claude Code; importa `AGENTS.md` |
+| [docs/TFM_PlataformaReservas_SPEC.md](docs/TFM_PlataformaReservas_SPEC.md) | Especificación: alcance, decisiones cerradas (D-xx), entidades, rutas, fases y criterios de aceptación |
+| [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) | Calendario, puntos de control y estado de avance |
+| [docs/casos-uso.md](docs/casos-uso.md) | Los 24 casos de uso (CU-xx) y sus flujos |
+| [docs/reglas-negocio.md](docs/reglas-negocio.md) | Las reglas de negocio numeradas (RN-xx), con su origen y la prueba que las verifica |
+| [docs/modelo-dominio.md](docs/modelo-dominio.md) | Agregados, invariantes, objetos de valor y comportamiento |
+| [docs/arquitectura.md](docs/arquitectura.md) | Proyectos, casos de uso, autenticación, cifrado, persistencia, eventos, endurecimiento y riesgos |
+| [docs/base-datos.md](docs/base-datos.md) | Esquema de PostgreSQL y lo que lo protege |
+| [docs/motor-disponibilidad.md](docs/motor-disponibilidad.md) | Cómo se calculan los huecos libres |
+| [docs/concurrencia.md](docs/concurrencia.md) | Por qué no pueden existir dos reservas solapadas |
+| [docs/seguridad.md](docs/seguridad.md) | OWASP Top 10, medidas de endurecimiento, modelo de amenaza y limitaciones |
+| [docs/pruebas.md](docs/pruebas.md) | Estrategia, organización y evidencia de las pruebas |
+| [docs/fases/](docs/fases/) | Especificación e informe de revisión de cada fase |
 
 ---
 
