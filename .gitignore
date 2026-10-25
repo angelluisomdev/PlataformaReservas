@@ -1,8 +1,5 @@
-
 bin/
 obj/
 appsettings.*.local.json
-
-
 .
 .env
