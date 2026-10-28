@@ -6,8 +6,9 @@
 #   docker compose down -v            parar y BORRAR los datos
 #
 #   .env (no se versiona): POSTGRES_USER, POSTGRES_PASSWORD, CIFRADO_CLAVE_DATOS, CIFRADO_CLAVE_BUSQUEDA
-#   y, opcionales, POSTGRES_PUERTO y WEB_PUERTO. Las claves de cifrado son las mismas que las de
-#   User Secrets: web y desarrollo comparten datos-postgres (docs/arquitectura.md §11.4, R-9).
+#   y, opcionales, POSTGRES_PUERTO, WEB_PUERTO, DEMO_HABILITADO, DEMO_CLAVE y CORREO_* (README, apartado 6).
+#   Las claves de cifrado son las mismas que las de User Secrets: web y desarrollo comparten
+#   datos-postgres (docs/arquitectura.md §11.4, R-9).
 
 services:
   postgres:
@@ -41,6 +42,13 @@ services:
       Cifrado__ClaveBusqueda: ${CIFRADO_CLAVE_BUSQUEDA:?Falta CIFRADO_CLAVE_BUSQUEDA en .env}
       BaseDatos__MigrarAlArrancar: "true"
       Correo__UrlBase: http://localhost:${WEB_PUERTO:-8080}
+      DatosDemostracion__Habilitado: ${DEMO_HABILITADO:-false}
+      DatosDemostracion__Clave: ${DEMO_CLAVE:-}
+      Correo__Habilitado: ${CORREO_HABILITADO:-false}
+      Correo__Servidor: ${CORREO_SERVIDOR:-}
+      Correo__Puerto: ${CORREO_PUERTO:-587}
+      Correo__Usuario: ${CORREO_USUARIO:-}
+      Correo__Contrasena: ${CORREO_CONTRASENA:-}
     ports:
       - "127.0.0.1:${WEB_PUERTO:-8080}:8080"
     volumes:

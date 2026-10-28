@@ -177,8 +177,12 @@ Las reglas de negocio están numeradas (`RN-xx`) y cada prueba cita la regla que
 
 ### Requisitos
 
-- SDK de **.NET 10**
-- **Docker** con Docker Compose
+Hay dos formas de arrancarla:
+
+| Para qué | Qué necesitas | Apartados |
+|---|---|---|
+| **Usarla o enseñarla**, todo en contenedores | Solo **Docker** con Docker Compose | [6. Todo en contenedores](#6-todo-en-contenedores-solo-docker-sin-net) |
+| **Desarrollar** | SDK de **.NET 10** y **Docker** | 1 a 5 |
 
 ### 1. Base de datos local
 
@@ -255,6 +259,8 @@ dotnet run --project src/PlataformaReservas.Web
 
 En desarrollo, la aplicación aplica las migraciones y siembra los datos iniciales al arrancar, así que `dotnet ef database update` solo hace falta si quieres migrar sin ejecutarla.
 
+**Datos de demostración en desarrollo:** se activan con `DatosDemostracion:Habilitado` (`true`) y `DatosDemostracion:Clave` en User Secrets. Qué crean y con qué cuentas se entra, en el apartado [6.4](#64-datos-de-demostración-opcional).
+
 ### 5. Correo (opcional)
 
 **Por defecto no se envía ningún correo**: `Correo:Habilitado` vale `false` en `appsettings.json` y los correos solo se registran en el log. Así, olvidarse de configurarlo nunca envía nada por descuido.
@@ -284,27 +290,159 @@ Ten en cuenta que:
 
 Detalle del diseño en [docs/arquitectura.md](docs/arquitectura.md) §13.
 
-### 6. Todo en contenedores
+### 6. Todo en contenedores (solo Docker, sin .NET)
 
-Para levantar la aplicación entera sin instalar .NET, solo con Docker:
+Este apartado se puede seguir sin haber leído los anteriores: levanta la aplicación y la base de datos **sin instalar .NET**.
 
-```bash
-docker compose up --build
-```
+#### 6.1. Qué necesitas
 
-El servicio `web` necesita, además de las variables de la base de datos, estas otras en el mismo `.env`:
+- **Docker** con Docker Compose (en Windows y macOS, Docker Desktop).
+- El código del repositorio.
+
+En desarrollo, los secretos se guardan con `dotnet user-secrets`, pero ese almacén vive en el perfil de tu usuario y .NET solo lo lee al ejecutar con `dotnet run`. **El contenedor no lo ve.** Dentro del contenedor toda la configuración llega como **variables de entorno**, que Docker Compose lee de un fichero `.env` en la raíz del repositorio.
+
+#### 6.2. El fichero `.env`
+
+Crea un fichero llamado `.env` en la raíz del repositorio (junto a `docker-compose.yml`). **No se versiona:** está en `.gitignore`. Plantilla completa:
 
 ```text
-CIFRADO_CLAVE_DATOS=<el mismo valor que Cifrado:ClaveDatos de User Secrets>
-CIFRADO_CLAVE_BUSQUEDA=<el mismo valor que Cifrado:ClaveBusqueda de User Secrets>
-WEB_PUERTO=<opcional; 8080 por defecto>
+# Base de datos (obligatorias)
+POSTGRES_USER=<usuario de la base de datos>
+POSTGRES_PASSWORD=<contraseña de la base de datos>
+# POSTGRES_PUERTO=5432          # opcional: puerto de PostgreSQL en tu máquina
+
+# Claves de cifrado de los datos personales (obligatorias; ver 6.3)
+CIFRADO_CLAVE_DATOS=<clave 1 en base64>
+CIFRADO_CLAVE_BUSQUEDA=<clave 2 en base64, distinta de la 1>
+
+# Puerto de la aplicación (opcional)
+# WEB_PUERTO=8080
+
+# Datos de demostración (opcional; ver 6.4)
+# DEMO_HABILITADO=true
+# DEMO_CLAVE=<contraseña común de todos los usuarios de demostración>
+
+# Correo (opcional; ver 6.5). Por defecto no se envía nada
+# CORREO_HABILITADO=true
+# CORREO_SERVIDOR=<servidor SMTP>
+# CORREO_PUERTO=587
+# CORREO_USUARIO=<usuario SMTP>
+# CORREO_CONTRASENA=<contraseña SMTP>
 ```
 
-> **⚠ Deben ser exactamente las mismas claves que las de User Secrets.** La aplicación en desarrollo y el contenedor `web` comparten el mismo volumen de datos (`datos-postgres`). Con claves distintas, lo que cifra uno no lo puede leer el otro y nadie puede iniciar sesión.
+No hace falta escribir la cadena de conexión: la composición la monta sola con `POSTGRES_USER` y `POSTGRES_PASSWORD`.
 
-La aplicación queda en `http://localhost:8080` (o en el puerto de `WEB_PUERTO`), publicada solo en `127.0.0.1`. Sirve HTTP: en un despliegue real, el TLS lo pone el proxy de delante.
+**Si vienes de desarrollo**, esta es la equivalencia con lo que tenías en User Secrets (en las variables de entorno, el `:` de las claves de .NET se escribe `__`, y la composición hace esa traducción por ti):
 
-`docker compose down` la para conservando los datos. `docker compose down -v` **borra** la base de datos.
+| En User Secrets (desarrollo) | En el `.env` (Docker) | ¿Obligatoria? |
+|---|---|---|
+| `ConnectionStrings:PlataformaReservas` | `POSTGRES_USER` y `POSTGRES_PASSWORD` | Sí |
+| `Cifrado:ClaveDatos` | `CIFRADO_CLAVE_DATOS` | Sí |
+| `Cifrado:ClaveBusqueda` | `CIFRADO_CLAVE_BUSQUEDA` | Sí |
+| `DatosDemostracion:Habilitado` | `DEMO_HABILITADO` (`false` si no la pones) | No |
+| `DatosDemostracion:Clave` | `DEMO_CLAVE` | Solo con datos de demostración |
+| `Correo:Habilitado` | `CORREO_HABILITADO` (`false` si no la pones) | No |
+| `Correo:Servidor`, `Correo:Puerto` | `CORREO_SERVIDOR`, `CORREO_PUERTO` (587 si no la pones) | Solo con correo |
+| `Correo:Usuario`, `Correo:Contrasena` | `CORREO_USUARIO`, `CORREO_CONTRASENA` | Solo con correo |
+| `Correo:UrlBase` | Nada: la composición la fija a `http://localhost:<WEB_PUERTO>` | — |
+
+> **Evita el carácter `$` en los valores del `.env`.** Docker Compose lo interpreta como el inicio de una variable y lo sustituye.
+
+#### 6.3. Generar las claves de cifrado sin .NET
+
+Los datos personales (nombre, correo y teléfono) se guardan cifrados. Hacen falta **dos claves distintas** de 32 bytes en base64. Ejecuta **dos veces** cualquiera de estos comandos y pega cada resultado en su variable:
+
+| Dónde | Comando |
+|---|---|
+| Con el propio Docker | `docker run --rm alpine sh -c "head -c 32 /dev/urandom \| base64"` |
+| Git Bash, Linux o macOS | `openssl rand -base64 32` |
+| PowerShell | `$b = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); [Convert]::ToBase64String($b)` |
+
+No uses nunca generadores de claves web. **Si falta alguna clave, no mide 32 bytes o son iguales, la aplicación no arranca.**
+
+> **⚠ Perder las claves equivale a perder las cuentas.** Guarda una copia de las dos **fuera de la máquina**, por ejemplo en un gestor de contraseñas. Si las cambias con datos ya creados, lo cifrado con las anteriores no se puede leer y nadie podrá iniciar sesión: tendrás que empezar desde cero (6.6).
+>
+> **Si también usas `dotnet run`**, tienen que ser **exactamente las mismas** que las de User Secrets, porque la aplicación en desarrollo y el contenedor comparten la misma base de datos (`datos-postgres`).
+
+Ciclo de vida completo de las claves en [docs/arquitectura.md](docs/arquitectura.md) §8.5, "Gestión de la clave".
+
+#### 6.4. Datos de demostración (opcional)
+
+Para tener la aplicación llena de datos al primer arranque, añade al `.env`:
+
+```text
+DEMO_HABILITADO=true
+DEMO_CLAVE=<contraseña común>
+```
+
+**Qué se crea:**
+
+| Qué | Cuántos |
+|---|---|
+| Empresas | Unas 62, en 10 ciudades: Madrid, Barcelona, Valencia, Sevilla, Málaga, Zaragoza, Bilbao, Salamanca, Valladolid y Granada |
+| Profesionales y servicios | De 3 a 5 profesionales y de 4 a 6 servicios por empresa, con horario de lunes a viernes |
+| Clientes | 11 |
+| Reservas | Unas 1 700: pasadas (completadas y canceladas) y futuras (confirmadas), sin enviar ningún correo |
+
+**`DEMO_CLAVE` es la contraseña de todos los usuarios de demostración.**
+
+- Tiene que cumplir la política de contraseñas: **al menos 8 caracteres, con una mayúscula, una minúscula, un número y un símbolo**, por ejemplo `Demo-2026!`. Si no la cumple, el contenedor `web` no arranca y el log dice "No se pudo sembrar…".
+- **Sin `DEMO_CLAVE`** se crean las empresas, pero ningún usuario ni reserva.
+
+**Cuentas para entrar**, todas con `DEMO_CLAVE`:
+
+| Perfil | Correo |
+|---|---|
+| Clientes | `cliente@demo.example` y de `cliente01@demo.example` a `cliente10@demo.example` |
+| Propietarios | `propietario.<categoría>-<ciudad>@demo.example`, por ejemplo `propietario.peluqueria-madrid@demo.example` o `propietario.fisioterapia-barcelona@demo.example` |
+| Propietarios de las dos empresas originales | `propietario.barberia@demo.example` y `propietaria.estetica@demo.example` |
+
+**Volver a arrancar no duplica nada.** Las fechas de las reservas se calculan desde el día del **primer** arranque. Si pasan semanas y quieres que vuelva a haber citas próximas, empieza desde cero (6.6).
+
+#### 6.5. Correo (opcional)
+
+Por defecto **no se envía ningún correo**: solo se registran en el log. Para verlos sin que salgan a internet, usa una bandeja de pruebas como **Mailtrap** y pon en el `.env` los datos SMTP que te dé:
+
+```text
+CORREO_HABILITADO=true
+CORREO_SERVIDOR=<servidor SMTP de Mailtrap>
+CORREO_PUERTO=587
+CORREO_USUARIO=<usuario>
+CORREO_CONTRASENA=<contraseña>
+```
+
+El usuario y la contraseña SMTP son secretos: van solo en el `.env`, que no se versiona. Más detalles del correo en el apartado 5.
+
+#### 6.6. Arrancar, comprobar y parar
+
+| Comando | Para qué |
+|---|---|
+| `docker compose up -d --build` | Construye la imagen y arranca la base de datos y la aplicación en segundo plano. El primer arranque tarda unos minutos |
+| `docker compose ps` | Comprueba que los dos servicios están en marcha y que `postgres` aparece como `healthy` |
+| `docker compose logs -f web` | Sigue el arranque de la aplicación: migraciones y siembra de datos |
+| `docker compose down` | Para todo **conservando** los datos |
+| `docker compose down -v` | Para todo y **borra** la base de datos |
+
+La aplicación queda en **`http://localhost:8080`** (o en el puerto de `WEB_PUERTO`), publicada solo en `127.0.0.1`. Al arrancar crea las tablas y las categorías, y, si los activaste, los datos de demostración.
+
+**Empezar desde cero** (base de datos vacía, datos de demostración recién sembrados):
+
+```bash
+docker compose down -v
+docker compose up -d --build
+```
+
+Sirve HTTP. En un despliegue real, el TLS lo pone un proxy delante de la aplicación.
+
+#### 6.7. Problemas frecuentes
+
+| Síntoma | Causa y solución |
+|---|---|
+| `Falta CIFRADO_CLAVE_DATOS en .env` (o la variable que sea) | El `.env` no existe, no está en la raíz o le falta esa variable |
+| El contenedor `web` se reinicia una y otra vez | Mira `docker compose logs web`. Lo habitual: una clave que no mide 32 bytes, las dos claves iguales o una `DEMO_CLAVE` que no cumple la política |
+| Nadie puede iniciar sesión | Las claves de cifrado cambiaron después de crear los datos. Vuelve a las anteriores o empieza desde cero |
+| `port is already allocated` | El puerto está ocupado: cambia `WEB_PUERTO` o `POSTGRES_PUERTO` en el `.env` |
+| No aparecen datos de demostración | `DEMO_HABILITADO` no es `true`, o la base ya existía de antes: los datos se siembran al arrancar, pero las reservas solo en empresas que aún no tienen ninguna |
 
 ---
 

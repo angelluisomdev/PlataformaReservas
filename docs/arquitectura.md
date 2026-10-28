@@ -1074,6 +1074,7 @@ En la **Fase 18** se añaden el `Dockerfile` y el servicio `web`, con `depends_o
 | User Secrets de `Web` | `ConnectionStrings:PlataformaReservas` con la misma contraseña | **No**: vive en el perfil del usuario, fuera del repositorio | **El desarrollador** (Fase 5) |
 | User Secrets de `Web` | `Cifrado:ClaveDatos` y `Cifrado:ClaveBusqueda`, 32 bytes en base64 cada una y distintas (§8.5) | **No** | **El desarrollador** (Fase 6), con copia en un gestor de contraseñas (R-9) |
 | `.env` (Fase 18) | `CIFRADO_CLAVE_DATOS` y `CIFRADO_CLAVE_BUSQUEDA`, obligatorias para el servicio `web`, y, opcional, `WEB_PUERTO` (por defecto 8080). **⚠ R-9: las mismas claves que `Cifrado:*` de User Secrets.** `web` y la aplicación en desarrollo comparten el volumen `datos-postgres`; con claves distintas, los datos personales quedan ilegibles y nadie puede iniciar sesión | **No** (`.gitignore` y `.dockerignore`) | **El desarrollador** |
+| `.env` (opcionales) | `DEMO_HABILITADO` y `DEMO_CLAVE` (datos de demostración; por defecto, desactivados) y `CORREO_HABILITADO`, `CORREO_SERVIDOR`, `CORREO_PUERTO`, `CORREO_USUARIO` y `CORREO_CONTRASENA` (correo; por defecto, sin envío, R-7). La composición los pasa a `web` como `DatosDemostracion__*` y `Correo__*`. Plantilla completa en el README, apartado 6.2 | **No** (`.gitignore` y `.dockerignore`) | **El desarrollador** |
 
 ```bash
 dotnet user-secrets init --project src/PlataformaReservas.Web
