@@ -464,6 +464,7 @@ Sirve HTTP. En un despliegue real, el TLS lo pone un proxy delante de la aplicac
 | [docs/seguridad.md](docs/seguridad.md) | OWASP Top 10, medidas de endurecimiento, modelo de amenaza y limitaciones |
 | [docs/pruebas.md](docs/pruebas.md) | Estrategia, organización y evidencia de las pruebas |
 | [docs/fases/](docs/fases/) | Especificación e informe de revisión de cada fase |
+| [docs/presentacion-PlataformaReservas.pptx](docs/presentacion-PlataformaReservas.pptx) | Diapositivas del proyecto |
 
 ---
 
